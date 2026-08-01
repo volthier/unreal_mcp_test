@@ -1,0 +1,32 @@
+# Unreal Engine generated files and folders
+Binaries/
+Config/overridestatus.ini
+DerivedDataCache/
+Intermediate/
+Saved/
+Saved/Crashes/
+
+# Xcode
+*.xcworkspace
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
