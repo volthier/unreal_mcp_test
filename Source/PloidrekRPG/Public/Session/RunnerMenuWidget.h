@@ -39,6 +39,25 @@ enum class ERunnerOptionAction : uint8
     Excluir
 };
 
+/** Os quatro botoes da tela de escolha. */
+UENUM()
+enum class ERunnerMenuButton : uint8
+{
+    Principal,
+    Secundario,
+    Terceiro,
+    Quarto
+};
+
+/**
+ * Para onde um botao LEVA neste passo. Devolve o proprio passo quando ele nao navega (o que o botao
+ * FAZ fica no handler: entrar, apagar, confirmar).
+ *
+ * Existe porque o bug do "Criar novo" que fazia logout nasceu exatamente aqui: o rotulo mudou e a
+ * navegacao nao. Sendo pura, a tabela tem teste (Runner.UI.NavegacaoDosBotoes).
+ */
+PLOIDREKRPG_API ERunnerMenuStep RunnerDestinoDoBotao(ERunnerMenuButton Botao, ERunnerMenuStep Passo, bool bTemPersonagens);
+
 /** O que a janela de confirmacao executa se o jogador confirmar. */
 UENUM()
 enum class ERunnerConfirmAction : uint8

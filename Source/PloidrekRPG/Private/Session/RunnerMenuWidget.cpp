@@ -229,6 +229,36 @@ URunnerSession* URunnerMenuWidget::GetSession() const
     return nullptr;
 }
 
+ERunnerMenuStep RunnerDestinoDoBotao(const ERunnerMenuButton Botao, const ERunnerMenuStep Passo, const bool bTemPersonagens)
+{
+    switch (Botao)
+    {
+        case ERunnerMenuButton::Principal:
+            // Na criacao o botao principal leva para a aba da classe (e de la cria).
+            return Passo == ERunnerMenuStep::Chassis ? ERunnerMenuStep::Class : Passo;
+
+        case ERunnerMenuButton::Secundario:
+            switch (Passo)
+            {
+                case ERunnerMenuStep::CreateAccount:   return ERunnerMenuStep::Login;
+                case ERunnerMenuStep::CharacterSelect: return ERunnerMenuStep::Chassis;   // "Criar novo"
+                case ERunnerMenuStep::Chassis:         return bTemPersonagens ? ERunnerMenuStep::CharacterSelect
+                                                                             : ERunnerMenuStep::Login;
+                case ERunnerMenuStep::Class:           return ERunnerMenuStep::Chassis;   // "Voltar ao chassi"
+                default:                               return Passo;
+            }
+
+        case ERunnerMenuButton::Terceiro:
+            // "Criar conta nova (local)" no login; "Excluir" na lista (que abre a confirmacao).
+            return Passo == ERunnerMenuStep::Login ? ERunnerMenuStep::CreateAccount : Passo;
+
+        case ERunnerMenuButton::Quarto:
+            // "Voltar" na lista de Runners = sair da conta.
+            return Passo == ERunnerMenuStep::CharacterSelect ? ERunnerMenuStep::Login : Passo;
+    }
+    return Passo;
+}
+
 void URunnerTabButton::HandleClicked()
 {
     if (Owner)
@@ -558,8 +588,13 @@ void URunnerMenuWidget::GoToStep(const ERunnerMenuStep NewStep)
             SetStatus(TEXT("Escolha um nome de conta e uma senha (conta local, para desenvolvimento)."));
             break;
         case ERunnerMenuStep::CharacterSelect:
-            SetStatus(TEXT("Escolha um dos seus Runners, ou crie um novo."));
+        {
+            URunnerSession* Sessao = GetSession();
+            SetStatus(Sessao && !Sessao->HasSavedCharacters()
+                ? TEXT("Esta conta ainda nao tem Runner. Use \"Criar novo\".")
+                : TEXT("Clique num Runner para marcar e use Jogar."));
             break;
+        }
         case ERunnerMenuStep::Chassis:
             SetStatus(TEXT("O chassi e o corpo: ele define a sua vocacao. Os Clyffen estao extintos."));
             break;
@@ -829,30 +864,20 @@ void URunnerMenuWidget::OnSecondaryClicked()
             break;
 
         case ERunnerMenuStep::Chassis:
+        case ERunnerMenuStep::Class:
+        case ERunnerMenuStep::CharacterSelect:
         {
-            // "Voltar" na criacao: quem ja tem Runner volta para a lista; quem nao tem, sai.
+            // A navegacao e a tabela pura; o handler so cuida do efeito colateral.
             URunnerSession* Sessao = GetSession();
-            if (Sessao && Sessao->HasSavedCharacters())
+            const ERunnerMenuStep Destino = RunnerDestinoDoBotao(ERunnerMenuButton::Secundario, CurrentStep,
+                                                                 Sessao && Sessao->HasSavedCharacters());
+            if (Destino == ERunnerMenuStep::Chassis)
             {
                 IdPersonagemSelecionado.Reset();
-                GoToStep(ERunnerMenuStep::CharacterSelect);
-                break;
             }
-            GoToStep(ERunnerMenuStep::Login);
+            GoToStep(Destino);
             break;
         }
-
-        case ERunnerMenuStep::Class:
-            GoToStep(ERunnerMenuStep::Chassis);
-            break;
-
-        case ERunnerMenuStep::CharacterSelect:
-            if (URunnerSession* Session = GetSession())
-            {
-                Session->Logout();
-            }
-            GoToStep(ERunnerMenuStep::Login);
-            break;
 
         case ERunnerMenuStep::Confirm:
             // Cancelar nao apaga nem cria nada: volta para o passo que pediu a confirmacao.
@@ -1234,14 +1259,15 @@ void URunnerMenuWidget::SelecionarPersonagem(const FString& CharacterId, const b
 void URunnerMenuWidget::OnQuartoClicked()
 {
     // O quarto botao so existe na lista de Runners: Voltar = sair da conta.
-    if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+    const ERunnerMenuStep Destino = RunnerDestinoDoBotao(ERunnerMenuButton::Quarto, CurrentStep, true);
+    if (Destino == ERunnerMenuStep::Login)
     {
         if (URunnerSession* Session = GetSession())
         {
             Session->Logout();
         }
         IdPersonagemSelecionado.Reset();
-        GoToStep(ERunnerMenuStep::Login);
+        GoToStep(Destino);
     }
 }
 
@@ -1577,11 +1603,14 @@ void URunnerMenuWidget::ConstruirTelaDeRunners(TArray<UWidget*>& AlvosDoVeu)
         return;
     }
 
-    // Sem nada marcado ainda, o primeiro da conta e o escolhido.
+    // A marcacao tem que existir de verdade: ela pode ter sido apagada (o id fica preso apontando
+    // para um Runner que nao esta mais na conta) e a lista ficaria sem ninguem marcado.
     const TArray<FRunnerSavedCharacter> Meus = Session->GetSavedCharacters();
-    if (IdPersonagemSelecionado.IsEmpty() && Meus.Num() > 0)
+    const bool bMarcacaoValida = Meus.ContainsByPredicate(
+        [this](const FRunnerSavedCharacter& Salvo) { return Salvo.CharacterId == IdPersonagemSelecionado; });
+    if (!bMarcacaoValida)
     {
-        IdPersonagemSelecionado = Meus[0].CharacterId;
+        IdPersonagemSelecionado = Meus.Num() > 0 ? Meus[0].CharacterId : FString();
     }
 
     UHorizontalBox* Colunas = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());

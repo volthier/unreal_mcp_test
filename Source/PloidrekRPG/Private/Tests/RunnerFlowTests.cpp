@@ -2,6 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Session/RunnerMenuWidget.h"
+
 #include "Engine/AssetManager.h"
 
 #include "Data/RunnerCharacterFactory.h"
@@ -204,6 +206,51 @@ bool FRunnerAssetManagerRuleTest::RunTest(const FString& Parameters)
     const FPrimaryAssetRules Regras = UAssetManager::Get().GetPrimaryAssetRules(IdDoTipo);
 
     TestFalse(TEXT("o Config declara a regra de GameFeatureData (Config/DefaultGame.ini)"), Regras.IsDefault());
+    return true;
+}
+
+
+/**
+ * A tabela de navegacao dos botoes. Nasceu de um bug de verdade: o botao "Criar novo" na lista de
+ * Runners continuava fazendo logout e mandava o jogador para o login em vez da criacao (o rotulo
+ * tinha mudado e a navegacao nao). Sendo funcao pura, agora isso tem teste.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerMenuRoutingTest, "Runner.UI.NavegacaoDosBotoes",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerMenuRoutingTest::RunTest(const FString& Parameters)
+{
+    // Lista de Runners: Jogar nao navega, Criar novo vai para a criacao, Voltar sai para o login.
+    TestTrue(TEXT("Jogar fica na lista"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Principal, ERunnerMenuStep::CharacterSelect, true) == ERunnerMenuStep::CharacterSelect);
+    TestTrue(TEXT("Criar novo leva para a criacao (era o bug: ia para o login)"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Secundario, ERunnerMenuStep::CharacterSelect, true) == ERunnerMenuStep::Chassis);
+    TestTrue(TEXT("Voltar sai para o login"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Quarto, ERunnerMenuStep::CharacterSelect, true) == ERunnerMenuStep::Login);
+
+    // Criacao: Voltar volta para a lista quando a conta tem Runner, senao sai.
+    TestTrue(TEXT("Voltar com Runner volta para a lista"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Secundario, ERunnerMenuStep::Chassis, true) == ERunnerMenuStep::CharacterSelect);
+    TestTrue(TEXT("Voltar sem Runner sai para o login"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Secundario, ERunnerMenuStep::Chassis, false) == ERunnerMenuStep::Login);
+    TestTrue(TEXT("Voltar ao chassi na aba da classe"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Secundario, ERunnerMenuStep::Class, true) == ERunnerMenuStep::Chassis);
+
+    // Criar personagem leva da aba do chassi para a da classe; na classe ele cria (nao navega).
+    TestTrue(TEXT("Criar personagem vai para a aba da classe"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Principal, ERunnerMenuStep::Chassis, false) == ERunnerMenuStep::Class);
+    TestTrue(TEXT("Criar personagem na aba da classe fica"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Principal, ERunnerMenuStep::Class, false) == ERunnerMenuStep::Class);
+
+    // Login: o terceiro botao abre a criacao de conta local.
+    TestTrue(TEXT("criar conta local sai do login"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Terceiro, ERunnerMenuStep::Login, false) == ERunnerMenuStep::CreateAccount);
+    TestTrue(TEXT("voltar da criacao de conta"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Secundario, ERunnerMenuStep::CreateAccount, false) == ERunnerMenuStep::Login);
+
+    // Excluir na lista abre a confirmacao: nao navega sozinho.
+    TestTrue(TEXT("Excluir nao navega sozinho"),
+        RunnerDestinoDoBotao(ERunnerMenuButton::Terceiro, ERunnerMenuStep::CharacterSelect, true) == ERunnerMenuStep::CharacterSelect);
     return true;
 }
 
