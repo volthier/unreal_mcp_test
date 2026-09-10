@@ -37,6 +37,8 @@ void AMenuGameMode::BeginPlay()
 
 	Menu->AddToViewport();
 
+	UE_LOG(LogTemp, Log, TEXT("AMenuGameMode: menu de entrada aberto (%s)."), *WidgetClass->GetName());
+
 	// Menu e UI pura: cursor visivel e input no widget.
 	PlayerController->bShowMouseCursor = true;
 	FInputModeUIOnly InputMode;

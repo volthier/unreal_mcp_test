@@ -43,5 +43,11 @@ void AAFGameMode::ApplySessionProfileTo(APlayerController* PlayerController)
 	if (ARunnerCharacter* Runner = Cast<ARunnerCharacter>(PlayerController->GetPawn()))
 	{
 		Runner->ApplyProfile(Profile);
+		UE_LOG(LogTemp, Log, TEXT("AFGameMode: ficha aplicada no pawn (chassi %s / classe %s)."),
+			*Profile.ChassisId.ToString(), *Profile.ClassId.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AFGameMode: ficha existe mas o pawn nao e um RunnerCharacter."));
 	}
 }
