@@ -253,6 +253,21 @@ O que mudou na tela: painel de aço escuro com contorno de latão (caixa arredon
 cabeçalho com a marca + o passo atual e um filete de metal, botão principal âmbar com texto escuro, secundário
 em ferro, terceiro em cobre, campos escuros que acendem no foco, e respiro entre os elementos.
 
+### O véu (redesenhado depois do primeiro Play)
+
+O primeiro desenho lia como **lanterna presa no mouse**: as nuvens eram fracas (α 0,05) e o que aparecia era o foco no
+cursor. O que se quer é nuvem voando e sombreando como névoa de guerra. Agora:
+
+| Antes | Agora |
+|---|---|
+| 9 fios em Lissajous em volta do centro, α 0,05 | **14 nuvens** com direção, velocidade (0,012–0,048 telas/s) e tamanho (170–430 px) próprios, **dando a volta pelas bordas** — sempre entrando por algum lado |
+| tudo clareava | **4 em cada 10 sombreiam** (silhueta α 0,17) e o resto é vapor que clareia (α 0,10): é o sombreamento que faz ler como névoa de guerra, principalmente sobre o botão âmbar e o cenário |
+| disco perfeito | cada nuvem é desenhada em **3 lóbulos**, então o contorno é de nuvem, não de círculo |
+| foco forte no cursor (α 0,55) | dispersão **maior e mais macia** (raio ×1,9 com α 0,13 + ×1,15 com α 0,24 + núcleo de forja 0,20): abre no cursor sem virar lanterna |
+
+A semente das nuvens é fixa (`FRandomStream(20260913)`): o céu do menu é sempre o mesmo desenho, quem muda é o tempo —
+nada de nuvem piscando ao trocar de passo.
+
 ### O véu
 
 `URunnerVeilWidget` é um efeito de **interface** em C++/Slate — não é material nem asset: o gradiente radial é
@@ -299,8 +314,21 @@ A captura usa `PrimitiveRenderMode = UseShowOnlyList` com **só este ator** na l
 imagem, mas a luz do mundo (sol e skylight) continua valendo. A tinta do chassi entra pelo **mesmo material de
 overlay do jogo** (parâmetro `AccentColor`), então a cor na vitrine é a cor que o pawn vai ter em campo.
 
-O widget mostra isso num **monitor**: moldura de aço com filete de latão (`230 × 300`). Passear o mouse pela lista
-já troca o corpo (`OnHovered` da linha) — é assim que dá para comparar chassi sem clicar.
+O widget mostra isso num **monitor**: moldura de aço com filete de latão, na proporção da captura (4:5). Passear o
+mouse pela lista já troca o corpo (`OnHovered` da linha) — é assim que dá para comparar chassi sem clicar.
+
+**O painel acompanha a tela** (68% da largura e 92% da altura, com limites): o tamanho fixo cortava o botão de criar
+em tela mais baixa. Dentro dele, a vitrine e a lista recebem frações dessa altura e **rolam por dentro** quando o
+conteúdo não cabe, então o status e os três botões ficam sempre alcançáveis.
+
+**Dois defeitos que só o Play mostrou** (e o conserto de cada um):
+
+| O que se via | Causa |
+|---|---|
+| um **bonecão gigante flutuando** no cenário do menu (junto com um pedaço de chão) | o ator nasceu com o componente raiz em mobilidade **Static**, então o `SetActorLocation` do `BeginPlay` falhou calado e o corpo ficou no **origem do mundo** — em cima da câmera do menu. Conserto: raiz e corpo **Movable** (a rotação também dependia disso), e o ator já nasce em **Z = −50.000** (abaixo do mapa: nem o céu pode mostrá-lo) |
+| o corpo **escuro e cortado** no monitor | captura quadrada (512²) esticada numa caixa 4:5, e luz fraca demais | captura agora é **4:5** como o monitor, e a vitrine tem luz própria de verdade |
+
+A luz da vitrine vive no **canal de iluminação 1** e o corpo responde aos canais 0 e 1: a vitrine fica bem iluminada e o **mapa do menu não muda de luz** (nem no modo imagem nem em execução).
 
 > ⚠️ **O que a automação não alcança:** a captura só existe com o renderizador ligado, então nenhum teste headless
 > vê essa imagem. O código é verificado por compilação e pelo resto da suíte; **o visual é o seu Play que julga**.

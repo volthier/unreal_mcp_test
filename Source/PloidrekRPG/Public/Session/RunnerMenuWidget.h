@@ -147,6 +147,14 @@ protected:
     /** O veu de vapor que circula pela tela e acompanha o mouse. */
     UPROPERTY() TObjectPtr<class URunnerVeilWidget> Veil;
 
+    /** Altura da vitrine neste passo (acompanha a tela). */
+    float AlturaDaVitrine = 260.f;
+    /** Altura da lista de opcoes (a lista rola dentro dela). */
+    float AlturaDaLista = 170.f;
+
+    /** Slot do painel: o tamanho e recalculado conforme a tela a cada passo. */
+    UPROPERTY() TObjectPtr<class UCanvasPanelSlot> PanelSlotDoPainel;
+
     /** O "monitor" que mostra o corpo escolhido. */
     UPROPERTY() TObjectPtr<class UImage> PreviewImage;
 

@@ -8,6 +8,7 @@ Uso:  python3 Tools/preview/veil_preview.py [saida.png]
 """
 
 import math
+import random
 import struct
 import sys
 import zlib
@@ -165,14 +166,30 @@ def main():
     tempo = 12.7
     mouse = (int(LARGURA * 0.62), int(ALTURA * 0.46))
 
-    # 1. fios circulando pela tela
-    for i in range(9):
-        fase = i * 2.399963
-        alcance = 0.30 + 0.16 * math.sin(tempo * 0.35 + fase * 1.7)
-        cx = LARGURA * 0.5 + math.cos(tempo * 0.21 + fase) * LARGURA * alcance
-        cy = ALTURA * 0.5 + math.sin(tempo * 0.17 + fase * 1.3) * ALTURA * alcance
-        raio = 120 + 70 * math.sin(tempo * 0.5 + fase)
-        desenhar_neblina(buf, cx, cy, raio, VAPOR, 0.05)
+    # 1. NUVENS que voam e dão a volta pelas bordas (semente fixa, como no C++).
+    sorteio = random.Random(20260913)
+    margem = 520.0
+    faixa_x, faixa_y = LARGURA + margem * 2, ALTURA + margem * 2
+    for _ in range(14):
+        base = (sorteio.uniform(-0.2, 1.2), sorteio.uniform(-0.15, 1.15))
+        inclinacao = sorteio.uniform(-0.30, 0.30)
+        sentido = 1.0 if sorteio.random() < 0.5 else -1.0
+        direcao = (math.cos(inclinacao) * sentido, math.sin(inclinacao))
+        velocidade = sorteio.uniform(0.012, 0.048)
+        escala = sorteio.uniform(170, 430)
+        fase = sorteio.uniform(0, 120)
+        escurece = sorteio.random() < 0.4
+
+        x = (base[0] * faixa_x + direcao[0] * velocidade * faixa_x * tempo) % faixa_x
+        y = (base[1] * faixa_y + direcao[1] * velocidade * faixa_y * tempo) % faixa_y
+        cx, cy = x - margem, y - margem
+        raio = escala * (1.0 + 0.14 * math.sin(tempo * 0.22 + fase))
+        cor = SILHUETA if escurece else VAPOR
+        alfa = 0.17 if escurece else 0.10
+
+        desenhar_neblina(buf, cx, cy, raio, cor, alfa)
+        desenhar_neblina(buf, cx + raio * 0.58, cy - raio * 0.20, raio * 0.70, cor, alfa)
+        desenhar_neblina(buf, cx - raio * 0.52, cy + raio * 0.24, raio * 0.62, cor, alfa)
 
     # 2. fios rondando os botoes (raio maior que o botao: a neblina passa por cima)
     for indice, (bx0, by0, bx1, by1) in enumerate(botoes):
@@ -182,14 +199,13 @@ def main():
         raioy = (by1 - by0) * 0.5 + 40
         vx = cax + math.cos(tempo * 0.9 + fase) * raiox
         vy = cay + math.sin(tempo * 1.25 + fase) * raioy
-        desenhar_neblina(buf, vx, vy, 95 + 35 * math.sin(tempo * 0.8 + fase), VAPOR, 0.10)
+        desenhar_neblina(buf, vx, vy, 95 + 35 * math.sin(tempo * 0.8 + fase), VAPOR, 0.07)
 
-    # 3. a bola de dispersao do mouse: sempre, grande e cheia
-    # Tres camadas, como no C++: halo largo, neblina cheia e o calor da forja no centro.
-    respiro = 1.0 + 0.05 * math.sin(tempo * 1.7)
-    desenhar_neblina(buf, mouse[0], mouse[1], 300 * 1.35 * respiro, VAPOR, 0.20)
-    desenhar_neblina(buf, mouse[0], mouse[1], 300 * respiro, VAPOR, 0.55)
-    desenhar_neblina(buf, mouse[0], mouse[1], 300 * 0.42 * respiro, FORJA, 0.38)
+    # 3. A dispersao abre no cursor: grande e macia (não um foco de lanterna).
+    respiro = 1.0 + 0.06 * math.sin(tempo * 1.3)
+    desenhar_neblina(buf, mouse[0], mouse[1], 300 * 1.90 * respiro, VAPOR, 0.13)
+    desenhar_neblina(buf, mouse[0], mouse[1], 300 * 1.15 * respiro, VAPOR, 0.24)
+    desenhar_neblina(buf, mouse[0], mouse[1], 300 * 0.50 * respiro, FORJA, 0.20)
 
     escrever_png(saida, buf)
     print("previa escrita em " + saida)

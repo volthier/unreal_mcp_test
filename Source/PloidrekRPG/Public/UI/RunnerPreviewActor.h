@@ -57,7 +57,10 @@ protected:
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<USkeletalMeshComponent> Corpo;
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<USceneCaptureComponent2D> Captura;
 
-    /** Preenchimento fraco: o mundo ja ilumina; isto so evita o preto chapado no lado da sombra. */
+    /** Luz principal da vitrine (canal 1: so o corpo da vitrine responde). */
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<UDirectionalLightComponent> LuzPrincipal;
+
+    /** Preenchimento frio do lado oposto (canal 1). */
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<UDirectionalLightComponent> LuzDePreenchimento;
 
     UPROPERTY(Transient) TObjectPtr<UTextureRenderTarget2D> RenderTarget;

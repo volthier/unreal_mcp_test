@@ -12,8 +12,6 @@ namespace
     /** Lado da textura de neblina gerada em memoria (potencia de dois, com folga para o degrade). */
     constexpr int32 TamanhoDaTextura = 128;
 
-    /** Angulo aureo: espalha as fases dos fios sem que eles se sobreponham no mesmo lugar. */
-    constexpr float AnguloAureo = 2.399963f;
 
     /** Converte qualquer vetor de Slate (FVector2D ou FVector2f) para FVector2f, sem ambiguidade. */
     template <typename TVetor>
@@ -37,6 +35,33 @@ void URunnerVeilWidget::NativeOnInitialized()
     SetVisibility(ESlateVisibility::HitTestInvisible);
 
     CriarNeblina();
+    CriarNuvens();
+}
+
+void URunnerVeilWidget::CriarNuvens()
+{
+    // Semente fixa: o ceu do menu e sempre o mesmo desenho, quem muda e o tempo.
+    FRandomStream Sorteio(20260913);
+
+    Nuvens.Reset();
+    for (int32 Indice = 0; Indice < NumeroDeNuvens; ++Indice)
+    {
+        FRunnerNuvemDeVeu Nuvem;
+        Nuvem.Base = FVector2f(Sorteio.FRandRange(-0.2f, 1.2f), Sorteio.FRandRange(-0.15f, 1.15f));
+
+        // Quase horizontal, com duas direcoes: nuvens cruzando em sentidos opostos dao profundidade.
+        const float Inclinacao = Sorteio.FRandRange(-0.30f, 0.30f);
+        const float Sentido = Sorteio.FRand() < 0.5f ? 1.f : -1.f;
+        Nuvem.Direcao = FVector2f(FMath::Cos(Inclinacao) * Sentido, FMath::Sin(Inclinacao));
+
+        Nuvem.Velocidade = Sorteio.FRandRange(0.012f, 0.048f);
+        Nuvem.Escala = Sorteio.FRandRange(170.f, 430.f);
+        Nuvem.Fase = Sorteio.FRandRange(0.f, 120.f);
+        // Quatro em cada dez sombreiam: e o que faz a interface ler como sob nevoa, nao sob luz.
+        Nuvem.bEscurece = Sorteio.FRand() < 0.4f;
+
+        Nuvens.Add(Nuvem);
+    }
 }
 
 void URunnerVeilWidget::SetTargets(const TArray<UWidget*>& InTargets)
@@ -155,30 +180,52 @@ int32 URunnerVeilWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Al
     {
         // Tres camadas: halo largo (assenta a bola no fundo), neblina cheia e o calor da forja no
         // centro. Os pesos foram calibrados na previa (Tools/preview/veil_preview.py).
-        const float Respiro = 1.f + 0.05f * FMath::Sin(Tempo * 1.7f);
-        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Cursor, RaioDaBolaDoMouse * 1.35f * Respiro,
-                        RunnerPalette::Vapor(0.20f * Intensidade));
-        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Cursor, RaioDaBolaDoMouse * Respiro,
-                        RunnerPalette::Vapor(0.55f * Intensidade));
-        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Cursor, RaioDaBolaDoMouse * 0.42f * Respiro,
-                        RunnerPalette::HorizonteForja(0.38f * Intensidade));
+        const float Respiro = 1.f + 0.06f * FMath::Sin(Tempo * 1.3f);
+        // A dispersao abre no cursor, mas macia e larga: o veu nao pode virar foco de lanterna.
+        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Cursor, RaioDaBolaDoMouse * 1.90f * Respiro,
+                        RunnerPalette::Vapor(0.13f * Intensidade));
+        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Cursor, RaioDaBolaDoMouse * 1.15f * Respiro,
+                        RunnerPalette::Vapor(0.24f * Intensidade));
+        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Cursor, RaioDaBolaDoMouse * 0.50f * Respiro,
+                        RunnerPalette::HorizonteForja(0.20f * Intensidade));
     }
 
     // ------------------------------------------------------------------
-    // 2. Fios que circulam pela tela (a nebula de fundo).
+    // 2. NUVENS que voam pela tela e dão a volta pelas bordas. Cada uma tem direção, tamanho e
+    //    peso próprios; quatro em cada dez SOMBREIAM a interface (névoa de guerra) e o resto
+    //    clareia de leve. É o movimento delas — não o cursor — que dá a leitura de nuvem.
     // ------------------------------------------------------------------
-    const FVector2f MeioDaTela(Tamanho.X * 0.5f, Tamanho.Y * 0.5f);
-    for (int32 Indice = 0; Indice < NumeroDeFios; ++Indice)
+    const float Margem = 520.f;
+    const float FaixaX = Tamanho.X + Margem * 2.f;
+    const float FaixaY = Tamanho.Y + Margem * 2.f;
+
+    for (const FRunnerNuvemDeVeu& Nuvem : Nuvens)
     {
-        const float Fase = Indice * AnguloAureo;
-        const float Alcance = 0.30f + 0.16f * FMath::Sin(Tempo * 0.35f + Fase * 1.7f);
+        float X = FMath::Fmod(Nuvem.Base.X * FaixaX + Nuvem.Direcao.X * Nuvem.Velocidade * FaixaX * Tempo, FaixaX);
+        if (X < 0.f)
+        {
+            X += FaixaX;
+        }
+        float Y = FMath::Fmod(Nuvem.Base.Y * FaixaY + Nuvem.Direcao.Y * Nuvem.Velocidade * FaixaY * Tempo, FaixaY);
+        if (Y < 0.f)
+        {
+            Y += FaixaY;
+        }
 
-        const FVector2f Centro(MeioDaTela.X + FMath::Cos(Tempo * 0.21f + Fase) * Tamanho.X * Alcance,
-                               MeioDaTela.Y + FMath::Sin(Tempo * 0.17f + Fase * 1.3f) * Tamanho.Y * Alcance);
-        const float Raio = 120.f + 70.f * FMath::Sin(Tempo * 0.5f + Fase);
+        const FVector2f CentroDaNuvem(X - Margem, Y - Margem);
+        const float RespiroDaNuvem = 1.f + 0.14f * FMath::Sin(Tempo * 0.22f + Nuvem.Fase);
+        const float Raio = Nuvem.Escala * RespiroDaNuvem;
 
-        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Centro, Raio,
-                        RunnerPalette::Vapor(0.05f * Intensidade));
+        const FLinearColor Cor = Nuvem.bEscurece
+            ? RunnerPalette::Silhueta(0.17f * Intensidade)
+            : RunnerPalette::Vapor(0.10f * Intensidade);
+
+        // Três lóbulos: dá contorno de nuvem em vez de um disco perfeito.
+        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, CentroDaNuvem, Raio, Cor);
+        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry,
+                        CentroDaNuvem + FVector2f(Raio * 0.58f, -Raio * 0.20f), Raio * 0.70f, Cor);
+        DesenharNeblina(OutDrawElements, Camada, AllottedGeometry,
+                        CentroDaNuvem + FVector2f(-Raio * 0.52f, Raio * 0.24f), Raio * 0.62f, Cor);
     }
 
     // ------------------------------------------------------------------
@@ -212,7 +259,7 @@ int32 URunnerVeilWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Al
         const float Raio = 95.f + 35.f * FMath::Sin(Tempo * 0.8f + Fase);
 
         DesenharNeblina(OutDrawElements, Camada, AllottedGeometry, Volta, Raio,
-                        RunnerPalette::Vapor(0.10f * Intensidade));
+                        RunnerPalette::Vapor(0.07f * Intensidade));
         ++IndiceAlvo;
     }
 

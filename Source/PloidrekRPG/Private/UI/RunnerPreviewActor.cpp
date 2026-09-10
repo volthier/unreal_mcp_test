@@ -14,8 +14,8 @@
 
 namespace
 {
-    /** Bem longe e bem alto: o jogador nunca ve o boneco no cenario do menu. */
-    const FVector LocalDaVitrine(0.f, 0.f, 50000.f);
+    /** Bem longe e ABAIXO do mapa: o jogador nunca ve o boneco no cenario do menu. */
+    const FVector LocalDaVitrine(0.f, 0.f, -50000.f);
 
     /** Altura da camera em relacao ao corpo (o manequim vai de -90 a +90). */
     constexpr float AlturaDaCamera = 20.f;
@@ -28,13 +28,22 @@ ARunnerPreviewActor::ARunnerPreviewActor()
     USceneComponent* Raiz = CreateDefaultSubobject<USceneComponent>(TEXT("Raiz"));
     SetRootComponent(Raiz);
 
+    // Mobilidade MOVEL: sem isso o ator nasce estatico, o SetActorLocation do BeginPlay nao
+    // funciona e o boneco fica parado no ORIGEM do mundo — em cima da camera do menu (foi o
+    // "bonecao voando" do primeiro teste).
+    Raiz->SetMobility(EComponentMobility::Movable);
+
     Corpo = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Corpo"));
     Corpo->SetupAttachment(Raiz);
+    Corpo->SetMobility(EComponentMobility::Movable);
     Corpo->SetRelativeLocation(FVector(0.f, 0.f, -90.f)); // mesmo ajuste do pawn do jogo
     Corpo->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
     Corpo->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     Corpo->SetAnimationMode(EAnimationMode::AnimationSingleNode);
     Corpo->bCastDynamicShadow = true;
+
+    // O corpo responde a luz do mundo (canal 0) E a luz da vitrine (canal 1).
+    Corpo->SetLightingChannels(true, true, false);
 
     Captura = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Captura"));
     Captura->SetupAttachment(Raiz);
@@ -52,25 +61,39 @@ ARunnerPreviewActor::ARunnerPreviewActor()
     Captura->ShowFlags.SetMotionBlur(false);
     Captura->ShowFlags.SetAntiAliasing(true);
 
+    // As luzes da vitrine vivem no CANAL 1: iluminam o corpo dela e nao mexem no mapa do menu
+    // (que usa o canal 0). E o que permite ter luz propria sem estragar o cenario.
+    LuzPrincipal = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("LuzPrincipal"));
+    LuzPrincipal->SetupAttachment(Raiz);
+    LuzPrincipal->SetMobility(EComponentMobility::Movable);
+    LuzPrincipal->SetRelativeRotation(FRotator(-24.f, 150.f, 0.f));
+    LuzPrincipal->SetIntensity(3.2f);
+    LuzPrincipal->SetLightColor(RunnerPalette::LuzDeRua(1.f));
+    LuzPrincipal->SetCastShadows(false);
+    LuzPrincipal->SetLightingChannels(false, true, false);
+
     LuzDePreenchimento = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("LuzDePreenchimento"));
     LuzDePreenchimento->SetupAttachment(Raiz);
     LuzDePreenchimento->SetMobility(EComponentMobility::Movable);
-    LuzDePreenchimento->SetRelativeRotation(FRotator(-20.f, -35.f, 0.f));
-    LuzDePreenchimento->SetIntensity(0.6f);
+    LuzDePreenchimento->SetRelativeRotation(FRotator(-8.f, -40.f, 0.f));
+    LuzDePreenchimento->SetIntensity(1.4f);
     LuzDePreenchimento->SetLightColor(RunnerPalette::Ciano(1.f));
     LuzDePreenchimento->SetCastShadows(false);
+    LuzDePreenchimento->SetLightingChannels(false, true, false);
 }
 
 void ARunnerPreviewActor::BeginPlay()
 {
     Super::BeginPlay();
 
-    // A vitrine vive no ceu, fora do alcance da vista do menu.
+    // A vitrine vive ABAIXO do mapa: de baixo do chao a camera do menu nao tem como ver o corpo.
     SetActorLocation(LocalDaVitrine);
 
     if (!RenderTarget)
     {
-        RenderTarget = UKismetRenderingLibrary::CreateRenderTarget2D(this, LadoDaCaptura, LadoDaCaptura,
+        // Retrato 4:5, o mesmo do monitor: captura quadrada em caixa retangular esticaria o corpo.
+        RenderTarget = UKismetRenderingLibrary::CreateRenderTarget2D(this, LadoDaCaptura,
+                                                                   FMath::RoundToInt(LadoDaCaptura * 1.25f),
                                                                    RTF_RGBA8, FLinearColor::Black);
     }
 
@@ -108,6 +131,8 @@ void ARunnerPreviewActor::SetPreview(const TSoftObjectPtr<USkeletalMesh>& InMesh
             if (OverlayDinamico)
             {
                 OverlayDinamico->SetVectorParameterValue(TEXT("AccentColor"), Accent);
+                // Opacidade parcial: na vitrine a tinta precisa deixar ler o volume do corpo.
+                OverlayDinamico->SetScalarParameterValue(TEXT("AccentOpacity"), 0.45f);
                 Corpo->SetOverlayMaterial(OverlayDinamico);
             }
         }

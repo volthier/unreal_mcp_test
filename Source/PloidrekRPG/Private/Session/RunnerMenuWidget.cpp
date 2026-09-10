@@ -21,6 +21,8 @@
 #include "Data/RunnerClassData.h"
 #include "Data/RunnerGameSettings.h"
 #include "Data/RunnerRules.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
 #include "UI/RunnerPreviewActor.h"
@@ -217,7 +219,8 @@ void URunnerMenuWidget::NativeOnInitialized()
     UCanvasPanelSlot* PanelSlot = Canvas->AddChildToCanvas(Panel);
     PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f));
     PanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-    PanelSlot->SetSize(FVector2D(680.f, 620.f));
+    PanelSlot->SetSize(FVector2D(820.f, 760.f));
+    PanelSlotDoPainel = PanelSlot;
 
     RootBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
     Panel->SetContent(RootBox);
@@ -279,6 +282,22 @@ void URunnerMenuWidget::RebuildLayout()
 
     URunnerSession* Session = GetSession();
 
+    // O painel acompanha a tela: tamanho fixo cortava o botao de criar em tela mais baixa.
+    FVector2D Tela(1920.f, 1080.f);
+    if (GEngine && GEngine->GameViewport)
+    {
+        GEngine->GameViewport->GetViewportSize(Tela);
+    }
+    const float AlturaDoPainel = FMath::Clamp(Tela.Y * 0.92f, 560.f, 1040.f);
+    if (PanelSlotDoPainel)
+    {
+        PanelSlotDoPainel->SetSize(FVector2D(FMath::Clamp(Tela.X * 0.68f, 740.f, 1180.f), AlturaDoPainel));
+    }
+
+    // A vitrine e a lista dividem a altura do painel: em tela baixa tudo encolhe, nada some.
+    AlturaDaVitrine = FMath::Clamp(AlturaDoPainel * 0.40f, 168.f, 290.f);
+    AlturaDaLista = FMath::Clamp(AlturaDoPainel * 0.24f, 96.f, 185.f);
+
     // Cabecalho: marca em latao polido, o passo atual em letra miuda e um filete de metal.
     Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("PLOIDREKRPG"), 26.f, RunnerPalette::LataoPolido()), 2.f);
 
@@ -312,7 +331,11 @@ void URunnerMenuWidget::RebuildLayout()
             SlotDaInfo->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
             SlotDaInfo->SetVerticalAlignment(VAlign_Fill);
         }
-        Adicionar(RootBox, Topo, 14.f);
+        // Altura propria: a ficha rola dentro dela e nao empurra os botoes para fora do painel.
+        USizeBox* CaixaDoTopo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+        CaixaDoTopo->SetHeightOverride(AlturaDaVitrine);
+        CaixaDoTopo->AddChild(Topo);
+        Adicionar(RootBox, CaixaDoTopo, 12.f);
 
         // O que a vitrine mostra ao abrir o passo.
         FName ChassiDaInfo = NAME_None;
@@ -429,7 +452,11 @@ void URunnerMenuWidget::RebuildLayout()
         || CurrentStep == ERunnerMenuStep::CharacterSelect)
     {
         UScrollBox* List = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
-        Adicionar(RootBox, List, 12.f);
+        USizeBox* CaixaDaLista = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+        CaixaDaLista->SetHeightOverride(AlturaDaLista);
+        CaixaDaLista->AddChild(List);
+        Adicionar(RootBox, CaixaDaLista, 10.f);
+        AlvosDoVeu.Add(CaixaDaLista);
 
         auto AdicionarOpcao = [this, List, &AlvosDoVeu](const FString& Rotulo, const FName Id,
                                                         const ERunnerOptionAction Acao, const FString& CharacterId)
@@ -476,9 +503,14 @@ void URunnerMenuWidget::RebuildLayout()
                 OptionBindings.Add(BindingApagar);
                 BotaoApagar->OnClicked.AddDynamic(BindingApagar, &URunnerOptionButton::HandleClicked);
 
-                if (UHorizontalBoxSlot* SlotDoApagar = Cast<UHorizontalBoxSlot>(LinhaDaOpcao->AddChild(BotaoApagar)))
+                // Largura fixa: sem isto o texto do Runner empurrava o botao para fora da linha.
+                USizeBox* LarguraDoApagar = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+                LarguraDoApagar->SetWidthOverride(86.f);
+                LarguraDoApagar->AddChild(BotaoApagar);
+                if (UHorizontalBoxSlot* SlotDoApagar = Cast<UHorizontalBoxSlot>(LinhaDaOpcao->AddChild(LarguraDoApagar)))
                 {
                     SlotDoApagar->SetPadding(FMargin(8.f, 0.f, 0.f, 0.f));
+                    SlotDoApagar->SetVerticalAlignment(VAlign_Fill);
                 }
                 AlvosDoVeu.Add(BotaoApagar);
             }
@@ -493,8 +525,8 @@ void URunnerMenuWidget::RebuildLayout()
             {
                 for (const FRunnerSavedCharacter& Salvo : Session->GetSavedCharacters())
                 {
-                    AdicionarOpcao(Salvo.GetDisplayName() + TEXT("   [") + Salvo.CharacterId + TEXT("]")
-                                       + TEXT("   ") + Salvo.ChassisId.ToString() + TEXT(" · ") + Salvo.ClassId.ToString(),
+                    // O rotulo e o nome do Runner: chassi e classe ficam na ficha, ao lado.
+                    AdicionarOpcao(Salvo.GetDisplayName() + TEXT("   [") + Salvo.CharacterId + TEXT("]"),
                                    FName(*Salvo.CharacterId), ERunnerOptionAction::Jogar, Salvo.CharacterId);
                 }
             }
@@ -982,7 +1014,9 @@ UWidget* URunnerMenuWidget::CriarBlocoDaVitrine()
         {
             FActorSpawnParameters Parametros;
             Parametros.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-            Vitrine = Mundo->SpawnActor<ARunnerPreviewActor>(ARunnerPreviewActor::StaticClass(), FTransform::Identity, Parametros);
+            // Nasce ja longe e abaixo do mapa: o corpo nunca aparece no cenario do menu.
+            const FTransform OndeNasce(FVector(0.f, 0.f, -50000.f));
+            Vitrine = Mundo->SpawnActor<ARunnerPreviewActor>(ARunnerPreviewActor::StaticClass(), OndeNasce, Parametros);
 
             // Enquadramento vem do Project Settings (nada fixo no codigo).
             if (Vitrine)
@@ -1003,8 +1037,9 @@ UWidget* URunnerMenuWidget::CriarBlocoDaVitrine()
     Moldura->SetPadding(FMargin(6.f));
 
     USizeBox* TamanhoDoMonitor = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-    TamanhoDoMonitor->SetWidthOverride(230.f);
-    TamanhoDoMonitor->SetHeightOverride(300.f);
+    const float AlturaDoMonitor = FMath::Max(140.f, AlturaDaVitrine - 16.f);
+    TamanhoDoMonitor->SetWidthOverride(AlturaDoMonitor * 0.8f); // a captura e 4:5, como a caixa
+    TamanhoDoMonitor->SetHeightOverride(AlturaDoMonitor);
 
     PreviewImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
     if (Vitrine && Vitrine->GetRenderTarget())
@@ -1012,7 +1047,8 @@ UWidget* URunnerMenuWidget::CriarBlocoDaVitrine()
         // O alvo de captura e UTextureRenderTarget2D (nao UTexture2D), entao o pincel e montado na mao.
         FSlateBrush PincelDoMonitor;
         PincelDoMonitor.SetResourceObject(Vitrine->GetRenderTarget());
-        PincelDoMonitor.ImageSize = FVector2D(230.f, 300.f);
+        const float AlturaDoPincel = FMath::Max(140.f, AlturaDaVitrine - 16.f);
+        PincelDoMonitor.ImageSize = FVector2D(AlturaDoPincel * 0.8f, AlturaDoPincel);
         PincelDoMonitor.DrawAs = ESlateBrushDrawType::Image;
         PreviewImage->SetBrush(PincelDoMonitor);
     }

@@ -9,6 +9,26 @@ class UTexture2D;
 class UWidget;
 
 /**
+ * Uma nuvem do veu: viaja na propria direcao, com tamanho e peso proprios.
+ * As que escurecem sombreiam a interface (nevoa de guerra); as de vapor clareiam de leve.
+ */
+struct FRunnerNuvemDeVeu
+{
+    /** Posicao inicial, em fracao da tela (pode comecar fora dela). */
+    FVector2f Base = FVector2f::ZeroVector;
+    /** Direcao normalizada do voo. */
+    FVector2f Direcao = FVector2f(1.f, 0.f);
+    /** Velocidade em telas por segundo. */
+    float Velocidade = 0.02f;
+    /** Raio base, em pixels. */
+    float Escala = 260.f;
+    /** Deslocamento de tempo (para as nuvens nao respirarem juntas). */
+    float Fase = 0.f;
+    /** true = sombreia; false = vapor que clareia. */
+    bool bEscurece = false;
+};
+
+/**
  * O veu: neblina de vapor que circula pela tela, ronda os botoes disponiveis (chegando a passar
  * por cima deles) e se abre numa bola grande de dispersao ao redor do mouse.
  *
@@ -40,8 +60,8 @@ public:
     /** Raio da bola de dispersao que sempre acompanha o mouse, em pixels. */
     UPROPERTY(EditAnywhere, Category = "Veu") float RaioDaBolaDoMouse = 300.f;
 
-    /** Quantos fios de neblina circulam pela tela. */
-    UPROPERTY(EditAnywhere, Category = "Veu") int32 NumeroDeFios = 9;
+    /** Quantas nuvens voam pela tela. */
+    UPROPERTY(EditAnywhere, Category = "Veu") int32 NumeroDeNuvens = 14;
 
     /** Velocidade da circulacao. */
     UPROPERTY(EditAnywhere, Category = "Veu") float Velocidade = 1.f;
@@ -49,6 +69,9 @@ public:
 private:
     /** Cria a textura do degrade radial uma vez, na construcao (nao no meio do desenho). */
     void CriarNeblina();
+
+    /** Sorteia as nuvens (semente fixa: o ceu e sempre o mesmo, so o tempo muda). */
+    void CriarNuvens();
 
     const FSlateBrush* GetNeblinaBrush() const { return NeblinaTexture ? &NeblinaBrush : nullptr; }
 
@@ -58,4 +81,5 @@ private:
     UPROPERTY(Transient) TObjectPtr<UTexture2D> NeblinaTexture;
     FSlateBrush NeblinaBrush;
     UPROPERTY() TArray<TObjectPtr<UWidget>> Alvos;
+    TArray<FRunnerNuvemDeVeu> Nuvens;
 };
