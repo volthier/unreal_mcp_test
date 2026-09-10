@@ -25,6 +25,13 @@ public:
     /** Material usado para tingir o corpo com a cor do chassi (parametro AccentColor). */
     UPROPERTY(config, EditAnywhere, Category = "Corpo") TSoftObjectPtr<UMaterialInterface> AccentOverlayMaterial;
 
+    /**
+     * Host:porta do Epic Dev Auth Tool no DEV (Project Settings > Game > Runner > EOS).
+     * E o valor que o campo 1 do login preenche e que o texto de ajuda mostra. A porta e escolhida
+     * no proprio tool; trocar aqui evita mexer em codigo.
+     */
+    UPROPERTY(config, EditAnywhere, Category = "EOS") FString EOSDevAuthHost;
+
     // Animacoes do corpo (pacote do manequim da engine) enquanto nao existe AnimBP proprio.
     UPROPERTY(config, EditAnywhere, Category = "Animacao") TSoftObjectPtr<UAnimSequenceBase> IdleAnim;
     UPROPERTY(config, EditAnywhere, Category = "Animacao") TSoftObjectPtr<UAnimSequenceBase> WalkAnim;

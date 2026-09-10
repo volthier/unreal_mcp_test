@@ -164,7 +164,19 @@ menu agora mostra como rótulo, em vez de "conta/senha"):
 **Estado do ambiente DEV (13/set, verificado):** host `localhost:8081` · credencial `dev-volt` · `lsof` confirma
 `TCP *:8081 (LISTEN)` e o endpoint responde. Ou seja: **do lado do tool está pronto**; falta só o Play.
 
-### 5b.1 Se o tool **não abrir** no macOS (aconteceu aqui)
+**Se o campo vier vazio** (foi o que aconteceu no primeiro Play), o SDK reclama e o log diz exatamente por quê:
+
+```
+LogEOSSDK: Error: LogEOSAuth: Invalid parameter EOS_Auth_Credentials.Id reason: must not be null or empty
+LogOnline: Warning: EOS: Login(0) failed with EOS result code (EOS_InvalidParameters)
+```
+
+Dois consertos, os dois feitos: o campo 1 agora **já vem preenchido** com o host de
+*Project Settings > Game > Runner > **EOS** > EOSDevAuthHost* (padrão `localhost:8081`) e o
+`URunnerSession::LoginWithEOS` **recusa** o login incompleto com uma mensagem que diz o que digitar, em vez de
+deixar o erro cru do SDK chegar ao jogador.
+
+## 5b.1 Se o tool **não abrir** no macOS (aconteceu aqui)
 
 São **três** sintomas encadeados, todos do macOS — nada a ver com o EOS:
 
@@ -190,6 +202,28 @@ pgrep -fl EOS_DevAuthTool
 Se o `xattr` responder `Operation not permitted`: quem está rodando o comando não tem permissão de escrita fora do
 projeto — rode você mesmo no Terminal, ou autorize o modo amplo.
 
+## 5c. Regras de conta (a tela de **criar conta**)
+
+Pedido do autor: os campos obrigatórios e a regra da senha. A regra vive em **C++**, numa função pura
+(`URunnerSession::ValidateNewAccount`) — a tela só mostra o texto que ela devolve, e o teste cobre caso a caso
+(`Runner.Sessao.RegrasDeConta`).
+
+| Campo | Regra | Mensagem quando falha |
+|---|---|---|
+| **E-mail** | um `@`, sem espaços, com domínio de ponto | *Informe um e-mail valido (ex.: nome@dominio.com).* |
+| **Nome de usuário** | 3+ caracteres, só letras, números, `_` ou `-` | *O nome de usuario precisa de pelo menos 3 caracteres.* |
+| **Senha** | 8+ caracteres, com **maiúscula**, **minúscula** e **caractere especial** | *A senha precisa de pelo menos uma letra maiuscula.* (idem para minúscula e especial) |
+| **Confirmar senha** | igual à senha | *A confirmacao precisa ser igual a senha.* |
+
+**Modelo da conta local:** o **e-mail é a identidade** (a chave em `Saved/RunnerAccounts.tsv`) e o **nome de usuário
+é o que aparece na tela**. O arquivo passou a ter três colunas (`email ⇥ hash ⇥ nome de usuario`); contas antigas
+de duas colunas continuam sendo lidas. Entrar é sempre pelo e-mail; personagens salvos passam a ser
+chaveados pela identidade da conta (e-mail no local, conta EOS na plataforma).
+
+> **Limite honesto:** não há verificação de e-mail nem recuperação de senha, e o hash é MD5 (grau de
+> desenvolvimento). Quem valida identidade de verdade é o EOS/EAS — a conta local existe para o slice rodar
+> offline. Registrado no backlog como `MIG-010`.
+
 ## 6. Roadmap por rodadas
 
 | Rodada | Entrega | Verificação |
@@ -209,9 +243,11 @@ projeto — rode você mesmo no Terminal, ou autorize o modo amplo.
 1. Abrir o projeto e dar Play em NewMap
    └ o WorldSettings do mapa aponta para BP_MenuGameMode (pai: AMenuGameMode)
      └ abre URUNNERMENUWIDGET: tela de login
-2. Entrar: "Entrar (EOS — Dev Auth)"           [URunnerSession::LoginWithEOS("developer", conta, credencial)]
+2. Entrar: "Entrar com o EOS (Dev Auth Tool)"  [LoginWithEOS("developer", host:porta, credencial)]
+   └ o campo 1 ja vem preenchido com EOSDevAuthHost (Project Settings > Game > Runner > EOS)
    └ a Auth Interface do EOS responde → OnLoginComplete → a sessão toma o nome da conta EOS
-   └ sem EOS: "Criar conta nova (local)" / entrar local   [CreateAccount / Login]
+   └ sem EOS: "Criar conta nova (local)" → formulário com e-mail, nome de usuario, senha e
+     confirmacao, validado por ValidateNewAccount (ver §5c)   [CreateAccount / Login]
 3. JANELA PÓS-LOGIN: "escolha seu Runner"
    ├── conta COM personagens → lista (R-01, R-02, ...) → jogar com o escolhido  [SelectSavedCharacter]
    │     └ pula direto para o passo 6 (chassi e classe vêm da ficha salva)

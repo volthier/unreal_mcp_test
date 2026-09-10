@@ -11,6 +11,17 @@
 class UDataTable;
 class FUniqueNetId;
 
+/** Uma conta local: o e-mail e a identidade (chave) e o nome de usuario e o que aparece na tela. */
+USTRUCT()
+struct PLOIDREKRPG_API FRunnerLocalAccount
+{
+    GENERATED_BODY()
+
+    UPROPERTY() FString Email;
+    UPROPERTY() FString UserName;
+    UPROPERTY() FString PasswordHash;
+};
+
 /** Um personagem salvo na conta — e o que aparece na tela de selecao depois do login. */
 USTRUCT(BlueprintType)
 struct PLOIDREKRPG_API FRunnerSavedCharacter
@@ -52,11 +63,25 @@ public:
     FRunnerLoginComplete OnLoginComplete;
 
     // ---------- Conta local (dev / offline) ----------
-    UFUNCTION(BlueprintCallable, Category = "Runner|Sessao")
-    bool CreateAccount(const FString& Account, const FString& Password, FString& OutError);
+    /**
+     * Regras de uma conta nova, sem tocar em estado: a tela mostra o erro e o teste cobra a regra.
+     * E-mail: um "@", sem espacos e com dominio de ponto (nome@dominio.com).
+     * Nome de usuario: 3+ caracteres, so letras, numeros, _ ou -.
+     * Senha: 8+ caracteres com maiuscula, minuscula e caractere especial; confirmacao igual a senha.
+     * OutError recebe a PRIMEIRA regra que falhou, ja no texto que o jogador le.
+     */
+    UFUNCTION(BlueprintPure, Category = "Runner|Sessao")
+    static bool ValidateNewAccount(const FString& Email, const FString& UserName,
+                                   const FString& Password, const FString& ConfirmPassword,
+                                   FString& OutError);
 
+    /** Cria a conta local: o e-mail e a chave, o nome de usuario e o que aparece na tela. */
     UFUNCTION(BlueprintCallable, Category = "Runner|Sessao")
-    bool Login(const FString& Account, const FString& Password, FString& OutError);
+    bool CreateAccount(const FString& Email, const FString& UserName, const FString& Password, FString& OutError);
+
+    /** Entra na conta local pelo e-mail e senha. */
+    UFUNCTION(BlueprintCallable, Category = "Runner|Sessao")
+    bool Login(const FString& Email, const FString& Password, FString& OutError);
 
     UFUNCTION(BlueprintCallable, Category = "Runner|Sessao")
     void Logout();
@@ -64,8 +89,13 @@ public:
     UFUNCTION(BlueprintPure, Category = "Runner|Sessao")
     bool IsLoggedIn() const { return bLoggedIn; }
 
+    /** Nome que aparece na tela: nome de usuario no login local, nickname no EOS. */
     UFUNCTION(BlueprintPure, Category = "Runner|Sessao")
     FString GetAccountName() const { return AccountName; }
+
+    /** E-mail da conta local (vazio quando o login foi pelo EOS). */
+    UFUNCTION(BlueprintPure, Category = "Runner|Sessao")
+    FString GetAccountEmail() const { return AccountEmail; }
 
     // ---------- Login de plataforma (Epic Online Services) ----------
     /** O subsistema EOS existe neste build? (depende dos plugins e do Config) */
@@ -159,12 +189,13 @@ private:
     static FString HashPassword(const FString& Password);
 
     const FRunnerSavedCharacter* FindSavedCharacter(const FString& CharacterId) const;
-    void CompleteLogin(const FString& Account);
+    /** Key = identidade da conta (e-mail no local, conta EOS na plataforma); DisplayName = o que aparece. */
+    void CompleteLogin(const FString& Key, const FString& DisplayName);
 
     /** Callback do login assincrono do EOS. */
     void HandleEOSLoginComplete(int32 LocalUserNumber, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
 
-    UPROPERTY() TMap<FString, FString> Accounts;
+    UPROPERTY() TMap<FString, FRunnerLocalAccount> Accounts;
     UPROPERTY() TArray<FRunnerSavedCharacter> SavedCharacters;
 
     FRunnerCharacterProfile ActiveProfile;
@@ -172,6 +203,9 @@ private:
     bool bAccountsLoaded = false;
     bool bLoggedIn = false;
     FString AccountName;
+    FString AccountEmail;
+    /** Identidade da conta: e-mail no local, conta EOS na plataforma. E a chave dos personagens salvos. */
+    FString AccountKey;
     FName SelectedChassis;
     FName SelectedClass;
 };

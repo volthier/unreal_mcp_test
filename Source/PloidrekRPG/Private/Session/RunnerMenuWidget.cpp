@@ -11,6 +11,7 @@
 #include "Components/VerticalBox.h"
 #include "Kismet/GameplayStatics.h"
 #include "Data/RunnerChassisData.h"
+#include "Data/RunnerGameSettings.h"
 #include "Data/RunnerClassData.h"
 #include "Session/RunnerSession.h"
 #include "Session/RunnerSessionSubsystem.h"
@@ -92,6 +93,8 @@ void URunnerMenuWidget::RebuildLayout()
     StatusText = nullptr;
     AccountBox = nullptr;
     PasswordBox = nullptr;
+    UserNameBox = nullptr;
+    ConfirmBox = nullptr;
 
     URunnerSession* Session = GetSession();
 
@@ -117,10 +120,14 @@ void URunnerMenuWidget::RebuildLayout()
     }
     RootBox->AddChild(Title);
 
-    // Com EOS ativo, os dois campos sao os do Dev Auth Tool: campo 1 = host:porta onde o tool
-    // esta ouvindo, campo 2 = o NOME da credencial criada nele (nao e senha). Sem EOS, sao a
-    // conta e a senha locais.
+    // Com EOS ativo, os campos do login sao os do Dev Auth Tool: campo 1 = onde o tool esta
+    // ouvindo, campo 2 = o NOME da credencial criada nele (nao e senha). Sem EOS, e o e-mail e a
+    // senha da conta local. A tela de criar conta sempre pede os dados da conta local.
     const bool bCamposDoDevAuth = CurrentStep == ERunnerMenuStep::Login && Session && Session->IsEOSAvailable();
+
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    const FString HostDevAuth = (Ajustes && !Ajustes->EOSDevAuthHost.IsEmpty())
+        ? Ajustes->EOSDevAuthHost : FString(TEXT("localhost:8081"));
 
     if (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount)
     {
@@ -129,18 +136,54 @@ void URunnerMenuWidget::RebuildLayout()
             UTextBlock* AjudaEOS = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
             AjudaEOS->SetColorAndOpacity(FSlateColor(TextColor));
             AjudaEOS->SetAutoWrapText(true);
-            AjudaEOS->SetText(FText::FromString(TEXT("Dev Auth Tool: campo 1 = host:porta do tool (ex.: localhost:6547); campo 2 = o nome que voce deu a credencial. O tool precisa estar rodando.")));
+            AjudaEOS->SetText(FText::FromString(FString::Printf(
+                TEXT("Dev Auth Tool: campo 1 = onde o tool esta ouvindo (%s); campo 2 = o nome que voce deu a credencial. O tool precisa estar rodando."),
+                *HostDevAuth)));
             RootBox->AddChild(AjudaEOS);
         }
+        else if (CurrentStep == ERunnerMenuStep::CreateAccount)
+        {
+            UTextBlock* AjudaConta = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+            AjudaConta->SetColorAndOpacity(FSlateColor(TextColor));
+            AjudaConta->SetAutoWrapText(true);
+            AjudaConta->SetText(FText::FromString(TEXT("Senha: 8+ caracteres, com uma maiuscula, uma minuscula e um caractere especial (ex.: ! @ # $ %).")));
+            RootBox->AddChild(AjudaConta);
+        }
 
+        // Campo 1: o host do Dev Auth (pre-preenchido) ou o e-mail da conta.
         AccountBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:6547") : TEXT("conta")));
+        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:8081") : TEXT("e-mail")));
         RootBox->AddChild(AccountBox);
 
+        // Nome de usuario existe so na criacao da conta local.
+        if (CurrentStep == ERunnerMenuStep::CreateAccount)
+        {
+            UserNameBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+            UserNameBox->SetHintText(FText::FromString(TEXT("nome de usuario (3+, letras numeros _ -)")));
+            RootBox->AddChild(UserNameBox);
+        }
+
         PasswordBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        PasswordBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("nome da credencial") : TEXT("senha")));
+        PasswordBox->SetHintText(FText::FromString(
+            bCamposDoDevAuth ? TEXT("nome da credencial")
+            : (CurrentStep == ERunnerMenuStep::CreateAccount
+                ? TEXT("senha (8+, maiuscula, minuscula, especial)") : TEXT("senha"))));
         PasswordBox->SetIsPassword(!bCamposDoDevAuth);
         RootBox->AddChild(PasswordBox);
+
+        if (CurrentStep == ERunnerMenuStep::CreateAccount)
+        {
+            ConfirmBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+            ConfirmBox->SetHintText(FText::FromString(TEXT("confirmar senha")));
+            ConfirmBox->SetIsPassword(true);
+            RootBox->AddChild(ConfirmBox);
+        }
+
+        // Com EOS o campo 1 ja vem preenchido: o jogador digita so a credencial.
+        if (bCamposDoDevAuth && AccountBox)
+        {
+            AccountBox->SetText(FText::FromString(HostDevAuth));
+        }
     }
 
     // Listas de opcao. Os ids vem sempre dos dados (DataTable) ou dos personagens da conta.
@@ -426,17 +469,29 @@ void URunnerMenuWidget::OnPrimaryClicked()
 
         case ERunnerMenuStep::CreateAccount:
         {
-            if (!AccountBox || !PasswordBox)
+            if (!AccountBox || !PasswordBox || !UserNameBox || !ConfirmBox)
             {
                 return;
             }
-            if (!Session->CreateAccount(AccountBox->GetText().ToString(), PasswordBox->GetText().ToString(), Erro))
+
+            const FString Email = AccountBox->GetText().ToString();
+            const FString NomeDeUsuario = UserNameBox->GetText().ToString();
+            const FString Senha = PasswordBox->GetText().ToString();
+            const FString Confirmacao = ConfirmBox->GetText().ToString();
+
+            // A regra mora na sessao (e o teste cobra ela); a tela so mostra o que voltou.
+            if (!URunnerSession::ValidateNewAccount(Email, NomeDeUsuario, Senha, Confirmacao, Erro))
+            {
+                SetStatus(Erro);
+                return;
+            }
+            if (!Session->CreateAccount(Email, NomeDeUsuario, Senha, Erro))
             {
                 SetStatus(Erro);
                 return;
             }
 
-            Session->Login(AccountBox->GetText().ToString(), PasswordBox->GetText().ToString(), Erro);
+            Session->Login(Email, Senha, Erro);
             GoToStep(ERunnerMenuStep::Chassis);
             break;
         }

@@ -86,6 +86,8 @@ protected:
     UPROPERTY() TObjectPtr<UTextBlock> StatusText;
     UPROPERTY() TObjectPtr<UEditableTextBox> AccountBox;
     UPROPERTY() TObjectPtr<UEditableTextBox> PasswordBox;
+    UPROPERTY() TObjectPtr<UEditableTextBox> UserNameBox;
+    UPROPERTY() TObjectPtr<UEditableTextBox> ConfirmBox;
     UPROPERTY() TObjectPtr<UButton> TertiaryButton;
     UPROPERTY() TArray<TObjectPtr<URunnerOptionButton>> OptionBindings;
 

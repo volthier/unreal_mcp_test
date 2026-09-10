@@ -11,8 +11,8 @@
 
 namespace
 {
-    constexpr int32 MinAccountLength = 3;
-    constexpr int32 MinPasswordLength = 4;
+    constexpr int32 MinUserNameLength = 3;
+    constexpr int32 MinPasswordLength = 8;
     constexpr int32 MaxCharacterSlots = 8;
     const TCHAR* AccountsFileName = TEXT("RunnerAccounts.tsv");
     const TCHAR* CharactersFileName = TEXT("RunnerCharacters.tsv");
@@ -30,17 +30,22 @@ void URunnerSession::LoadAccountsIfNeeded()
     }
     bAccountsLoaded = true;
 
-    // Contas: "conta<TAB>hash"
+    // Contas: "email<TAB>hash<TAB>nome de usuario". Contas antigas tinham so duas colunas
+    // (o nome fazia as vezes de e-mail) e continuam sendo lidas.
     TArray<FString> Lines;
     if (FFileHelper::LoadFileToStringArray(Lines, *(FPaths::ProjectSavedDir() / AccountsFileName)))
     {
         for (const FString& Line : Lines)
         {
-            FString Account;
-            FString Hash;
-            if (Line.Split(TEXT("\t"), &Account, &Hash) && !Account.IsEmpty() && !Hash.IsEmpty())
+            TArray<FString> Parts;
+            Line.ParseIntoArray(Parts, TEXT("\t"), true);
+            if (Parts.Num() >= 2 && !Parts[0].IsEmpty() && !Parts[1].IsEmpty())
             {
-                Accounts.Add(Account, Hash);
+                FRunnerLocalAccount Conta;
+                Conta.Email = Parts[0];
+                Conta.PasswordHash = Parts[1];
+                Conta.UserName = Parts.IsValidIndex(2) && !Parts[2].IsEmpty() ? Parts[2] : Parts[0];
+                Accounts.Add(Conta.Email.ToLower(), Conta);
             }
         }
     }
@@ -69,9 +74,9 @@ void URunnerSession::LoadAccountsIfNeeded()
 bool URunnerSession::SaveAccounts() const
 {
     TArray<FString> Lines;
-    for (const TPair<FString, FString>& Pair : Accounts)
+    for (const TPair<FString, FRunnerLocalAccount>& Pair : Accounts)
     {
-        Lines.Add(Pair.Key + TEXT("\t") + Pair.Value);
+        Lines.Add(Pair.Value.Email + TEXT("\t") + Pair.Value.PasswordHash + TEXT("\t") + Pair.Value.UserName);
     }
     return FFileHelper::SaveStringArrayToFile(Lines, *(FPaths::ProjectSavedDir() / AccountsFileName));
 }
@@ -97,28 +102,127 @@ FString URunnerSession::HashPassword(const FString& Password)
 // Conta local
 // ---------------------------------------------------------------------------
 
-bool URunnerSession::CreateAccount(const FString& Account, const FString& Password, FString& OutError)
+bool URunnerSession::ValidateNewAccount(const FString& Email, const FString& UserName,
+                                        const FString& Password, const FString& ConfirmPassword,
+                                        FString& OutError)
 {
-    LoadAccountsIfNeeded();
+    const FString Mail = Email.TrimStartAndEnd();
+    const FString Nome = UserName.TrimStartAndEnd();
 
-    const FString Trimmed = Account.TrimStartAndEnd();
-    if (Trimmed.Len() < MinAccountLength)
+    // E-mail
+    if (Mail.IsEmpty())
     {
-        OutError = FString::Printf(TEXT("O nome precisa de pelo menos %d caracteres."), MinAccountLength);
+        OutError = TEXT("Informe o e-mail.");
         return false;
     }
+    if (Mail.Contains(TEXT(" ")))
+    {
+        OutError = TEXT("O e-mail nao pode ter espacos.");
+        return false;
+    }
+    FString AntesDoArroba;
+    FString DepoisDoArroba;
+    if (!Mail.Split(TEXT("@"), &AntesDoArroba, &DepoisDoArroba) || AntesDoArroba.IsEmpty() || DepoisDoArroba.IsEmpty())
+    {
+        OutError = TEXT("Informe um e-mail valido (ex.: nome@dominio.com).");
+        return false;
+    }
+    if (!DepoisDoArroba.Contains(TEXT(".")) || DepoisDoArroba.StartsWith(TEXT(".")) || DepoisDoArroba.EndsWith(TEXT(".")))
+    {
+        OutError = TEXT("O e-mail precisa de um dominio com ponto (ex.: nome@dominio.com).");
+        return false;
+    }
+
+    // Nome de usuario
+    if (Nome.Len() < MinUserNameLength)
+    {
+        OutError = FString::Printf(TEXT("O nome de usuario precisa de pelo menos %d caracteres."), MinUserNameLength);
+        return false;
+    }
+    for (const TCHAR Caractere : Nome)
+    {
+        if (!FChar::IsAlnum(Caractere) && Caractere != TEXT('_') && Caractere != TEXT('-'))
+        {
+            OutError = TEXT("No nome de usuario use apenas letras, numeros, _ ou -.");
+            return false;
+        }
+    }
+
+    // Senha: 8+ com maiuscula, minuscula e caractere especial.
     if (Password.Len() < MinPasswordLength)
     {
         OutError = FString::Printf(TEXT("A senha precisa de pelo menos %d caracteres."), MinPasswordLength);
         return false;
     }
-    if (Accounts.Contains(Trimmed))
+    bool bTemMaiuscula = false;
+    bool bTemMinuscula = false;
+    bool bTemEspecial = false;
+    for (const TCHAR Caractere : Password)
     {
-        OutError = TEXT("Esse nome ja esta em uso.");
+        if (FChar::IsUpper(Caractere))      { bTemMaiuscula = true; }
+        else if (FChar::IsLower(Caractere)) { bTemMinuscula = true; }
+        else if (!FChar::IsAlnum(Caractere)) { bTemEspecial = true; }
+    }
+    if (!bTemMaiuscula)
+    {
+        OutError = TEXT("A senha precisa de pelo menos uma letra maiuscula.");
+        return false;
+    }
+    if (!bTemMinuscula)
+    {
+        OutError = TEXT("A senha precisa de pelo menos uma letra minuscula.");
+        return false;
+    }
+    if (!bTemEspecial)
+    {
+        OutError = TEXT("A senha precisa de pelo menos um caractere especial (ex.: ! @ # $ %).");
         return false;
     }
 
-    Accounts.Add(Trimmed, HashPassword(Password));
+    // Confirmacao
+    if (Password != ConfirmPassword)
+    {
+        OutError = TEXT("A confirmacao precisa ser igual a senha.");
+        return false;
+    }
+
+    OutError.Reset();
+    return true;
+}
+
+bool URunnerSession::CreateAccount(const FString& Email, const FString& UserName, const FString& Password, FString& OutError)
+{
+    LoadAccountsIfNeeded();
+
+    // A tela ja valida com o campo de confirmacao; aqui a confirmacao e a propria senha.
+    if (!ValidateNewAccount(Email, UserName, Password, Password, OutError))
+    {
+        return false;
+    }
+
+    const FString Chave = Email.TrimStartAndEnd().ToLower();
+    const FString Nome = UserName.TrimStartAndEnd();
+
+    if (Accounts.Contains(Chave))
+    {
+        OutError = TEXT("Esse e-mail ja tem conta.");
+        return false;
+    }
+    for (const TPair<FString, FRunnerLocalAccount>& Par : Accounts)
+    {
+        if (Par.Value.UserName.Equals(Nome, ESearchCase::IgnoreCase))
+        {
+            OutError = TEXT("Esse nome de usuario ja esta em uso.");
+            return false;
+        }
+    }
+
+    FRunnerLocalAccount Conta;
+    Conta.Email = Email.TrimStartAndEnd();
+    Conta.UserName = Nome;
+    Conta.PasswordHash = HashPassword(Password);
+    Accounts.Add(Chave, Conta);
+
     if (!SaveAccounts())
     {
         OutError = TEXT("Nao foi possivel gravar a conta.");
@@ -129,31 +233,33 @@ bool URunnerSession::CreateAccount(const FString& Account, const FString& Passwo
     return true;
 }
 
-bool URunnerSession::Login(const FString& Account, const FString& Password, FString& OutError)
+bool URunnerSession::Login(const FString& Email, const FString& Password, FString& OutError)
 {
     LoadAccountsIfNeeded();
 
-    const FString Trimmed = Account.TrimStartAndEnd();
-    const FString* Stored = Accounts.Find(Trimmed);
-    if (!Stored)
+    const FString Chave = Email.TrimStartAndEnd().ToLower();
+    const FRunnerLocalAccount* Conta = Accounts.Find(Chave);
+    if (!Conta)
     {
-        OutError = TEXT("Conta nao encontrada.");
+        OutError = TEXT("Conta nao encontrada (use o e-mail cadastrado).");
         return false;
     }
-    if (*Stored != HashPassword(Password))
+    if (Conta->PasswordHash != HashPassword(Password))
     {
         OutError = TEXT("Senha incorreta.");
         return false;
     }
 
-    CompleteLogin(Trimmed);
+    CompleteLogin(Chave, Conta->UserName);
     OutError.Reset();
     return true;
 }
 
-void URunnerSession::CompleteLogin(const FString& Account)
+void URunnerSession::CompleteLogin(const FString& Key, const FString& DisplayName)
 {
-    AccountName = Account;
+    AccountKey = Key;
+    AccountName = DisplayName;
+    AccountEmail = Accounts.Contains(Key) ? Accounts[Key].Email : FString();
     bLoggedIn = true;
     OnLoginComplete.Broadcast(true, FString());
 }
@@ -164,6 +270,8 @@ void URunnerSession::Logout()
 
     bLoggedIn = false;
     AccountName.Reset();
+    AccountEmail.Reset();
+    AccountKey.Reset();
     ClearCharacter();
 }
 
@@ -178,6 +286,20 @@ bool URunnerSession::IsEOSAvailable() const
 
 bool URunnerSession::LoginWithEOS(const FString& AuthType, const FString& Id, const FString& Token, FString& OutError)
 {
+    const FString Tipo = AuthType.IsEmpty() ? TEXT("accountportal") : AuthType;
+
+    // O Dev Auth Tool recebe o host:porta em "Id" e o NOME da credencial em "Token". Faltando
+    // qualquer um dos dois o SDK responde EOS_InvalidParameters com
+    // "EOS_Auth_Credentials.Id reason: must not be null or empty" — que nao diz nada ao jogador.
+    // Entao a checagem mora aqui, com o texto que explica o que digitar.
+    if (Tipo.Equals(TEXT("developer"), ESearchCase::IgnoreCase)
+        && (Id.TrimStartAndEnd().IsEmpty() || Token.TrimStartAndEnd().IsEmpty()))
+    {
+        OutError = TEXT("Dev Auth: campo 1 = host:porta do tool (ex.: localhost:8081); campo 2 = o nome da credencial.");
+        OnLoginComplete.Broadcast(false, OutError);
+        return false;
+    }
+
     IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get(FName(TEXT("EOS")));
     if (!Subsystem)
     {
@@ -195,9 +317,9 @@ bool URunnerSession::LoginWithEOS(const FString& AuthType, const FString& Id, co
     }
 
     FOnlineAccountCredentials Credentials;
-    Credentials.Type = AuthType.IsEmpty() ? TEXT("accountportal") : AuthType;
-    Credentials.Id = Id;
-    Credentials.Token = Token;
+    Credentials.Type = Tipo;
+    Credentials.Id = Id.TrimStartAndEnd();
+    Credentials.Token = Token.TrimStartAndEnd();
 
     Identity->OnLoginCompleteDelegates->AddUObject(this, &URunnerSession::HandleEOSLoginComplete);
 
@@ -245,7 +367,7 @@ void URunnerSession::HandleEOSLoginComplete(const int32 LocalUserNumber, const b
     }
 
     LoadAccountsIfNeeded();
-    CompleteLogin(NomeDaConta);
+    CompleteLogin(NomeDaConta, NomeDaConta);
 }
 
 void URunnerSession::LogoutEOS()
@@ -268,7 +390,7 @@ TArray<FRunnerSavedCharacter> URunnerSession::GetSavedCharacters() const
     TArray<FRunnerSavedCharacter> Meus;
     for (const FRunnerSavedCharacter& Salvo : SavedCharacters)
     {
-        if (Salvo.AccountName == AccountName)
+        if (Salvo.AccountName == AccountKey)
         {
             Meus.Add(Salvo);
         }
@@ -285,7 +407,7 @@ bool URunnerSession::HasSavedCharacters() const
 {
     for (const FRunnerSavedCharacter& Salvo : SavedCharacters)
     {
-        if (Salvo.AccountName == AccountName)
+        if (Salvo.AccountName == AccountKey)
         {
             return true;
         }
@@ -297,7 +419,7 @@ const FRunnerSavedCharacter* URunnerSession::FindSavedCharacter(const FString& C
 {
     for (const FRunnerSavedCharacter& Salvo : SavedCharacters)
     {
-        if (Salvo.AccountName == AccountName && Salvo.CharacterId == CharacterId)
+        if (Salvo.AccountName == AccountKey && Salvo.CharacterId == CharacterId)
         {
             return &Salvo;
         }
@@ -469,7 +591,7 @@ bool URunnerSession::CreateCharacterProfile(FRunnerCharacterProfile& OutProfile,
 
     // Guarda na conta como um personagem novo (a lista que aparece no proximo login).
     FRunnerSavedCharacter Novo;
-    Novo.AccountName = AccountName;
+    Novo.AccountName = AccountKey;
     Novo.CharacterId = FString::Printf(TEXT("R-%02d"), GetSavedCharacters().Num() + 1);
     Novo.ChassisId = SelectedChassis;
     Novo.ClassId = SelectedClass;

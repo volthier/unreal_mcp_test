@@ -17,8 +17,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerSessionFlowTest, "Runner.Sessao.ContaECr
 
 bool FRunnerSessionFlowTest::RunTest(const FString& Parameters)
 {
-    const FString Conta = FString::Printf(TEXT("teste_auto_%d"), FMath::RandRange(100000, 999999));
-    const FString Senha = TEXT("senha-de-teste");
+    const FString Nome = FString::Printf(TEXT("teste_auto_%d"), FMath::RandRange(100000, 999999));
+    const FString Conta = Nome + TEXT("@teste.local");
+    const FString Senha = TEXT("Senha@Teste1");
 
     URunnerSession* Sessao = NewObject<URunnerSession>();
     if (!TestNotNull(TEXT("subsystem criado"), Sessao))
@@ -33,10 +34,10 @@ bool FRunnerSessionFlowTest::RunTest(const FString& Parameters)
         Sessao->SelectChassis(FName(TEXT("Vitaspark")), Erro));
 
     // Conta
-    TestTrue(TEXT("cria conta"), Sessao->CreateAccount(Conta, Senha, Erro));
-    TestFalse(TEXT("nao aceita conta repetida"), Sessao->CreateAccount(Conta, Senha, Erro));
-    TestFalse(TEXT("recusa senha curta"), Sessao->CreateAccount(Conta + TEXT("b"), TEXT("ab"), Erro));
-    TestFalse(TEXT("recusa senha errada"), Sessao->Login(Conta, TEXT("senha-errada"), Erro));
+    TestTrue(TEXT("cria conta"), Sessao->CreateAccount(Conta, Nome, Senha, Erro));
+    TestFalse(TEXT("nao aceita conta repetida"), Sessao->CreateAccount(Conta, Nome, Senha, Erro));
+    TestFalse(TEXT("recusa senha curta"), Sessao->CreateAccount(Nome + TEXT("b@teste.local"), Nome + TEXT("b"), TEXT("ab"), Erro));
+    TestFalse(TEXT("recusa senha errada"), Sessao->Login(Conta, TEXT("Senha@Errada1"), Erro));
     TestTrue(TEXT("entra com a senha certa"), Sessao->Login(Conta, Senha, Erro));
     TestTrue(TEXT("sessao logada"), Sessao->IsLoggedIn());
 
@@ -52,7 +53,7 @@ bool FRunnerSessionFlowTest::RunTest(const FString& Parameters)
     FRunnerCharacterProfile Perfil;
     TestTrue(TEXT("cria a ficha"), Sessao->CreateCharacterProfile(Perfil, Erro));
     TestTrue(TEXT("ficha marcada como valida"), Perfil.bValid);
-    TestEqual(TEXT("conta gravada na ficha"), Perfil.AccountName, Conta);
+    TestEqual(TEXT("nome de usuario gravado na ficha"), Perfil.AccountName, Nome);
     TestEqual(TEXT("FOR do Vitaspark (8-1)"), Perfil.GetAttribute(ERunnerAttribute::Strength), 7);
     TestEqual(TEXT("DES do Vitaspark (8+2)"), Perfil.GetAttribute(ERunnerAttribute::Dexterity), 10);
     TestEqual(TEXT("CON do Vitaspark (8+1)"), Perfil.GetAttribute(ERunnerAttribute::Constitution), 9);
@@ -86,8 +87,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerMultiCharacterTest, "Runner.Sessao.Vario
 
 bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
 {
-    const FString Conta = FString::Printf(TEXT("teste_multi_%d"), FMath::RandRange(100000, 999999));
-    const FString Senha = TEXT("senha-de-teste");
+    const FString Nome = FString::Printf(TEXT("teste_multi_%d"), FMath::RandRange(100000, 999999));
+    const FString Conta = Nome + TEXT("@teste.local");
+    const FString Senha = TEXT("Senha@Teste1");
 
     URunnerSession* Sessao = NewObject<URunnerSession>();
     if (!TestNotNull(TEXT("sessao criada"), Sessao))
@@ -96,7 +98,7 @@ bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
     }
 
     FString Erro;
-    TestTrue(TEXT("cria conta"), Sessao->CreateAccount(Conta, Senha, Erro));
+    TestTrue(TEXT("cria conta"), Sessao->CreateAccount(Conta, Nome, Senha, Erro));
     TestTrue(TEXT("entra na conta"), Sessao->Login(Conta, Senha, Erro));
     TestFalse(TEXT("conta nova nao tem personagem"), Sessao->HasSavedCharacters());
     TestEqual(TEXT("lista vazia no inicio"), Sessao->GetSavedCharacters().Num(), 0);
@@ -141,9 +143,10 @@ bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
 
     // Outra conta nao enxerga estes personagens
     URunnerSession* Outra = NewObject<URunnerSession>();
-    const FString Conta2 = Conta + TEXT("b");
+    const FString Nome2 = Nome + TEXT("b");
+    const FString Conta2 = Nome2 + TEXT("@teste.local");
     FString Erro2;
-    TestTrue(TEXT("cria a segunda conta"), Outra->CreateAccount(Conta2, Senha, Erro2));
+    TestTrue(TEXT("cria a segunda conta"), Outra->CreateAccount(Conta2, Nome2, Senha, Erro2));
     TestTrue(TEXT("entra na segunda conta"), Outra->Login(Conta2, Senha, Erro2));
     TestFalse(TEXT("a segunda conta nao tem personagens"), Outra->HasSavedCharacters());
     TestEqual(TEXT("lista da segunda conta vazia"), Outra->GetSavedCharacters().Num(), 0);
@@ -189,6 +192,70 @@ bool FRunnerEOSConfigTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("a sessao reconhece o EOS como disponivel"), Sessao->IsEOSAvailable());
     TestFalse(TEXT("ninguem logado antes do login"), Sessao->IsLoggedIn());
     TestTrue(TEXT("o nome da conta EOS comeca vazio"), Sessao->GetAccountName().IsEmpty());
+
+    // Dev Auth com os campos em branco: a sessao barra ANTES de incomodar o SDK. Sem isso o EOS
+    // devolvia EOS_InvalidParameters ('EOS_Auth_Credentials.Id must not be null or empty').
+    FString ErroDevAuth;
+    TestFalse(TEXT("Dev Auth sem host e sem credencial e recusado"),
+        Sessao->LoginWithEOS(TEXT("developer"), TEXT(""), TEXT(""), ErroDevAuth));
+    TestTrue(TEXT("e a mensagem diz o que digitar"), ErroDevAuth.Contains(TEXT("host:porta")));
+    TestFalse(TEXT("Dev Auth so com o host tambem e recusado"),
+        Sessao->LoginWithEOS(TEXT("developer"), TEXT("localhost:8081"), TEXT("  "), ErroDevAuth));
+    return true;
+}
+
+/**
+ * A regra da tela de criar conta, caso a caso — e o texto que o jogador le quando erra.
+ * Nasceu do pedido de ter os campos obrigatorios (e-mail, nome de usuario, senha e confirmacao),
+ * com a senha exigindo 8+ caracteres, maiuscula, minuscula e caractere especial.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerAccountRulesTest, "Runner.Sessao.RegrasDeConta",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerAccountRulesTest::RunTest(const FString& Parameters)
+{
+    FString Erro;
+
+    // O caso bom.
+    TestTrue(TEXT("conta valida passa"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt_striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+
+    // E-mail
+    TestFalse(TEXT("sem e-mail"), URunnerSession::ValidateNewAccount(TEXT(""), TEXT("volt_striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+    TestTrue(TEXT("o erro fala de e-mail"), Erro.Contains(TEXT("e-mail")));
+    TestFalse(TEXT("e-mail sem arroba"), URunnerSession::ValidateNewAccount(TEXT("volt.gg"), TEXT("volt_striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+    TestFalse(TEXT("e-mail sem dominio com ponto"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek"), TEXT("volt_striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+    TestFalse(TEXT("e-mail com espaco"), URunnerSession::ValidateNewAccount(TEXT("vo lt@ploidrek.gg"), TEXT("volt_striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+
+    // Nome de usuario
+    TestFalse(TEXT("nome de usuario curto"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("vo"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+    TestTrue(TEXT("o erro fala de nome de usuario"), Erro.Contains(TEXT("nome de usuario")));
+    TestFalse(TEXT("nome de usuario com espaco"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte1"), Erro));
+
+    // Senha: 8+, maiuscula, minuscula, especial
+    TestFalse(TEXT("senha com 7 caracteres"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt_striker"), TEXT("S@nha12"), TEXT("S@nha12"), Erro));
+    TestTrue(TEXT("o erro fala de 8 caracteres"), Erro.Contains(TEXT("8 caracteres")));
+    TestFalse(TEXT("senha sem maiuscula"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt_striker"), TEXT("senha@forte1"), TEXT("senha@forte1"), Erro));
+    TestTrue(TEXT("o erro fala de maiuscula"), Erro.Contains(TEXT("maiuscula")));
+    TestFalse(TEXT("senha sem minuscula"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt_striker"), TEXT("SENHA@FORTE1"), TEXT("SENHA@FORTE1"), Erro));
+    TestTrue(TEXT("o erro fala de minuscula"), Erro.Contains(TEXT("minuscula")));
+    TestFalse(TEXT("senha sem caractere especial"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt_striker"), TEXT("SenhaForte1"), TEXT("SenhaForte1"), Erro));
+    TestTrue(TEXT("o erro fala de caractere especial"), Erro.Contains(TEXT("caractere especial")));
+    TestFalse(TEXT("confirmacao diferente"), URunnerSession::ValidateNewAccount(TEXT("volt@ploidrek.gg"), TEXT("volt_striker"), TEXT("Senha@Forte1"), TEXT("Senha@Forte2"), Erro));
+    TestTrue(TEXT("o erro fala da confirmacao"), Erro.Contains(TEXT("confirmacao")));
+
+    // Na sessao: o e-mail e a identidade, o nome de usuario e o que aparece.
+    const FString Nome = FString::Printf(TEXT("regras_%d"), FMath::RandRange(100000, 999999));
+    const FString Conta = Nome + TEXT("@teste.local");
+    const FString Senha = TEXT("Senha@Forte1");
+
+    URunnerSession* Sessao = NewObject<URunnerSession>();
+    TestTrue(TEXT("cria a conta pela regra"), Sessao->CreateAccount(Conta, Nome, Senha, Erro));
+    TestFalse(TEXT("recusa o mesmo e-mail"), Sessao->CreateAccount(Conta, Nome + TEXT("2"), Senha, Erro));
+    TestFalse(TEXT("recusa o mesmo nome de usuario"), Sessao->CreateAccount(Nome + TEXT("3@teste.local"), Nome, Senha, Erro));
+    TestTrue(TEXT("entra pelo e-mail"), Sessao->Login(Conta, Senha, Erro));
+    TestEqual(TEXT("o e-mail fica guardado"), Sessao->GetAccountEmail().ToLower(), Conta.ToLower());
+    TestEqual(TEXT("o nome de usuario e o que aparece"), Sessao->GetAccountName(), Nome);
+    TestFalse(TEXT("o nome de usuario nao serve de login"), Sessao->Login(Nome, Senha, Erro));
     return true;
 }
 
