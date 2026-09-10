@@ -2,7 +2,7 @@
   "schema": "ai3d-pipeline/v1",
   "root": null,
   "blender_app": "/Applications/Blender.app/Contents/MacOS/Blender",
-  "unreal_project": "/Users/volthier/Documents/Unreal Projects/AI_MEGA_MAN_TEST/AI_MEGA_MAN_TEST.uproject",
+  "unreal_project": "/Users/volthier/Documents/Unreal Projects/AI_MEGA_MAN_TEST/PloidrekRPG.uproject",
   "unreal_editor_cmd_pattern": "/Applications/Unreal Engine/UE_{version}/Engine/Binaries/Mac/UnrealEditor-Cmd",
   "lm_server": {
     "base_url": "http://localhost:1234/v1",

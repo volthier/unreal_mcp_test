@@ -14,6 +14,12 @@ Config/Windows/WindowsEngine.ini
 Config/Linux/LinuxEngine.ini
 Config/UserEngine.ini
 
+# Tokens de API das ferramentas de geracao (imagem/3D). Ficam so na maquina do autor:
+# se um deles entrar no repositorio, precisa ser revogado no provedor e trocado.
+Tools/api_tokens.json
+**/api_tokens.json
+**/api_tokens*.json
+
 # Xcode
 *.xcworkspace
 *.pbxuser
