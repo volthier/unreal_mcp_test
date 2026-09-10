@@ -1,0 +1,7 @@
+﻿Name,DisplayName,Role,Description,PrimaryAttribute,SecondaryAttribute,HitDie,Subclasses,StartingAbilities
+Blaster,"Blaster",DPS,"Especialista em combate à distância com armas de plasma. Carrega o disparo e libera um projétil penetrante em linha.",Dexterity,Intelligence,8,"Sniper,Carregador,Ricochete","/Script/PloidrekRPG.GA_BasicShot,/Script/PloidrekRPG.GA_ChargeShot,/Script/PloidrekRPG.GA_RapidShot"
+Blade,"Blade",DPS,"Combate corpo a corpo com precisão e contra-ataques. Golpes rápidos e críticos com chance de sangramento.",Strength,Dexterity,10,"Duelista,Espectral,Sabotador","/Script/PloidrekRPG.GA_DashShot,/Script/PloidrekRPG.GA_JumpShot"
+Breaker,"Breaker",Tank,"Tanque projetado para absorver dano e manter a linha de frente. Provocação em área e escudo reativo.",Constitution,Strength,12,"Juggernaut,Warlord,Bulker",""
+Support,"Support",Support,"Cura, buffs e cobertura tática. Lança uma zona de recuperação que regenera aliados.",Wisdom,Intelligence,8,"Luminary,Arbitro,Inquisidor",""
+Engineer,"Engineer",Control,"Domina torres, drones e armadilhas táticas. Invoca um drone autônomo que causa dano leve.",Intelligence,Dexterity,8,"Machinist,Fortificacao,Alquimista",""
+Sentinel,"Sentinel",Hybrid,"Classe híbrida com foco em defesa e manipulação de campo. Cria escudo de energia que bloqueia projéteis.",Constitution,Wisdom,10,"Muralha,Interceptador,ReforcoDeNucleo",""
