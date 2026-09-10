@@ -69,3 +69,21 @@ int32 URunnerRules::GetAttacksPerAttackAction(const int32 Level)
     if (Level >= 5)  { return 2; }
     return 1;
 }
+
+ERunnerLocomotion URunnerRules::GetLocomotionState(const float Speed, const bool bFalling,
+                                                   const float WalkThreshold, const float RunThreshold)
+{
+    if (bFalling)
+    {
+        return ERunnerLocomotion::Jump;
+    }
+    if (Speed >= RunThreshold)
+    {
+        return ERunnerLocomotion::Run;
+    }
+    if (Speed >= WalkThreshold)
+    {
+        return ERunnerLocomotion::Walk;
+    }
+    return ERunnerLocomotion::Idle;
+}

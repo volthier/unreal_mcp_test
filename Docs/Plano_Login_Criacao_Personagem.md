@@ -45,6 +45,7 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 | 5b | **Entrada no jogo** | `AMenuGameMode` abre o menu; ao criar, `OpenLevel` com `?game=/Script/PloidrekRPG.AFGameMode`; o pawn nasce e recebe o corpo | ✅ **feito** |
 | 5c | **Persistência** | conta em `Saved/RunnerAccounts.tsv` e personagem em `Saved/RunnerCharacters.tsv` — entrar de novo restaura chassi e classe | ✅ **feito** |
 | 5d | **Cor do chassi** | `M_RunnerAccent` (overlay unlit/translúcido com o parâmetro `AccentColor`) aplicado por `ApplyProfile` via `SetOverlayMaterial` | ✅ **feito** — o manequim fica tingido com a cor do chassi |
+| 5e | **Articulações (animação)** | `UpdateLocomotionAnimation`: idle / andar / correr / no ar, usando as animações **do próprio pacote do manequim** (`MM_Idle`, `MF_Unarmed_Walk_Fwd`, `MF_Unarmed_Jog_Fwd`, `MM_Jump`), configuráveis em *Project Settings*; a decisão é a função pura `URunnerRules::GetLocomotionState` | ✅ **feito** — até existir AnimBP próprio; o `bUseSingleNodeLocomotion` desliga isso quando o ABP existir |
 | 6 | **Renomeação do projeto** | módulo `AI_MEGA_MAN_TEST` → `PloidrekRPG`; classes `VoltStriker*` → `Runner*` (ver `Plano_Renomeacao_Runner.md`) | ⏳ |
 
 ## 4. O problema de versão (5.5 → 5.8) e as duas saídas
@@ -81,7 +82,8 @@ depois é trocar a implementação, não reescrever o fluxo.
 | **2** ✅ | **feito:** BPs reparentados · `URunnerRules` (matemática) · `URunnerCharacterFactory` · `URunnerSessionSubsystem` · `ApplyProfile` · **suíte de automação** | `Runner.Regras.Matematica` e `Runner.Fluxo.ChassiEClasse` **Success** — 60 combinações validadas |
 | 3 | subsystem do fluxo + `ARunnerCharacter` com manequim | personagem nasce com o corpo escolhido |
 | **4** ✅ | **feito:** material de overlay da cor do chassi + diagnóstico honesto do limite de verificação em execução | build e 3 suítes verdes; execução headless não inicia o jogo |
-| **5 (atual)** | **acabamento visual**: estilo do menu (WBP/Style Set por cima do widget C++), e o **teste de Play** do autor | play mostra o menu e entra no jogo com o corpo e a cor do chassi |
+| **5** ✅ | **feito:** locomoção do corpo (idle/andar/correr/ar) + teste que spawna o personagem num mundo real | **5 suítes verdes**, incluindo `Runner.Corpo.MalhaEAnimacao` |
+| **6 (atual)** | **acabamento visual** do menu e o **teste de Play** do autor | play mostra o menu, entra no jogo, e o corpo anda/corre/pula |
 | **3** ✅ | **feito:** UI em C++/UMG, entrada no jogo, persistência da conta e do personagem, GameMode de menu | `Runner.Regras.Matematica`, `Runner.Fluxo.ChassiEClasse` e `Runner.Sessao.ContaECriacao` — **todos Success** |
 | 6 | migração dos widgets do canônico (saída A) | login do canônico rodando no 5.8 |
 
@@ -112,7 +114,8 @@ Tentei **três vezes** rodar o jogo de forma headless para provar a corrente em 
 **não chega a iniciar o jogo** e não grava log capturável — inclusive matar o processo com SIGTERM perde o
 stdout em buffer. Conclusão: **a execução de ponta a ponta só o autor pode confirmar**, com Play no editor.
 
-O que **está** provado por automação: compilação limpa · 3 suítes de teste · vínculos entre assets
+O que **está** provado por automação: compilação limpa · **5 suítes de teste** (incluindo uma que **spawna o
+personagem num mundo real** e confere malha, esqueleto e animação) · vínculos entre assets
 (mapa → redirector → BP_MenuGameMode → `AMenuGameMode`, DataTables com as linhas certas, manequim com
 package path correto).
 

@@ -50,6 +50,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
 	void ApplyProfile(const FRunnerCharacterProfile& Profile);
 
+	/** Estado de locomocao atual (decide qual animacao o corpo toca). */
+	UPROPERTY(BlueprintReadOnly, Category = "Runner|Animacao")
+	ERunnerLocomotion LocomotionState = ERunnerLocomotion::Idle;
+
+	/**
+	 * Enquanto nao existe Animation Blueprint proprio, o corpo anima por animacao unica
+	 * (idle / andar / correr / no ar). Desligue quando o AnimBP existir.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Runner|Animacao")
+	bool bUseSingleNodeLocomotion = true;
+
+	/** Escolhe e toca a animacao conforme o movimento atual. */
+	UFUNCTION(BlueprintCallable, Category = "Runner|Animacao")
+	void UpdateLocomotionAnimation();
+
 	/** Ficha ativa deste personagem (chassi + classe + numeros derivados). */
 	UPROPERTY(BlueprintReadOnly, Category = "Runner|Criacao")
 	FRunnerCharacterProfile CharacterProfile;

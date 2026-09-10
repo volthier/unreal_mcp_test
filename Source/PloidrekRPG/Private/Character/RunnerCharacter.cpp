@@ -14,7 +14,10 @@
 #include "InputCoreTypes.h"
 #include "Components/CapsuleComponent.h"
 #include "Character/RunnerAnimInstance.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Data/RunnerGameSettings.h"
+#include "Data/RunnerRules.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/SkeletalMesh.h"
 #include "Ability/GA_BasicShot.h"
@@ -93,6 +96,58 @@ void ARunnerCharacter::BeginPlay()
 	}
 }
 
+void ARunnerCharacter::UpdateLocomotionAnimation()
+{
+	if (!bUseSingleNodeLocomotion)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	if (!MeshComponent || !MeshComponent->GetSkeletalMeshAsset())
+	{
+		return;
+	}
+
+	const UCharacterMovementComponent* Movement = GetCharacterMovement();
+	const float Speed = Movement ? Movement->Velocity.Size2D() : 0.f;
+	const bool bFalling = Movement && Movement->IsFalling();
+
+	const ERunnerLocomotion Novo = URunnerRules::GetLocomotionState(Speed, bFalling);
+
+	// Nada mudou e o corpo ja esta tocando animacao: nao reinicia (reiniciar trava o passo).
+	if (Novo == LocomotionState && MeshComponent->GetAnimationMode() == EAnimationMode::AnimationSingleNode)
+	{
+		return;
+	}
+
+	LocomotionState = Novo;
+
+	const URunnerGameSettings* Settings = GetDefault<URunnerGameSettings>();
+	if (!Settings)
+	{
+		return;
+	}
+
+	UAnimSequenceBase* Animacao = nullptr;
+	switch (LocomotionState)
+	{
+		case ERunnerLocomotion::Walk: Animacao = Settings->WalkAnim.LoadSynchronous(); break;
+		case ERunnerLocomotion::Run:  Animacao = Settings->RunAnim.LoadSynchronous();  break;
+		case ERunnerLocomotion::Jump: Animacao = Settings->JumpAnim.LoadSynchronous(); break;
+		default:                      Animacao = Settings->IdleAnim.LoadSynchronous(); break;
+	}
+
+	if (!Animacao)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UpdateLocomotionAnimation: animacao nao configurada para o estado atual (Project Settings > Game > Runner)."));
+		return;
+	}
+
+	// PlayAnimation ja coloca o corpo em modo de animacao unica.
+	MeshComponent->PlayAnimation(Animacao, true);
+}
+
 void ARunnerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -168,6 +223,9 @@ void ARunnerCharacter::Tick(float DeltaSeconds)
 	{
 		CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, DefaultCameraArmLength, DeltaSeconds, 8.f);
 	}
+
+	// Corpo: escolhe a animacao conforme o movimento (ver URunnerRules::GetLocomotionState).
+	UpdateLocomotionAnimation();
 }
 
 void ARunnerCharacter::PossessedBy(AController* NewController)
@@ -481,4 +539,7 @@ void ARunnerCharacter::ApplyProfile(const FRunnerCharacterProfile& Profile)
 		*Profile.AccountName, *Profile.ChassisId.ToString(), *Profile.ClassId.ToString(),
 		Profile.MaxHitPoints, Profile.ArmorClass,
 		Profile.BodyMesh.IsNull() ? TEXT("nenhum") : *Profile.BodyMesh.ToString());
+
+	// Comeca parado, com a animacao de idle do pacote do manequim.
+	UpdateLocomotionAnimation();
 }

@@ -28,6 +28,16 @@ enum class ERunnerBodyType : uint8
     Unstable UMETA(DisplayName = "Instavel")
 };
 
+/** Estado de locomocao usado para escolher a animacao do corpo. */
+UENUM(BlueprintType)
+enum class ERunnerLocomotion : uint8
+{
+    Idle UMETA(DisplayName = "Parado"),
+    Walk UMETA(DisplayName = "Andando"),
+    Run  UMETA(DisplayName = "Correndo"),
+    Jump UMETA(DisplayName = "No ar")
+};
+
 UENUM(BlueprintType)
 enum class ERunnerRole : uint8
 {

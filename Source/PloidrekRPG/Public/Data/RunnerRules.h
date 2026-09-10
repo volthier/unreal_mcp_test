@@ -55,4 +55,12 @@ public:
     /** Numero de ataques por Acao de Ataque por nivel: 1 / 2 / 3 / 4, teto 4 (GDD 3.4). */
     UFUNCTION(BlueprintPure, Category = "Runner|Regras")
     static int32 GetAttacksPerAttackAction(int32 Level);
+
+    /**
+     * Qual animacao o corpo deve estar tocando: parado, andando, correndo ou no ar.
+     * Funcao pura (sem mundo) para poder ser testada sozinha.
+     */
+    UFUNCTION(BlueprintPure, Category = "Runner|Regras")
+    static ERunnerLocomotion GetLocomotionState(float Speed, bool bFalling,
+                                                float WalkThreshold = 10.f, float RunThreshold = 300.f);
 };
