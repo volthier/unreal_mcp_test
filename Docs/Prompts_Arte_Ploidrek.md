@@ -95,9 +95,10 @@ O estilo é o das amostras existentes: **ilustração, contorno grosso, cor chap
 [STYLE ANCHOR]
 
 Full-body standing character illustration, three-quarter view, CLASSE_CONCEITO.
-Art style: match the attached reference exactly — clean cel-shaded anime game art, thick dark outlines,
-flat color blocks with a single shadow tone, hard-surface robot design, confident idle stance,
-occasional energy glow on the weapon or hands.
+Art style: clean cel-shaded game art, thick dark outlines, flat color blocks with a single shadow tone,
+hard-surface robot design, confident idle stance, occasional energy glow on the weapon or hands.
+ORIGINAL design: use the attached samples only as a level-of-readability reference for silhouette,
+proportion and line weight — do not copy their designs and do not imitate any existing game franchise.
 Background: fully transparent (deliver PNG with alpha) or flat white for cutting out.
 1024x1536 portrait, centered, whole body inside frame, no cropping of feet or hands, no text.
 ```
@@ -159,7 +160,10 @@ rooftops, amber windows, steam vents, low angle from a rooftop, cinematic depth,
 | `sample_defender.jpg` | **Sentinel** (escudo de energia que defende o aliado) | alta |
 | `sample_hunter.jpg` | **Engineer** (controle/silence) | média — confirmar |
 | `sample_suport.jpg` | **Blaster** ("o que explode") | média — confirmar |
-| `sample_maverik.jpg` | **Vitaspark** — parece ser **chassi**, não classe | em aberto |
+| `sample_maverik.jpg` | **Blade** — é **classe**, não chassi (corrigido pelo autor); garras e porte pesado leem como corpo a corpo crítico | média |
+
+> ⚠️ **`sample_maverik.jpg` está na lista de IP** (`IP-004` do backlog, junto de `Megaman.*` e
+> `generated/world/{reploid,maverick}.png`): serve de **conceito de silhueta**, nunca como asset do build.
 
 2. **Chave de API** (em variável de ambiente, nunca no repositório) **ou** ComfyUI rodando em
    `localhost:8188`. Sem um dos dois eu **não gero** imagem nova — o que eu faço sem eles é usar o que
@@ -168,7 +172,29 @@ rooftops, amber windows, steam vents, low angle from a rooftop, cinematic depth,
    próprios. Isso muda o prompt de 3D: com esqueleto comum, o turnaround precisa vir em T-pose com as
    mesmas proporções de ombro/quadril, e a IA não decide isso.
 
-## 9. Checklist de aceite (o que eu confiro antes de importar)
+## 9. Que tipo de entrega é cada peça (a pergunta "cobrir superfície ou ser peça?")
+
+Não é um "3D ou 2D" global: é **por entrega**. E é isso que decide o formato do prompt e do arquivo:
+
+| Entrega | Natureza | 3D ou 2D | O que decide |
+|---|---|---|---|
+| Parede, piso, painel, metal de cenário | **superfície** | **3D PBR obrigatório** (albedo + normal + roughness + metallic + AO) | requisito técnico; o estilo entra só na paleta |
+| Personagem, prop, arma | **peça** | **3D de verdade**: malha + UV + LOD (+ rig, se anima) | é o que o jogo renderiza; estilo = shading (PBR × toon) |
+| Retrato, ícone, card de UI | **imagem** | **2D** (cel ou render, à escolha) | estilo de interface; **não** alimenta o 3D |
+| Conceito que entra no image→3D | **insumo** | **2D, mas em estilo render limpo** | o gerador de malha precisa de forma e sombreamento limpos; contorno grosso e linha dura piora a malha |
+
+**Consequência prática:** a *superfície* e a *peça* são sempre 3D; o 2D aparece em duas funções — a
+**representação** (ícone/retrato) e o **insumo** do image→3D. E o insumo deve ser render, não cel,
+quando o destino for virar malha.
+
+> **Três identidades competindo hoje no projeto** (a decisão que trava o acabamento AAA):
+> (A) steampunk latão/âmbar de `SteampunkPalette.md` — é o que o menu usa;
+> (B) sci-fi neon ciano/magenta da key art Aether Forge em `Art/Gemini_Generated_Image_*.jpeg`;
+> (C) anime 2D cel das amostras em `Art/Classes/`. Escolher **uma** — ou uma fusão declarada
+> (ex.: metal escuro + latão da paleta como matéria e neon ciano como energia) — é pré-requisito de qualquer
+> lote de arte.
+
+## 10. Checklist de aceite (o que eu confiro antes de importar)
 
 - [ ] Resolução e proporção conforme o pedido (e não um upscale disfarçado).
 - [ ] Paleta dentro do documento `SteampunkPalette.md` (sem roxo/neon aleatório).
