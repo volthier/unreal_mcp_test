@@ -5,6 +5,9 @@
 #include "Data/RunnerCharacterProfile.h"
 #include "Session/RunnerSession.h"
 
+#include "OnlineSubsystem.h"
+#include "Interfaces/OnlineIdentityInterface.h"
+
 /**
  * Fluxo completo sem tela: conta -> login -> chassi -> classe -> ficha -> restauracao.
  * Cobre as regras que o menu apenas chama.
@@ -144,6 +147,48 @@ bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("entra na segunda conta"), Outra->Login(Conta2, Senha, Erro2));
     TestFalse(TEXT("a segunda conta nao tem personagens"), Outra->HasSavedCharacters());
     TestEqual(TEXT("lista da segunda conta vazia"), Outra->GetSavedCharacters().Num(), 0);
+    return true;
+}
+
+/**
+ * O EOS precisa estar DE PE para o login funcionar. Este teste existe porque a falha era silenciosa:
+ * o EOS_Platform_Create exige ClientCredentials completas (ClientId + ClientSecret) e, sem elas, o
+ * subsistema sobe sem plataforma e o login cai para o local sem dizer por que. Aqui a suite falha
+ * com a instrucao do conserto em vez de deixar isso passar.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerEOSConfigTest, "Runner.Sessao.EOSConfigurado",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerEOSConfigTest::RunTest(const FString& Parameters)
+{
+    IOnlineSubsystem* Sub = IOnlineSubsystem::Get(FName(TEXT("EOS")));
+    if (!Sub)
+    {
+        AddWarning(TEXT("EOS: subsistema indisponivel (plugin desligado?). O menu cai para o login local."));
+        return true;
+    }
+
+    IOnlineIdentityPtr Identidade = Sub->GetIdentityInterface();
+    if (!Identidade.IsValid())
+    {
+        AddError(FString::Printf(TEXT("EOS: a plataforma NAO inicializou (servico='%s'). "
+            "O EOS_Platform_Create exige ClientId E ClientSecret: confira o bloco [OnlineSubsystemEOS.EOSSettings] "
+            "em Config/DefaultEngine.ini e o segredo do artefato DEV em Saved/Config/<Plataforma>/Engine.ini. "
+            "Procure por 'ClientSecret cannot be null' no log."), *Sub->GetSubsystemName().ToString()));
+        return false;
+    }
+
+    AddInfo(FString::Printf(TEXT("EOS de pe: servico='%s'"), *Sub->GetSubsystemName().ToString()));
+
+    URunnerSession* Sessao = NewObject<URunnerSession>();
+    if (!TestNotNull(TEXT("sessao criada"), Sessao))
+    {
+        return false;
+    }
+
+    TestTrue(TEXT("a sessao reconhece o EOS como disponivel"), Sessao->IsEOSAvailable());
+    TestFalse(TEXT("ninguem logado antes do login"), Sessao->IsLoggedIn());
+    TestTrue(TEXT("o nome da conta EOS comeca vazio"), Sessao->GetAccountName().IsEmpty());
     return true;
 }
 

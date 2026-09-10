@@ -7,7 +7,11 @@ Saved/
 Saved/Crashes/
 
 # Segredos que nunca entram no versionamento (ex.: ClientSecret do EOS em DEV).
-# O config de usuario do engine fica em Saved/Config/<Plataforma>/UserEngine.ini (Saved/ ja e ignorado).
+# Gerado por Tools/unreal/setup_eos_secret.py. O engine le Config/<Plataforma>/<Plataforma>Engine.ini
+# por cima de Config/DefaultEngine.ini; o segredo fica aqui, e nao no arquivo versionado.
+Config/Mac/MacEngine.ini
+Config/Windows/WindowsEngine.ini
+Config/Linux/LinuxEngine.ini
 Config/UserEngine.ini
 
 # Xcode

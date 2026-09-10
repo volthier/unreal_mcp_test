@@ -74,29 +74,54 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 
 | Porta | Como funciona | Quando usar |
 |---|---|---|
-| **EOS — Dev Auth** | `AuthType="developer"`, Id = nome da conta, Token = credencial gerada no **Epic Dev Auth Tool** | testar o login real sem abrir o navegador (o caminho de DEV do autor) |
+| **EOS — Dev Auth** | `AuthType="developer"`, **Id = `localhost:<porta>` do tool**, **Token = o nome da credencial** criada nele (ver §5b) | testar o login real sem abrir o navegador (o caminho de DEV do autor) |
 | **EOS — Conta Epic** | `AuthType="accountportal"`, sem Id/Token — o engine abre o portal da Epic | validar o caminho de produção |
 | **Local (reserva)** | `Saved/RunnerAccounts.tsv`, hash MD5 (grau de desenvolvimento) | quando o EOS não está disponível; mantém o slice jogável offline |
 
 O botão de EOS só aparece quando `IsEOSAvailable()` é verdadeiro (plugin carregado **e** interface de identidade obtida);
 sem EOS, o widget mantém a porta local visível.
 
-**Configuração migrada** (`Config/DefaultEngine.ini`, ambiente **DEV** já registrado pelo autor):
+### 5a. O **ClientSecret** é obrigatório (e onde ele mora)
 
-```ini
-[/Script/OnlineSubsystemEOS.EOSSettings]
-DefaultArtifactName=Ploidrek
-+Artifacts=(ArtifactName="Ploidrek", ClientId="...", ProductId="...", SandboxId="...",
-            DeploymentId="...", ClientEncryptionKey="...")
+**Correção de rota, com prova:** eu tinha deixado o `ClientSecret` de fora achando que o Dev Auth não precisaria
+dele. **Precisa.** Sem o segredo o EOS nem inicializa — e a falha é silenciosa para o jogador:
+
 ```
-`[OnlineSubsystem] DefaultPlatformService=EOS` · `[OnlineSubsystemEOS] bEnabled=true` · escopos BasicProfile, FriendsList, Presence.
+LogEOSSDK: Error: LogEOS: ClientCredentials.ClientSecret cannot be null
+LogEOSSDK: Error: LogEOS: Invalid input platform options. EOS_EResult: EOS_NotConfigured
+LogEOSShared: Warning: CreatePlatform failed, EosPlatformHandle=nullptr
+LogOnline: Error: EOS: FOnlineSubsystemEOS::PlatformCreate() failed to init EOS platform
+```
 
-> ⚠️ **Segredo não versionado.** O canônico traz o **`ClientSecret`** junto com os identificadores. Ele ficou
-> **deliberadamente de fora** deste arquivo: é credencial de servidor, não pode ir para o cliente nem para o Git.
-> Os **identificadores** (ClientId, ProductId, SandboxId, DeploymentId, EncryptionKey) são públicos por natureza e vieram.
-> O Dev Auth **não precisa** do secret: o tool autentica com a **sua conta Epic**, não com credencial de cliente.
-> Se algum dia o fluxo exigir o secret (troca de código / EOS Connect), ele entra em `Config/UserEngine.ini`
-> (fora do versionamento).
+O `EOS_Platform_Create` valida **ClientCredentials completas** (ClientId **e** ClientSecret). É o modelo de
+"cliente confidencial" do EAS — o mesmo que o canônico usa.
+
+**A divisão que resolve os dois lados** (DEV funcionando sem segredo no Git):
+
+| O que | Onde | Versionado? |
+|---|---|---|
+| identificadores públicos (ClientId, ProductId, SandboxId, DeploymentId, EncryptionKey), `DefaultArtifactName`, escopos | `Config/DefaultEngine.ini` | ✅ sim |
+| **ClientSecret** | `Config/<Plataforma>/<Plataforma>Engine.ini` (ex.: `Config/Mac/MacEngine.ini`) | ❌ **no .gitignore** |
+
+O engine lê o config de plataforma **depois** do `DefaultEngine.ini`, e lá a linha do artefato **sem o prefixo `+`
+substitui a lista inteira** — é isso que permite trocar o artefato por um completo, com o segredo, sem tocar no
+arquivo versionado.
+
+**Para gerar:**
+
+```sh
+EOS_CLIENT_SECRET=<o segredo> python3 Tools/unreal/setup_eos_secret.py
+```
+
+O script lê os identificadores do `DefaultEngine.ini`, monta o artefato completo e grava no config de plataforma
+— **nunca imprime o segredo** e nunca escreve em arquivo versionado.
+
+> Por que não em `Saved/Config/<Plataforma>/Engine.ini`? Porque **o editor reescreve essa pasta ao fechar** e o
+> arquivo some (aconteceu aqui: o EOS subiu numa execução e falhou na seguinte). O config de plataforma do projeto
+> sobrevive.
+
+> **Vigia:** a suíte `Runner.Sessao.EOSConfigurado` falha com a instrução do conserto se o EOS não subir, em vez de
+> deixar o login cair para o local em silêncio.
 
 ## 5b. Dev Auth Tool no **macOS** (o login de desenvolvedor)
 
