@@ -10,6 +10,8 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Kismet/GameplayStatics.h"
+#include "Data/RunnerChassisData.h"
+#include "Data/RunnerClassData.h"
 #include "Session/RunnerSession.h"
 #include "Session/RunnerSessionSubsystem.h"
 
@@ -231,6 +233,16 @@ void URunnerMenuWidget::SelectChassis(const FName ChassisId)
 
     PendingChassis = ChassisId;
     GoToStep(ERunnerMenuStep::Class);
+
+    // O jogador precisa saber o que esta escolhendo: a descricao e a vantagem vem do DataTable.
+    FRunnerChassisData Dados;
+    if (Session->GetChassisData(ChassisId, Dados))
+    {
+        SetStatus(FString::Printf(TEXT("%s — %s | Vantagem: %s | Agora escolha a classe."),
+            *Dados.DisplayName.ToString(),
+            *Dados.Description.ToString(),
+            *Dados.AdvantagePrimary.ToString()));
+    }
 }
 
 void URunnerMenuWidget::SelectClass(const FName ClassId)
@@ -251,8 +263,21 @@ void URunnerMenuWidget::SelectClass(const FName ClassId)
 
     PendingClass = ClassId;
     RebuildLayout();
-    SetStatus(FString::Printf(TEXT("Chassi: %s · Classe: %s — confirme para criar."),
-        *PendingChassis.ToString(), *PendingClass.ToString()));
+
+    FRunnerClassData DadosClasse;
+    if (Session->GetClassData(ClassId, DadosClasse))
+    {
+        SetStatus(FString::Printf(TEXT("%s — %s | Chassi %s + Classe %s · confirme para criar."),
+            *DadosClasse.DisplayName.ToString(),
+            *DadosClasse.Description.ToString(),
+            *PendingChassis.ToString(),
+            *PendingClass.ToString()));
+    }
+    else
+    {
+        SetStatus(FString::Printf(TEXT("Chassi: %s · Classe: %s — confirme para criar."),
+            *PendingChassis.ToString(), *PendingClass.ToString()));
+    }
 }
 
 void URunnerMenuWidget::OnPrimaryClicked()
