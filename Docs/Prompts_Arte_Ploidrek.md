@@ -194,7 +194,37 @@ quando o destino for virar malha.
 > (ex.: metal escuro + latão da paleta como matéria e neon ciano como energia) — é pré-requisito de qualquer
 > lote de arte.
 
-## 10. Checklist de aceite (o que eu confiro antes de importar)
+## 10. Gramática visual (o que se aprende com o mood board — e o que NÃO se copia)
+
+O mood board interno é `Art/reference/`: folhas de personagem de robô assinadas por artistas
+(`Mily.jpg` — "Reaverbot Legends", `Stompy.jpg`, `TronRoll3.jpg`, `TrioTroops.jpg`) mais uma
+ilustração clássica do Mega Man. É **referência de gosto**, não acervo: serve para extrair princípios.
+
+| Princípio que o mood board ensina | Como se aplica no Ploidrek |
+|---|---|
+| **Uma forma forte por personagem** | cada classe lê por UMA silhueta dominante em um segundo, mesmo em preto e branco (tanque = bloco, velocidade = cunha, cura = cápsula) |
+| **Proporção heróica compacta** | 6 a 7,5 cabeças, ombros largos, **mãos e botas grandes** — o peso visual mora nas extremidades |
+| **Painelização limpa** | chapas grandes, pouca linha de painel, rebite nas junções: o detalhe nunca compete com a silhueta |
+| **Cor em 60/30/10** | 60% massa neutra (aço/branco), 30% cor de identidade do chassi, 10% acento emissivo |
+| **Capacete é o rosto** | viseira/olhos são a única área expressiva; sem boca, sem nariz |
+| **Cel shading limpo** | dois tons de sombra + contorno escuro; especular só no metal |
+| **Inimigo pequeno e simpático** | bicho mecânico compacto, um olho ou uma boca — leitura em massa |
+
+**A linha de IP é não negociável — e já é regra sua:** nenhum personagem, nome, logo ou design reconhecível.
+O `IP-001`, o `IP-004` e o `MOD-001` do backlog já baniram os termos e mandam derivados para
+`Art/reference/_ip/`, sem entrar no build. O mood board é **interno**: inspira proporção, contraste,
+painelização e peso de linha — **nunca a forma final**.
+
+**Traduzindo para o nosso jogo:** mantém-se o **gosto** (robô compacto e heróico, capacete expressivo, cel
+limpo, inimigo simpático) e troca-se a **identidade**: matéria em latão/cobre/aço da paleta, energia em
+ciano/âmbar, capacete com viseira e rebite (não o elmo clássico), 7 cabeças em vez de 7,5, e nomes/narrativa
+nossos (Aether Forge · Nexus-7 · Kardys).
+
+> ⚠️ **Nunca vira asset:** `Art/reference/_ip/` (quando preenchida), `Megaman.obj/stl`, `Megaman.fbx`
+> `Classes/sample_maverik.jpg`, `generated/world/{reploid,maverick}.png`. São conceito local, e o que eu gero a
+> partir delas tem de ser **design original** — é o que os prompts deste documento exigem explicitamente.
+
+## 11. Checklist de aceite (o que eu confiro antes de importar)
 
 - [ ] Resolução e proporção conforme o pedido (e não um upscale disfarçado).
 - [ ] Paleta dentro do documento `SteampunkPalette.md` (sem roxo/neon aleatório).
