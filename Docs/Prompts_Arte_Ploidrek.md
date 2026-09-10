@@ -278,6 +278,58 @@ DataTable — é o que salva o leitor daltônico e o que dá leitura quando a co
 > depende do autor, porque mexe em `Data/DT_Chassis.csv` — que também alimenta a tinta do corpo no jogo e os
 > ícones. Aplicada a cor, eu reimporto o DataTable e regero a arte dos chassis na v003.
 
+## 9c. **Humanização e apresentação** (adendo do autor)
+
+**O que o autor apontou:** os chassis gerados estão **robotizados demais** — sem corpo humano, sem rosto, sem
+gênero. Num mundo de avanço tecnológico, a expectativa é o contrário: são **pessoas** com hardware, e o elenco
+deve cobrir um **espectro de apresentação**, não um binário.
+
+### As cinco apresentações
+
+Regra: a apresentação se comunica por **silhueta e proporção**, nunca por fantasia (nada de "armadura com
+símbolo de gênero"). Cada categoria tem assinatura de corpo e de rosto:
+
+| Apresentação | Silhueta e proporção | Rosto |
+|---|---|---|
+| **Masculine** | ombros claramente mais largos que o quadril, tronco em V, pescoço grosso | mandíbula marcada, sobrancelha pesada |
+| **Feminine** | quadril ≥ ombros, cintura marcada, pescoço longo, mãos pequenas | mandíbula suave, olhos grandes |
+| **MaleFem** (corpo masculino que lê feminino) | estrutura de ombros masculina com cintura fina, quadril um pouco mais largo e postura suave | traços finos dentro de uma moldura larga |
+| **Femasc** (corpo feminino que lê masculino) | estrutura feminina com ombros e braços musculosos, pulsos grossos | traços duros em crânio estreito |
+| **Androgynous** | ombro ≈ quadril, sem marcador binário, linhas equilibradas | traços neutros, ambíguos de propósito |
+
+### A regra de humanização (o que tirar e o que pôr)
+
+| Tirar | Pôr |
+|---|---|
+| cabeça de robô sem rosto, viseira que cobre tudo | **rosto humano** com olhos e expressão legíveis; viseira é **acessório**, não substituto de rosto |
+| corpo todo em placa, sem anatomia | **anatomia humana sob o hardware**: pescoço, cintura, articulação de quadril e ombro, mãos com dedos |
+| "armadura que é o corpo" | hardware **vestido sobre um corpo vivo** — pele sintética pode aparecer no pescoço, mandíbula e mãos |
+| cabeça lisa e igual em todos | **cabelo ou forma de crânio própria** por chassi (é o marcador humano mais rápido) |
+
+> O canônico já vai nessa direção: as amostras de classe em `Art/Classes/` têm rosto, expressão e
+> leitura de gênero. E o projeto **já tem as duas malhas humanas da engine** (`SKM_Manny_Simple` masculino e
+> `SKM_Quinn_Simple` feminino) — hoje o DataTable aponta **todos os 11 chassis** para o Manny.
+
+### Proposta de distribuição (2 por apresentação, 10 chassis)
+
+| Chassi | Apresentação | Malha de placeholder |
+|---|---|---|
+| **Charger** | Masculine | Manny |
+| **Forgekin** | Masculine | Manny |
+| **Vox** | Feminine | Quinn |
+| **Aetheric** | Feminine | Quinn |
+| **Droneframe** | MaleFem | Manny |
+| **Techno** | MaleFem | Manny |
+| **Cryonix** | Femasc | Quinn |
+| **Overcore** | Femasc | Quinn |
+| **Vitaspark** | Androgynous | Quinn |
+| **Ghostnet** | Androgynous | Manny |
+| *Clyffen (extinto)* | Androgynous | — |
+
+**O que isso exige do código e dos dados:** uma coluna nova no `DT_Chassis` (apresentação) e um campo no
+`FRunnerChassisData`; a malha por chassi passa a ser Manny ou Quinn conforme a tabela acima, o que dá distinção
+real em campo **hoje**, com asset da própria engine.
+
 ## 10. Gramática visual (o que se aprende com o mood board — e o que NÃO se copia)
 
 O mood board interno é `Art/reference/`: folhas de personagem de robô assinadas por artistas
