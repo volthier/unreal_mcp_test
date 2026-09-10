@@ -19,7 +19,8 @@ public class PloidrekRPG : ModuleRules
 			"Niagara",
 			"NetCore",
 			"PhysicsCore",
-			"DeveloperSettings"
+			"DeveloperSettings",
+			"UMG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

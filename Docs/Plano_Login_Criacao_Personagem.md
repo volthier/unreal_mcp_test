@@ -41,7 +41,9 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 | 2 | **Dados canônicos** | `DT_Chassis` e `DT_Classes` com as estruturas em **C++** (`FRunnerChassisData`, `FRunnerClassData`), importadas de **CSV versionado** | ✅ **feito** — 11 chassis (10 + Clyffen extintos) e 6 classes, importados por script headless |
 | 3 | **Subsystem do fluxo** | `URunnerSessionSubsystem`: conta (persistida em `Saved/RunnerAccounts.tsv`), seleção de chassi/classe com validação, `CreateCharacterProfile()` | ✅ **feito** |
 | 4 | **Corpo aplicado** | `ARunnerCharacter::ApplyProfile()` aplica a **malha do chassi** (manequim da engine) no pawn | ✅ **feito** — falta o material de overlay para a tinta do chassi |
-| 5 | **UI** | trazer/refazer `WBP_Login` → `WBP_CreateAccount` → `WBP_SelectChassis` → `WBP_SelectClass` | ⏳ |
+| 5 | **UI** | `URunnerMenuWidget` em **C++/UMG**: entrar → criar conta → escolher chassi → escolher classe → criar personagem. A lista de opções vem do **DataTable**, não de código | ✅ **feito** (sem estilo — o visual vem depois) |
+| 5b | **Entrada no jogo** | `AMenuGameMode` abre o menu; ao criar, `OpenLevel` com `?game=/Script/PloidrekRPG.AFGameMode`; o pawn nasce e recebe o corpo | ✅ **feito** |
+| 5c | **Persistência** | conta em `Saved/RunnerAccounts.tsv` e personagem em `Saved/RunnerCharacters.tsv` — entrar de novo restaura chassi e classe | ✅ **feito** |
 | 6 | **Renomeação do projeto** | módulo `AI_MEGA_MAN_TEST` → `PloidrekRPG`; classes `VoltStriker*` → `Runner*` (ver `Plano_Renomeacao_Runner.md`) | ⏳ |
 
 ## 4. O problema de versão (5.5 → 5.8) e as duas saídas
@@ -77,9 +79,30 @@ depois é trocar a implementação, não reescrever o fluxo.
 | **1** ✅ | **feito:** renomeação do projeto (módulo `PloidrekRPG`, classes `Runner*`) · build headless validado · manequim no projeto · structs de dado · CSVs · **DataTables importados** · este plano | build `Succeeded`; 11 chassis e 6 classes dentro dos `.uasset`; package paths conferidos |
 | **2** ✅ | **feito:** BPs reparentados · `URunnerRules` (matemática) · `URunnerCharacterFactory` · `URunnerSessionSubsystem` · `ApplyProfile` · **suíte de automação** | `Runner.Regras.Matematica` e `Runner.Fluxo.ChassiEClasse` **Success** — 60 combinações validadas |
 | 3 | subsystem do fluxo + `ARunnerCharacter` com manequim | personagem nasce com o corpo escolhido |
-| 4 | renomeação do projeto (módulo + classes) e reparent dos BPs | build limpo, projeto abre, BPs sem erro |
-| **3 (atual)** | **UI do fluxo**: login → criar conta → selecionar chassi → selecionar classe → spawn com corpo | fluxo completo jogável de ponta a ponta |
+| **4 (atual)** | **acabamento**: estilo visual do menu (WBP por cima do widget C++), material de overlay para a cor do chassi, e o teste funcional no mapa | play no editor mostra o menu e entra no jogo com o corpo escolhido |
+| **3** ✅ | **feito:** UI em C++/UMG, entrada no jogo, persistência da conta e do personagem, GameMode de menu | `Runner.Regras.Matematica`, `Runner.Fluxo.ChassiEClasse` e `Runner.Sessao.ContaECriacao` — **todos Success** |
 | 6 | migração dos widgets do canônico (saída A) | login do canônico rodando no 5.8 |
+
+## 6b. Como o fluxo roda hoje (passo a passo)
+
+```
+1. Abrir o projeto e dar Play em NewMap
+   └ o WorldSettings do mapa aponta para BP_MenuGameMode (pai: AMenuGameMode)
+     └ abre URUNNERMENUWIDGET: tela de login
+2. Entrar (ou criar conta)                     [URunnerSession::Login / CreateAccount]
+3. Escolher o chassi  (10 opções + os Clyffen aparecem como extintos e são recusados)
+4. Escolher a classe  (6 opções)
+5. "Criar personagem"                          [URunnerSession::CreateCharacterProfile]
+   └ grava a ficha na conta e troca de GameMode:
+     OpenLevel(NewMap, "?game=/Script/PloidrekRPG.AFGameMode")
+6. AFGameMode::HandleStartingNewPlayer
+   └ lê a ficha da sessão e chama ARunnerCharacter::ApplyProfile
+     └ o pawn recebe a MALHA DO CHASSI (manequim da engine) + cor de destaque
+```
+
+**O que falta para ficar redondo:** o widget C++ não tem estilo (usa o visual padrão do Slate) — o
+visual próprio entra depois, por WBP por cima ou por Style Set. E a cor de destaque do chassi só
+aparece quando existir um **material de overlay** (os materiais do manequim não expõem parâmetro de cor).
 
 ## 7. Pendências que podem travar
 
