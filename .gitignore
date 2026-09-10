@@ -39,9 +39,29 @@ __pycache__/
 Art/generated/
 \n# Estudo / referência e derivados de obra de terceiros — ficam FORA do histórico\n# (ver Docs/BACKLOG_Tecnico.md, itens IP-004 e IP-005). Os arquivos continuam no disco.\nArt/Megaman.obj\nArt/Megaman.stl\nArt/reference/*.fbx\nArt/*.zip\n
 
-# Estudo / referencia e derivados de obra de terceiros - ficam FORA do historico
-# (ver Docs/BACKLOG_Tecnico.md, itens IP-004 e IP-005). Os arquivos continuam no disco.
+# ---------------------------------------------------------------------------
+# Pesados, gerados ou inseguros para o GitHub
+# ver Docs/BACKLOG_Tecnico.md -> ORG-002, ORG-010, IP-004
+# ---------------------------------------------------------------------------
+
+# IP: estudo/referencia e derivados de obra de terceiros
 Art/Megaman.obj
 Art/Megaman.stl
-Art/reference/*.fbx
-Art/*.zip
+
+# Malhas de troca e compactados: sempre pesados, e sempre derivados de fonte DCC
+*.stl
+*.obj
+*.fbx
+*.glb
+*.zip
+*.blend1
+
+# PNG dentro do Content = fonte importada; o que vale e o .uasset
+Content/**/*.png
+
+# Capturas do editor e logs
+Captures/
+*.log
+
+# Binarios de plataforma do plugin MCP (4 plataformas, ~285 MB no repo)
+Plugins/UnrealMCP/Source/ThirdParty/UnrealMcpBridge/*/unreal-mcp-bridge*
