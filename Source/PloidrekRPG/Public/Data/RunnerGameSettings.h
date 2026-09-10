@@ -21,5 +21,8 @@ public:
     /** Tabela das classes base (linhas FRunnerClassData). */
     UPROPERTY(config, EditAnywhere, Category = "Dados") TSoftObjectPtr<UDataTable> ClassTable;
 
+    /** Material usado para tingir o corpo com a cor do chassi (parametro AccentColor). */
+    UPROPERTY(config, EditAnywhere, Category = "Corpo") TSoftObjectPtr<UMaterialInterface> AccentOverlayMaterial;
+
     virtual FName GetCategoryName() const override { return FName(TEXT("Game")); }
 };

@@ -14,6 +14,7 @@
 #include "InputCoreTypes.h"
 #include "Components/CapsuleComponent.h"
 #include "Character/RunnerAnimInstance.h"
+#include "Data/RunnerGameSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/SkeletalMesh.h"
 #include "Ability/GA_BasicShot.h"
@@ -454,15 +455,17 @@ void ARunnerCharacter::ApplyProfile(const FRunnerCharacterProfile& Profile)
 		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 		GetMesh()->SetRelativeScale3D(FVector(1.f));
 
-		// Tinta de placeholder. Os materiais do manequim nao expoem parametro de cor, entao
-		// isto so aparece quando existir material de overlay proprio (tarefa registrada).
-		if (UMaterialInterface* BaseMaterial = GetMesh()->GetMaterial(0))
+		// Cor do chassi aplicada por material de OVERLAY: os materiais do manequim nao expoem
+		// parametro de cor, e o overlay tinge o corpo sem substituir a textura original.
+		if (const URunnerGameSettings* Settings = GetDefault<URunnerGameSettings>())
 		{
-			if (UMaterialInstanceDynamic* Dynamic = UMaterialInstanceDynamic::Create(BaseMaterial, this))
+			if (UMaterialInterface* OverlayBase = Settings->AccentOverlayMaterial.LoadSynchronous())
 			{
-				Dynamic->SetVectorParameterValue(TEXT("Color"), Profile.AccentColor);
-				Dynamic->SetVectorParameterValue(TEXT("BaseColor"), Profile.AccentColor);
-				GetMesh()->SetMaterial(0, Dynamic);
+				if (UMaterialInstanceDynamic* Overlay = UMaterialInstanceDynamic::Create(OverlayBase, this))
+				{
+					Overlay->SetVectorParameterValue(TEXT("AccentColor"), Profile.AccentColor);
+					GetMesh()->SetOverlayMaterial(Overlay);
+				}
 			}
 		}
 	}

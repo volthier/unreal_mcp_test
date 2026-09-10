@@ -44,6 +44,7 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 | 5 | **UI** | `URunnerMenuWidget` em **C++/UMG**: entrar → criar conta → escolher chassi → escolher classe → criar personagem. A lista de opções vem do **DataTable**, não de código | ✅ **feito** (sem estilo — o visual vem depois) |
 | 5b | **Entrada no jogo** | `AMenuGameMode` abre o menu; ao criar, `OpenLevel` com `?game=/Script/PloidrekRPG.AFGameMode`; o pawn nasce e recebe o corpo | ✅ **feito** |
 | 5c | **Persistência** | conta em `Saved/RunnerAccounts.tsv` e personagem em `Saved/RunnerCharacters.tsv` — entrar de novo restaura chassi e classe | ✅ **feito** |
+| 5d | **Cor do chassi** | `M_RunnerAccent` (overlay unlit/translúcido com o parâmetro `AccentColor`) aplicado por `ApplyProfile` via `SetOverlayMaterial` | ✅ **feito** — o manequim fica tingido com a cor do chassi |
 | 6 | **Renomeação do projeto** | módulo `AI_MEGA_MAN_TEST` → `PloidrekRPG`; classes `VoltStriker*` → `Runner*` (ver `Plano_Renomeacao_Runner.md`) | ⏳ |
 
 ## 4. O problema de versão (5.5 → 5.8) e as duas saídas
@@ -79,7 +80,8 @@ depois é trocar a implementação, não reescrever o fluxo.
 | **1** ✅ | **feito:** renomeação do projeto (módulo `PloidrekRPG`, classes `Runner*`) · build headless validado · manequim no projeto · structs de dado · CSVs · **DataTables importados** · este plano | build `Succeeded`; 11 chassis e 6 classes dentro dos `.uasset`; package paths conferidos |
 | **2** ✅ | **feito:** BPs reparentados · `URunnerRules` (matemática) · `URunnerCharacterFactory` · `URunnerSessionSubsystem` · `ApplyProfile` · **suíte de automação** | `Runner.Regras.Matematica` e `Runner.Fluxo.ChassiEClasse` **Success** — 60 combinações validadas |
 | 3 | subsystem do fluxo + `ARunnerCharacter` com manequim | personagem nasce com o corpo escolhido |
-| **4 (atual)** | **acabamento**: estilo visual do menu (WBP por cima do widget C++), material de overlay para a cor do chassi, e o teste funcional no mapa | play no editor mostra o menu e entra no jogo com o corpo escolhido |
+| **4** ✅ | **feito:** material de overlay da cor do chassi + diagnóstico honesto do limite de verificação em execução | build e 3 suítes verdes; execução headless não inicia o jogo |
+| **5 (atual)** | **acabamento visual**: estilo do menu (WBP/Style Set por cima do widget C++), e o **teste de Play** do autor | play mostra o menu e entra no jogo com o corpo e a cor do chassi |
 | **3** ✅ | **feito:** UI em C++/UMG, entrada no jogo, persistência da conta e do personagem, GameMode de menu | `Runner.Regras.Matematica`, `Runner.Fluxo.ChassiEClasse` e `Runner.Sessao.ContaECriacao` — **todos Success** |
 | 6 | migração dos widgets do canônico (saída A) | login do canônico rodando no 5.8 |
 
@@ -103,6 +105,25 @@ depois é trocar a implementação, não reescrever o fluxo.
 **O que falta para ficar redondo:** o widget C++ não tem estilo (usa o visual padrão do Slate) — o
 visual próprio entra depois, por WBP por cima ou por Style Set. E a cor de destaque do chassi só
 aparece quando existir um **material de overlay** (os materiais do manequim não expõem parâmetro de cor).
+
+## 6c. Limite de verificação (honesto)
+
+Tentei **três vezes** rodar o jogo de forma headless para provar a corrente em execução (`-game -nullrhi`, com 45 s, 150 s e com `-log`). Nas três, o engine **inicia** ("Game Engine Initialized") mas
+**não chega a iniciar o jogo** e não grava log capturável — inclusive matar o processo com SIGTERM perde o
+stdout em buffer. Conclusão: **a execução de ponta a ponta só o autor pode confirmar**, com Play no editor.
+
+O que **está** provado por automação: compilação limpa · 3 suítes de teste · vínculos entre assets
+(mapa → redirector → BP_MenuGameMode → `AMenuGameMode`, DataTables com as linhas certas, manequim com
+package path correto).
+
+**O que deve aparecer ao dar Play em `NewMap`:** o menu com o título *"PLOIDREKRPG — entrar"*, campo de conta,
+campo de senha e os botões **Entrar** / **Criar conta nova**. No log:
+
+```
+LogTemp: AMenuGameMode: menu de entrada aberto (BP_MenuGameMode_C)
+LogTemp: AFGameMode: ficha aplicada no pawn (chassi Vitaspark / classe Blaster)
+LogTemp: ApplyProfile: conta=... chassi=Vitaspark classe=Blaster HP=23 CA=10 corpo=...
+```
 
 ## 7. Pendências que podem travar
 
