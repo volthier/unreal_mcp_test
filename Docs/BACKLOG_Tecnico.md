@@ -105,11 +105,13 @@
 | ID | Issue | Sev | DoD |
 |---|---|---|---|
 | `MIG-001` | Copiar (somente leitura) o conteúdo relevante do Ploidrek: `Content/Data/*`, `Content/Blueprints/{UI,Systems,Characters}`, `Content/Maps/*`, `Content/Input/*`, `Config/*` | 🔴 | Cópia abrindo no 5.8; **zero escrita** no repositório de origem |
-| `MIG-002` | Validar plugins que podem não existir na mesma versão em 5.8 (CommonUI, OnlineSubsystemEOS, OnlineServicesOSSAdapter) | 🔴 | Lista de plugins equivalentes por versão + fluxo de login/criação de conta funcionando |
+| `MIG-002` | Validar plugins que podem não existir na mesma versão em 5.8 (CommonUI, OnlineSubsystemEOS, OnlineServicesOSSAdapter) | 🔴 | ⏳ **parcial:** `OnlineSubsystemEOS` + `OnlineSubsystemUtils` + `OnlineServicesOSSAdapter` **existem no 5.8 e estão habilitados**; login EOS migrado e compilando (`URunnerSession::LoginWithEOS`) — falta a **execução** com credencial real. `CommonUI` segue não avaliado |
 | `MIG-003` | Portar `Docs/ENGINEERING_PLAYBOOK_UNREAL.md` para cá e corrigir a versão citada (5.7 → 5.8) | 🟠 | Playbook vigente neste repositório |
 | `MIG-004` | Definir o destino do repositório antigo | 🟠 | Decisão escrita: congelado e somente leitura, mantido como histórico |
 | `MIG-005` | Reescrever os DataTables migrados no schema corrigido (`DADOS-001/002/004`) | 🔴 | DataTables no schema novo, validados no editor |
-| `MIG-006` | Trazer `DT_PloidrekModels` completo (10 modelos) e exportar cópia JSON/CSV versionada | 🟠 | Export versionado + campos `Trait`/`Feature` documentados |
+| `MIG-006` | Trazer `DT_PloidrekModels` completo (10 modelos) e exportar cópia JSON/CSV versionada | 🟠 | ✅ **resolvido:** `Data/DT_Chassis.csv` + `Data/DT_Classes.csv` versionados, importados para `Content/Data/*.uasset`; 11 chassis (10 + Clyffen extinto) e 6 classes |
+| `MIG-007` | **Segredo do EOS fora do Git** — o canônico traz o `ClientSecret` no `DefaultEngine.ini` versionado | 🟡 | Secret **não** versionado neste repo; se necessário (troca de código / EOS Connect), mora em `Config/UserEngine.ini` |
+| `MIG-008` | **Servidor autoritativo** para conta e personagens — hoje a lista de Runners é lida/gravada no cliente (`Saved/RunnerCharacters.tsv`) | 🔴 | Salve/carregue via backend (EOS Player Data Storage ou serviço próprio); o cliente nunca é a fonte da verdade |
 
 ## Processo / CI
 

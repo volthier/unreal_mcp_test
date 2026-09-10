@@ -20,7 +20,8 @@ public class PloidrekRPG : ModuleRules
 			"NetCore",
 			"PhysicsCore",
 			"DeveloperSettings",
-			"UMG"
+			"UMG",
+			"OnlineSubsystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

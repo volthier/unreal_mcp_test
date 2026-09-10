@@ -74,4 +74,77 @@ bool FRunnerSessionFlowTest::RunTest(const FString& Parameters)
     return true;
 }
 
+/**
+ * Uma conta pode ter VARIOS Runners: depois do login a lista aparece e o jogador
+ * escolhe um existente ou cria um novo. Tambem garante que uma conta nao ve os do outra.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerMultiCharacterTest, "Runner.Sessao.VariosPersonagens",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
+{
+    const FString Conta = FString::Printf(TEXT("teste_multi_%d"), FMath::RandRange(100000, 999999));
+    const FString Senha = TEXT("senha-de-teste");
+
+    URunnerSession* Sessao = NewObject<URunnerSession>();
+    if (!TestNotNull(TEXT("sessao criada"), Sessao))
+    {
+        return false;
+    }
+
+    FString Erro;
+    TestTrue(TEXT("cria conta"), Sessao->CreateAccount(Conta, Senha, Erro));
+    TestTrue(TEXT("entra na conta"), Sessao->Login(Conta, Senha, Erro));
+    TestFalse(TEXT("conta nova nao tem personagem"), Sessao->HasSavedCharacters());
+    TestEqual(TEXT("lista vazia no inicio"), Sessao->GetSavedCharacters().Num(), 0);
+
+    // Primeiro Runner
+    TestTrue(TEXT("chassi do Runner 1"), Sessao->SelectChassis(FName(TEXT("Vitaspark")), Erro));
+    TestTrue(TEXT("classe do Runner 1"), Sessao->SelectClass(FName(TEXT("Blaster")), Erro));
+    FRunnerCharacterProfile Perfil1;
+    TestTrue(TEXT("cria o Runner 1"), Sessao->CreateCharacterProfile(Perfil1, Erro));
+
+    // Segundo Runner, na mesma conta
+    TestTrue(TEXT("chassi do Runner 2"), Sessao->SelectChassis(FName(TEXT("Forgekin")), Erro));
+    TestTrue(TEXT("classe do Runner 2"), Sessao->SelectClass(FName(TEXT("Breaker")), Erro));
+    FRunnerCharacterProfile Perfil2;
+    TestTrue(TEXT("cria o Runner 2"), Sessao->CreateCharacterProfile(Perfil2, Erro));
+
+    const TArray<FRunnerSavedCharacter> Meus = Sessao->GetSavedCharacters();
+    TestEqual(TEXT("a conta tem 2 personagens"), Meus.Num(), 2);
+    if (Meus.Num() == 2)
+    {
+        TestEqual(TEXT("chassi do primeiro"), Meus[0].ChassisId.ToString(), FString(TEXT("Vitaspark")));
+        TestEqual(TEXT("classe do primeiro"), Meus[0].ClassId.ToString(), FString(TEXT("Blaster")));
+        TestEqual(TEXT("chassi do segundo"), Meus[1].ChassisId.ToString(), FString(TEXT("Forgekin")));
+        TestEqual(TEXT("classe do segundo"), Meus[1].ClassId.ToString(), FString(TEXT("Breaker")));
+
+        // Escolher um existente carrega a ficha dele
+        TestTrue(TEXT("seleciona o primeiro"), Sessao->SelectSavedCharacter(Meus[0].CharacterId, Erro));
+        FRunnerCharacterProfile Ativo;
+        if (TestTrue(TEXT("tem ficha ativa"), Sessao->GetActiveProfile(Ativo)))
+        {
+            TestEqual(TEXT("chassi ativo"), Ativo.ChassisId.ToString(), FString(TEXT("Vitaspark")));
+            TestEqual(TEXT("HP do Vitaspark/Blaster"), Ativo.MaxHitPoints, 23);
+        }
+
+        TestTrue(TEXT("seleciona o segundo"), Sessao->SelectSavedCharacter(Meus[1].CharacterId, Erro));
+        Sessao->GetActiveProfile(Ativo);
+        TestEqual(TEXT("chassi ativo 2"), Ativo.ChassisId.ToString(), FString(TEXT("Forgekin")));
+        TestEqual(TEXT("classe ativa 2"), Ativo.ClassId.ToString(), FString(TEXT("Breaker")));
+    }
+
+    TestFalse(TEXT("id inexistente e recusado"), Sessao->SelectSavedCharacter(TEXT("R-99"), Erro));
+
+    // Outra conta nao enxerga estes personagens
+    URunnerSession* Outra = NewObject<URunnerSession>();
+    const FString Conta2 = Conta + TEXT("b");
+    FString Erro2;
+    TestTrue(TEXT("cria a segunda conta"), Outra->CreateAccount(Conta2, Senha, Erro2));
+    TestTrue(TEXT("entra na segunda conta"), Outra->Login(Conta2, Senha, Erro2));
+    TestFalse(TEXT("a segunda conta nao tem personagens"), Outra->HasSavedCharacters());
+    TestEqual(TEXT("lista da segunda conta vazia"), Outra->GetSavedCharacters().Num(), 0);
+    return true;
+}
+
 #endif

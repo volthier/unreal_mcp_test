@@ -63,6 +63,12 @@ void URunnerMenuWidget::NativeOnInitialized()
     RootBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
     Panel->AddChild(RootBox);
 
+    // O EOS responde assincrono: a tela reage ao fim do login por este delegate.
+    if (URunnerSession* Sessao = GetSession())
+    {
+        Sessao->OnLoginComplete.AddDynamic(this, &URunnerMenuWidget::HandleLoginComplete);
+    }
+
     RebuildLayout();
 }
 
@@ -99,6 +105,9 @@ void URunnerMenuWidget::RebuildLayout()
         case ERunnerMenuStep::CreateAccount:
             Title->SetText(FText::FromString(TEXT("Criar conta")));
             break;
+        case ERunnerMenuStep::CharacterSelect:
+            Title->SetText(FText::FromString(TEXT("Seus Runners")));
+            break;
         case ERunnerMenuStep::Chassis:
             Title->SetText(FText::FromString(TEXT("Escolha o chassi")));
             break;
@@ -120,25 +129,18 @@ void URunnerMenuWidget::RebuildLayout()
         RootBox->AddChild(PasswordBox);
     }
 
-    if (CurrentStep == ERunnerMenuStep::Chassis || CurrentStep == ERunnerMenuStep::Class)
+    // Listas de opcao. Os ids vem sempre dos dados (DataTable) ou dos personagens da conta.
+    if (CurrentStep == ERunnerMenuStep::Chassis || CurrentStep == ERunnerMenuStep::Class
+        || CurrentStep == ERunnerMenuStep::CharacterSelect)
     {
         UScrollBox* List = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
         RootBox->AddChild(List);
 
-        // A lista sai do DataTable: a UI nao conhece os chassis, so pergunta quais existem.
-        const TArray<FName> Ids = (CurrentStep == ERunnerMenuStep::Chassis)
-            ? (Session ? Session->GetChassisIds(false) : TArray<FName>())
-            : (Session ? Session->GetClassIds() : TArray<FName>());
-
-        for (const FName& Id : Ids)
+        auto AdicionarOpcao = [this, List](const FString& Rotulo, const FName Id)
         {
-            const FString Label = (CurrentStep == ERunnerMenuStep::Chassis)
-                ? Id.ToString() + ((Id == PendingChassis) ? TEXT("  [escolhido]") : TEXT(""))
-                : Id.ToString() + ((Id == PendingClass) ? TEXT("  [escolhido]") : TEXT(""));
-
             UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
             UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-            Text->SetText(FText::FromString(Label));
+            Text->SetText(FText::FromString(Rotulo));
             Text->SetColorAndOpacity(FSlateColor(TextColor));
             Button->AddChild(Text);
 
@@ -149,6 +151,33 @@ void URunnerMenuWidget::RebuildLayout()
             Button->OnClicked.AddDynamic(Binding, &URunnerOptionButton::HandleClicked);
 
             List->AddChild(Button);
+        };
+
+        if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+        {
+            // Personagens que ja existem nesta conta.
+            if (Session)
+            {
+                for (const FRunnerSavedCharacter& Salvo : Session->GetSavedCharacters())
+                {
+                    AdicionarOpcao(Salvo.GetDisplayName() + TEXT("   [") + Salvo.CharacterId + TEXT("]"),
+                        FName(*Salvo.CharacterId));
+                }
+            }
+        }
+        else
+        {
+            const TArray<FName> Ids = (CurrentStep == ERunnerMenuStep::Chassis)
+                ? (Session ? Session->GetChassisIds(false) : TArray<FName>())
+                : (Session ? Session->GetClassIds() : TArray<FName>());
+
+            for (const FName& Id : Ids)
+            {
+                const FString Label = (CurrentStep == ERunnerMenuStep::Chassis)
+                    ? Id.ToString() + ((Id == PendingChassis) ? TEXT("  [escolhido]") : TEXT(""))
+                    : Id.ToString() + ((Id == PendingClass) ? TEXT("  [escolhido]") : TEXT(""));
+                AdicionarOpcao(Label, Id);
+            }
         }
     }
 
@@ -156,16 +185,21 @@ void URunnerMenuWidget::RebuildLayout()
     StatusText->SetColorAndOpacity(FSlateColor(TextColor));
     RootBox->AddChild(StatusText);
 
+    const bool bEOS = Session && Session->IsEOSAvailable();
+
     // Botao principal
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     UTextBlock* PrimaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
     PrimaryText->SetColorAndOpacity(FSlateColor(TextColor));
     switch (CurrentStep)
     {
-        case ERunnerMenuStep::Login:         PrimaryText->SetText(FText::FromString(TEXT("Entrar"))); break;
-        case ERunnerMenuStep::CreateAccount: PrimaryText->SetText(FText::FromString(TEXT("Criar conta"))); break;
-        case ERunnerMenuStep::Class:         PrimaryText->SetText(FText::FromString(TEXT("Criar personagem"))); break;
-        default:                             PrimaryText->SetText(FText::FromString(TEXT("Escolha uma opcao acima"))); break;
+        case ERunnerMenuStep::Login:
+            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar (EOS — Dev Auth: conta + credencial)") : TEXT("Entrar (local)")));
+            break;
+        case ERunnerMenuStep::CreateAccount:     PrimaryText->SetText(FText::FromString(TEXT("Criar conta"))); break;
+        case ERunnerMenuStep::CharacterSelect:   PrimaryText->SetText(FText::FromString(TEXT("Criar novo Runner"))); break;
+        case ERunnerMenuStep::Class:             PrimaryText->SetText(FText::FromString(TEXT("Criar personagem"))); break;
+        default:                                 PrimaryText->SetText(FText::FromString(TEXT("Escolha uma opcao acima"))); break;
     }
     Primary->AddChild(PrimaryText);
     Primary->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnPrimaryClicked);
@@ -177,14 +211,37 @@ void URunnerMenuWidget::RebuildLayout()
     SecondaryText->SetColorAndOpacity(FSlateColor(TextColor));
     switch (CurrentStep)
     {
-        case ERunnerMenuStep::Login:         SecondaryText->SetText(FText::FromString(TEXT("Criar conta nova"))); break;
-        case ERunnerMenuStep::CreateAccount: SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
-        case ERunnerMenuStep::Chassis:       SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
-        case ERunnerMenuStep::Class:         SecondaryText->SetText(FText::FromString(TEXT("Trocar chassi"))); break;
+        case ERunnerMenuStep::Login:
+            SecondaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar com a conta Epic (EOS)") : TEXT("Criar conta nova")));
+            break;
+        case ERunnerMenuStep::CreateAccount:   SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
+        case ERunnerMenuStep::CharacterSelect: SecondaryText->SetText(FText::FromString(TEXT("Sair da conta"))); break;
+        case ERunnerMenuStep::Chassis:         SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
+        case ERunnerMenuStep::Class:           SecondaryText->SetText(FText::FromString(TEXT("Trocar chassi"))); break;
     }
     Secondary->AddChild(SecondaryText);
     Secondary->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnSecondaryClicked);
     RootBox->AddChild(Secondary);
+
+    // Terceiro botao: so aparece onde ha uma terceira acao util.
+    TertiaryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+    UTextBlock* TertiaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+    TertiaryText->SetColorAndOpacity(FSlateColor(TextColor));
+    bool bMostraTerceiro = false;
+    if (CurrentStep == ERunnerMenuStep::Login)
+    {
+        TertiaryText->SetText(FText::FromString(TEXT("Criar conta nova (local)")));
+        bMostraTerceiro = true;
+    }
+    else if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+    {
+        TertiaryText->SetText(FText::FromString(TEXT("Atualizar lista")));
+        bMostraTerceiro = true;
+    }
+    TertiaryButton->AddChild(TertiaryText);
+    TertiaryButton->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnTertiaryClicked);
+    TertiaryButton->SetVisibility(bMostraTerceiro ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    RootBox->AddChild(TertiaryButton);
 }
 
 void URunnerMenuWidget::GoToStep(const ERunnerMenuStep NewStep)
@@ -195,10 +252,18 @@ void URunnerMenuWidget::GoToStep(const ERunnerMenuStep NewStep)
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
-            SetStatus(TEXT("Entre com a sua conta, ou crie uma."));
+        {
+            URunnerSession* Sessao = GetSession();
+            SetStatus(Sessao && Sessao->IsEOSAvailable()
+                ? TEXT("Entre pela Epic Online Services (conta + credencial do Dev Auth Tool), ou use a conta Epic.")
+                : TEXT("EOS indisponivel: entre com a conta local, ou crie uma."));
             break;
+        }
         case ERunnerMenuStep::CreateAccount:
-            SetStatus(TEXT("Escolha um nome de conta e uma senha."));
+            SetStatus(TEXT("Escolha um nome de conta e uma senha (conta local, para desenvolvimento)."));
+            break;
+        case ERunnerMenuStep::CharacterSelect:
+            SetStatus(TEXT("Escolha um dos seus Runners, ou crie um novo."));
             break;
         case ERunnerMenuStep::Chassis:
             SetStatus(TEXT("O chassi e o corpo: ele define a sua vocacao. Os Clyffen estao extintos."));
@@ -221,6 +286,23 @@ void URunnerMenuWidget::SelectChassis(const FName ChassisId)
     if (CurrentStep == ERunnerMenuStep::Class)
     {
         SelectClass(ChassisId);
+        return;
+    }
+
+    // Na tela de personagens a opcao e um Runner que ja existe na conta.
+    if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+    {
+        FString ErroRunner;
+        if (!Session->SelectSavedCharacter(ChassisId.ToString(), ErroRunner))
+        {
+            SetStatus(ErroRunner);
+            return;
+        }
+
+        FRunnerCharacterProfile Perfil;
+        Session->GetActiveProfile(Perfil);
+        SetStatus(FString::Printf(TEXT("Entrando com %s (%s)..."), *ChassisId.ToString(), *Perfil.ClassId.ToString()));
+        OpenGameLevel();
         return;
     }
 
@@ -299,28 +381,34 @@ void URunnerMenuWidget::OnPrimaryClicked()
             {
                 return;
             }
-            if (!Session->Login(AccountBox->GetText().ToString(), PasswordBox->GetText().ToString(), Erro))
+
+            const FString Conta = AccountBox->GetText().ToString();
+            const FString Senha = PasswordBox->GetText().ToString();
+
+            if (Session->IsEOSAvailable())
+            {
+                // Dev Auth do EOS: os dois campos viram o Id e o Token do Dev Auth Tool da Epic.
+                SetStatus(TEXT("Entrando pela Epic Online Services..."));
+                if (!Session->LoginWithEOS(TEXT("developer"), Conta, Senha, Erro))
+                {
+                    SetStatus(Erro);
+                }
+                // O resto do fluxo continua em HandleLoginComplete (o EOS responde assincrono).
+                return;
+            }
+
+            if (!Session->Login(Conta, Senha, Erro))
             {
                 SetStatus(Erro);
                 return;
             }
+            // Sucesso: quem continua o fluxo e HandleLoginComplete, disparado pelo proprio Login.
+            return;
+        }
 
-            // Conta que ja tem personagem volta direto para o jogo.
-            if (Session->RestoreCharacter(Erro))
-            {
-                FRunnerCharacterProfile Perfil;
-                Session->GetActiveProfile(Perfil);
-                PendingChassis = Perfil.ChassisId;
-                PendingClass = Perfil.ClassId;
-                SetStatus(TEXT("Bem-vindo de volta — entrando com o seu Runner."));
-                UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)), true,
-                    TEXT("game=/Script/PloidrekRPG.AFGameMode"));
-                return;
-            }
-
+        case ERunnerMenuStep::CharacterSelect:
             GoToStep(ERunnerMenuStep::Chassis);
             break;
-        }
 
         case ERunnerMenuStep::CreateAccount:
         {
@@ -368,8 +456,22 @@ void URunnerMenuWidget::OnSecondaryClicked()
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
+        {
+            URunnerSession* Sessao = GetSession();
+            if (Sessao && Sessao->IsEOSAvailable())
+            {
+                // Login pelo portal da conta Epic (Auth Interface, tipo accountportal).
+                FString ErroPortal;
+                SetStatus(TEXT("Abrindo o portal da conta Epic..."));
+                if (!Sessao->LoginWithEOS(TEXT("accountportal"), TEXT(""), TEXT(""), ErroPortal))
+                {
+                    SetStatus(ErroPortal);
+                }
+                break;
+            }
             GoToStep(ERunnerMenuStep::CreateAccount);
             break;
+        }
 
         case ERunnerMenuStep::CreateAccount:
         case ERunnerMenuStep::Chassis:
@@ -379,5 +481,71 @@ void URunnerMenuWidget::OnSecondaryClicked()
         case ERunnerMenuStep::Class:
             GoToStep(ERunnerMenuStep::Chassis);
             break;
+
+        case ERunnerMenuStep::CharacterSelect:
+            if (URunnerSession* Session = GetSession())
+            {
+                Session->Logout();
+            }
+            GoToStep(ERunnerMenuStep::Login);
+            break;
     }
+}
+
+void URunnerMenuWidget::OnTertiaryClicked()
+{
+    switch (CurrentStep)
+    {
+        case ERunnerMenuStep::Login:
+            GoToStep(ERunnerMenuStep::CreateAccount);
+            break;
+
+        case ERunnerMenuStep::CharacterSelect:
+            RebuildLayout();
+            SetStatus(TEXT("Lista de Runners atualizada."));
+            break;
+
+        default:
+            break;
+    }
+}
+
+void URunnerMenuWidget::HandleLoginComplete(const bool bSuccess, const FString& Error)
+{
+    if (!bSuccess)
+    {
+        SetStatus(Error.IsEmpty() ? TEXT("O login falhou.") : Error);
+        return;
+    }
+
+    AfterLogin();
+}
+
+void URunnerMenuWidget::AfterLogin()
+{
+    URunnerSession* Session = GetSession();
+    if (!Session)
+    {
+        SetStatus(TEXT("Sessao indisponivel."));
+        return;
+    }
+
+    // Conta com personagens: mostra a lista. Conta nova: vai direto criar o primeiro.
+    if (Session->HasSavedCharacters())
+    {
+        GoToStep(ERunnerMenuStep::CharacterSelect);
+        SetStatus(FString::Printf(TEXT("Bem-vindo, %s. Entre com um Runner ou crie um novo."),
+            *Session->GetAccountName()));
+    }
+    else
+    {
+        GoToStep(ERunnerMenuStep::Chassis);
+        SetStatus(TEXT("Primeiro Runner desta conta. Escolha o chassi."));
+    }
+}
+
+void URunnerMenuWidget::OpenGameLevel()
+{
+    UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)), true,
+        TEXT("game=/Script/PloidrekRPG.AFGameMode"));
 }

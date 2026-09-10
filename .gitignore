@@ -6,6 +6,10 @@ Intermediate/
 Saved/
 Saved/Crashes/
 
+# Segredos que nunca entram no versionamento (ex.: ClientSecret do EOS em DEV).
+# O config de usuario do engine fica em Saved/Config/<Plataforma>/UserEngine.ini (Saved/ ja e ignorado).
+Config/UserEngine.ini
+
 # Xcode
 *.xcworkspace
 *.pbxuser

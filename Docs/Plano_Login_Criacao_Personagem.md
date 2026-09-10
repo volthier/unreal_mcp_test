@@ -1,4 +1,4 @@
-# Plano — Login → Chassi → Classe → Corpo (manequim da engine)
+# Plano — Login (EOS) → Personagem → Chassi → Classe → Corpo (manequim da engine)
 
 > **Objetivo:** trazer o **login** que já existe no canônico (PloidrekRPG), **ligar** isso à **seleção de chassi** e depois à
 > **seleção de classe**, e fazer o personagem nascer já com um **corpo utilizável** — usando o **manequim padrão da engine**
@@ -11,13 +11,18 @@
 
 ```
 ABRIR JOGO
-   └── TELA DE LOGIN            (usuário / senha)            [do canônico]
-        ├── criar conta        (WBP_CreateAccount)          [do canônico]
+   └── TELA DE LOGIN            (conta / credencial)          [do canônico]
+        ├── "Entrar (EOS — Dev Auth)"       → EOS Auth Interface (developer)
+        ├── "Entrar com a conta Epic (EOS)" → EOS Auth Interface (accountportal)
+        ├── "Criar conta nova (local)"      → reserva, quando não há EOS
         └── entrar
-             └── SELEÇÃO DE CHASSI   (10 opções + slot EXTINTO)   [novo — DT_Chassis]
-                  └── SELEÇÃO DE CLASSE (6 opções)               [novo — DT_Classes]
-                       └── CRIA O PERSONAGEM
-                            └── spawna o corpo (MANEQUIM da engine) + dados do chassi e da classe aplicados
+             └── JANELA PÓS-LOGIN: "escolha seu Runner"
+                  ├── a conta TEM personagens → LISTA (selecionar um existente)
+                  └── a conta NÃO tem       → segue para a criação
+                       └── SELEÇÃO DE CHASSI   (10 opções + slot EXTINTO)   [DT_Chassis]
+                            └── SELEÇÃO DE CLASSE (6 opções)               [DT_Classes]
+                                 └── CRIA O PERSONAGEM
+                                      └── spawna o corpo (MANEQUIM da engine) + dados do chassi e da classe aplicados
 ```
 
 **Regra de arquitetura (playbook §4.2 e §6):** a **UI só lê estado e envia intenção**. Toda a lógica — sessão, validação,
@@ -43,7 +48,9 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 | 4 | **Corpo aplicado** | `ARunnerCharacter::ApplyProfile()` aplica a **malha do chassi** (manequim da engine) no pawn | ✅ **feito** — falta o material de overlay para a tinta do chassi |
 | 5 | **UI** | `URunnerMenuWidget` em **C++/UMG**: entrar → criar conta → escolher chassi → escolher classe → criar personagem. A lista de opções vem do **DataTable**, não de código | ✅ **feito** (sem estilo — o visual vem depois) |
 | 5b | **Entrada no jogo** | `AMenuGameMode` abre o menu; ao criar, `OpenLevel` com `?game=/Script/PloidrekRPG.AFGameMode`; o pawn nasce e recebe o corpo | ✅ **feito** |
-| 5c | **Persistência** | conta em `Saved/RunnerAccounts.tsv` e personagem em `Saved/RunnerCharacters.tsv` — entrar de novo restaura chassi e classe | ✅ **feito** |
+| 5c | **Persistência** | conta em `Saved/RunnerAccounts.tsv`; **um personagem por linha** em `Saved/RunnerCharacters.tsv` (`conta\tid\tchassi\tclasse`) — a conta guarda **até 8 Runners** | ✅ **feito** |
+| 5f | **Login EOS** | `URunnerSession::LoginWithEOS` chama a **Auth Interface** do `OnlineSubsystemEOS` (`IOnlineIdentity::Login`), com `AuthType` **`developer`** (Id/Token do Epic Dev Auth Tool) ou **`accountportal`** (conta Epic). Plugins `OnlineSubsystemEOS`/`OnlineSubsystemUtils`/`OnlineServicesOSSAdapter` + bloco `[OnlineSubsystemEOS.EOSSettings]` no `DefaultEngine.ini` com o **ambiente DEV** já registrado | ✅ **feito** |
+| 5g | **Janela pós-login (novo ou existente)** | passo `CharacterSelect` do widget: a conta com personagens mostra a **lista** (selecionar um existente), a conta nova cai direto na criação (criar um novo); `SelectSavedCharacter` carrega a ficha escolhida | ✅ **feito** |
 | 5d | **Cor do chassi** | `M_RunnerAccent` (overlay unlit/translúcido com o parâmetro `AccentColor`) aplicado por `ApplyProfile` via `SetOverlayMaterial` | ✅ **feito** — o manequim fica tingido com a cor do chassi |
 | 5e | **Articulações (animação)** | `UpdateLocomotionAnimation`: idle / andar / correr / no ar, usando as animações **do próprio pacote do manequim** (`MM_Idle`, `MF_Unarmed_Walk_Fwd`, `MF_Unarmed_Jog_Fwd`, `MM_Jump`), configuráveis em *Project Settings*; a decisão é a função pura `URunnerRules::GetLocomotionState` | ✅ **feito** — até existir AnimBP próprio; o `bUseSingleNodeLocomotion` desliga isso quando o ABP existir |
 | 6 | **Renomeação do projeto** | módulo `AI_MEGA_MAN_TEST` → `PloidrekRPG`; classes `VoltStriker*` → `Runner*` (ver `Plano_Renomeacao_Runner.md`) | ⏳ |
@@ -61,18 +68,34 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 **Regra:** tudo que é **dado** (DataTable, CSV, struct em C++) eu recrio aqui — não depende de migração. Tudo que é
 **Blueprint/Widget** vem pela **saída A**, porque reescrever no 5.8 é mais barato e mais seguro do que consertar bytecode.
 
-## 5. Decisão pendente do autor: login EOS ou local?
+## 5. Login: **EOS migrado do canônico**, local como reserva
 
-O canônico usa **EOS** (`OnlineSubsystemEOS` + `OnlineServicesOSSAdapter`). No 5.8 isso exige configuração de projeto na
-Epic Games e uma conta de desenvolvedor.
+**Decidido e feito:** o login do canônico foi migrado. A sessão tem as três portas e escolhe em execução.
 
-| Opção | Prós | Contras |
+| Porta | Como funciona | Quando usar |
 |---|---|---|
-| **Login local (dev) agora** | zero configuração; valida o fluxo inteiro já; serve o slice | não é login real de produção |
-| **EOS agora** | já nasce "de verdade"; conta, sessão e amigos | configuração, dependência de serviço, e atrasa o slice |
+| **EOS — Dev Auth** | `AuthType="developer"`, Id = nome da conta, Token = credencial gerada no **Epic Dev Auth Tool** | testar o login real sem abrir o navegador (o caminho de DEV do autor) |
+| **EOS — Conta Epic** | `AuthType="accountportal"`, sem Id/Token — o engine abre o portal da Epic | validar o caminho de produção |
+| **Local (reserva)** | `Saved/RunnerAccounts.tsv`, hash MD5 (grau de desenvolvimento) | quando o EOS não está disponível; mantém o slice jogável offline |
 
-**Recomendação:** **local agora, EOS depois** — o subsystem nasce com a interface de sessão separada, então trocar para EOS
-depois é trocar a implementação, não reescrever o fluxo.
+O botão de EOS só aparece quando `IsEOSAvailable()` é verdadeiro (plugin carregado **e** interface de identidade obtida);
+sem EOS, o widget mantém a porta local visível.
+
+**Configuração migrada** (`Config/DefaultEngine.ini`, ambiente **DEV** já registrado pelo autor):
+
+```ini
+[/Script/OnlineSubsystemEOS.EOSSettings]
+DefaultArtifactName=Ploidrek
++Artifacts=(ArtifactName="Ploidrek", ClientId="...", ProductId="...", SandboxId="...",
+            DeploymentId="...", ClientEncryptionKey="...")
+```
+`[OnlineSubsystem] DefaultPlatformService=EOS` · `[OnlineSubsystemEOS] bEnabled=true` · escopos BasicProfile, FriendsList, Presence.
+
+> ⚠️ **Segredo não versionado.** O canônico traz o **`ClientSecret`** junto com os identificadores. Ele ficou
+> **deliberadamente de fora** deste arquivo: é credencial de servidor, não pode ir para o cliente nem para o Git.
+> Os **identificadores** (ClientId, ProductId, SandboxId, DeploymentId, EncryptionKey) são públicos por natureza e vieram.
+> O Dev Auth **não precisa** do secret; se algum dia precisar (troca de código / EOS Connect), ele entra em
+> `Config/UserEngine.ini` (fora do versionamento).
 
 ## 6. Roadmap por rodadas
 
@@ -80,12 +103,12 @@ depois é trocar a implementação, não reescrever o fluxo.
 |---|---|---|
 | **1** ✅ | **feito:** renomeação do projeto (módulo `PloidrekRPG`, classes `Runner*`) · build headless validado · manequim no projeto · structs de dado · CSVs · **DataTables importados** · este plano | build `Succeeded`; 11 chassis e 6 classes dentro dos `.uasset`; package paths conferidos |
 | **2** ✅ | **feito:** BPs reparentados · `URunnerRules` (matemática) · `URunnerCharacterFactory` · `URunnerSessionSubsystem` · `ApplyProfile` · **suíte de automação** | `Runner.Regras.Matematica` e `Runner.Fluxo.ChassiEClasse` **Success** — 60 combinações validadas |
-| 3 | subsystem do fluxo + `ARunnerCharacter` com manequim | personagem nasce com o corpo escolhido |
+| **3** ✅ | **feito:** UI em C++/UMG, entrada no jogo, persistência da conta e do personagem, GameMode de menu | `Runner.Regras.Matematica`, `Runner.Fluxo.ChassiEClasse` e `Runner.Sessao.ContaECriacao` — **todos Success** |
 | **4** ✅ | **feito:** material de overlay da cor do chassi + diagnóstico honesto do limite de verificação em execução | build e 3 suítes verdes; execução headless não inicia o jogo |
 | **5** ✅ | **feito:** locomoção do corpo (idle/andar/correr/ar) + teste que spawna o personagem num mundo real | **5 suítes verdes**, incluindo `Runner.Corpo.MalhaEAnimacao` |
-| **6 (atual)** | **acabamento visual** do menu e o **teste de Play** do autor | play mostra o menu, entra no jogo, e o corpo anda/corre/pula |
-| **3** ✅ | **feito:** UI em C++/UMG, entrada no jogo, persistência da conta e do personagem, GameMode de menu | `Runner.Regras.Matematica`, `Runner.Fluxo.ChassiEClasse` e `Runner.Sessao.ContaECriacao` — **todos Success** |
-| 6 | migração dos widgets do canônico (saída A) | login do canônico rodando no 5.8 |
+| **7** ✅ | **feito:** **login EOS migrado do canônico** (Auth Interface, Dev Auth + conta Epic, reserva local) e **janela pós-login** novo/existente com até 8 Runners por conta | **7 suítes verdes** — a nova `Runner.Sessao.VariosPersonagens` cria 2 Runners na mesma conta, lista, seleciona cada um e confere o isolamento entre contas |
+| **8 (atual)** | **teste de Play do autor** com o EOS de DEV — a única coisa que a automação não alcança (§6c) | play mostra o menu, o login EOS responde, a janela lista os Runners e o corpo anda/corre/pula |
+| **9** | **acabamento visual** do menu (WBP/Style Set) e migração dos widgets do canônico (saída A) | menu com a cara do jogo |
 
 ## 6b. Como o fluxo roda hoje (passo a passo)
 
@@ -93,8 +116,14 @@ depois é trocar a implementação, não reescrever o fluxo.
 1. Abrir o projeto e dar Play em NewMap
    └ o WorldSettings do mapa aponta para BP_MenuGameMode (pai: AMenuGameMode)
      └ abre URUNNERMENUWIDGET: tela de login
-2. Entrar (ou criar conta)                     [URunnerSession::Login / CreateAccount]
-3. Escolher o chassi  (10 opções + os Clyffen aparecem como extintos e são recusados)
+2. Entrar: "Entrar (EOS — Dev Auth)"           [URunnerSession::LoginWithEOS("developer", conta, credencial)]
+   └ a Auth Interface do EOS responde → OnLoginComplete → a sessão toma o nome da conta EOS
+   └ sem EOS: "Criar conta nova (local)" / entrar local   [CreateAccount / Login]
+3. JANELA PÓS-LOGIN: "escolha seu Runner"
+   ├── conta COM personagens → lista (R-01, R-02, ...) → jogar com o escolhido  [SelectSavedCharacter]
+   │     └ pula direto para o passo 6 (chassi e classe vêm da ficha salva)
+   └── conta SEM personagens → "Criar novo Runner" → segue para o passo 4
+3b. Escolher o chassi  (10 opções + os Clyffen aparecem como extintos e são recusados)
 4. Escolher a classe  (6 opções)
 5. "Criar personagem"                          [URunnerSession::CreateCharacterProfile]
    └ grava a ficha na conta e troca de GameMode:
@@ -114,13 +143,15 @@ Tentei **três vezes** rodar o jogo de forma headless para provar a corrente em 
 **não chega a iniciar o jogo** e não grava log capturável — inclusive matar o processo com SIGTERM perde o
 stdout em buffer. Conclusão: **a execução de ponta a ponta só o autor pode confirmar**, com Play no editor.
 
-O que **está** provado por automação: compilação limpa · **5 suítes de teste** (incluindo uma que **spawna o
-personagem num mundo real** e confere malha, esqueleto e animação) · vínculos entre assets
+O que **está** provado por automação: compilação limpa · **7 suítes de teste** (incluindo uma que **spawna o
+personagem num mundo real** e confere malha, esqueleto e animação, e outra que cria **vários Runners na mesma conta**,
+lista e seleciona cada um) · vínculos entre assets
 (mapa → redirector → BP_MenuGameMode → `AMenuGameMode`, DataTables com as linhas certas, manequim com
 package path correto).
 
 **O que deve aparecer ao dar Play em `NewMap`:** o menu com o título *"PLOIDREKRPG — entrar"*, campo de conta,
-campo de senha e os botões **Entrar** / **Criar conta nova**. No log:
+campo de credencial e os botões **Entrar (EOS — Dev Auth)** / **Entrar com a conta Epic (EOS)** / **Criar conta nova (local)**.
+Depois do login, a janela **"escolha seu Runner"** — a lista dos personagens da conta, ou o convite a criar o primeiro. No log:
 
 ```
 LogTemp: AMenuGameMode: menu de entrada aberto (BP_MenuGameMode_C)
@@ -134,5 +165,7 @@ LogTemp: ApplyProfile: conta=... chassi=Vitaspark classe=Blaster HP=23 CA=10 cor
 |---|---|---|
 | 1 | **Permissão de escrita fora do workspace** para o UnrealBuildTool (`~/Library/Application Support/Epic/`) | autor — sem isso não há build headless |
 | 2 | Abertura do **editor** para migrar os widgets do canônico (saída A) | autor |
-| 3 | Decisão **login local × EOS** (§5) | autor |
+| 3 | ~~Decisão **login local × EOS**~~ — **resolvido**: EOS migrado, local como reserva (§5) | ✅ |
+| 3b | **Credencial do Epic Dev Auth Tool** para o teste de EOS em execução | autor |
+| 3c | Se o fluxo um dia exigir `ClientSecret` (troca de código / EOS Connect), ele vai para `Config/UserEngine.ini`, **não** para o versionado | autor |
 | 4 | Nome das telas: manter `WBP_Login` ou renomear para o padrão do playbook (`WBP_Auth_Login`) | autor |
