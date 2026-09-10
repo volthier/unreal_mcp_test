@@ -38,8 +38,8 @@ seleção pendente, criação — vive em **C++** (subsystem). Os widgets são f
 | # | Passo | Como | Estado |
 |---|---|---|---|
 | 1 | **Corpo padrão** | copiar o manequim do **template da engine 5.8** (`Templates/TemplateResources/High/Characters`) para `Content/Characters/Mannequins/` | ✅ **feito** (128 assets, 126 MB, package path conferido) |
-| 2 | **Dados canônicos** | `DT_Chassis` e `DT_Classes` com as estruturas em **C++** (`FRunnerChassisData`, `FRunnerClassData`), importadas de **CSV versionado** | ⏳ |
-| 3 | **Subsystem do fluxo** | `UGameInstanceSubsystem` com: conta atual, seleção pendente (chassi + classe), `CreateCharacter()` | ⏳ |
+| 2 | **Dados canônicos** | `DT_Chassis` e `DT_Classes` com as estruturas em **C++** (`FRunnerChassisData`, `FRunnerClassData`), importadas de **CSV versionado** | ✅ **feito** — 11 chassis (10 + Clyffen extintos) e 6 classes, importados por script headless |
+| 3 | **Subsystem do fluxo** | `UGameInstanceSubsystem` com: conta atual, seleção pendente (chassi + classe), `CreateCharacter()` | ⏳ **próxima** |
 | 4 | **Corpo aplicado** | o pawn nasce com o manequim; o **chassi** define material/escala/perfil de animação (placeholder até a arte real) | ⏳ |
 | 5 | **UI** | trazer/refazer `WBP_Login` → `WBP_CreateAccount` → `WBP_SelectChassis` → `WBP_SelectClass` | ⏳ |
 | 6 | **Renomeação do projeto** | módulo `AI_MEGA_MAN_TEST` → `PloidrekRPG`; classes `VoltStriker*` → `Runner*` (ver `Plano_Renomeacao_Runner.md`) | ⏳ |
@@ -74,8 +74,8 @@ depois é trocar a implementação, não reescrever o fluxo.
 
 | Rodada | Entrega | Verificação |
 |---|---|---|
-| **1 (atual)** | manequim no projeto · build headless validado · este plano | assets no disco com package path correto; build compila |
-| 2 | structs + `DT_Chassis`/`DT_Classes` (CSV → DataTable) | DataTable abre e lista 10 chassis / 6 classes |
+| **1** ✅ | **feito:** renomeação do projeto (módulo `PloidrekRPG`, classes `Runner*`) · build headless validado · manequim no projeto · structs de dado · CSVs · **DataTables importados** · este plano | build `Succeeded`; 11 chassis e 6 classes dentro dos `.uasset`; package paths conferidos |
+| **2 (atual)** | **subsystem do fluxo** (conta → chassi → classe) + `ARunnerCharacter` aplicando o corpo do chassi | compila e um teste headless exercita o fluxo |
 | 3 | subsystem do fluxo + `ARunnerCharacter` com manequim | personagem nasce com o corpo escolhido |
 | 4 | renomeação do projeto (módulo + classes) e reparent dos BPs | build limpo, projeto abre, BPs sem erro |
 | 5 | UI: login → conta → chassi → classe | fluxo completo jogável de ponta a ponta |
