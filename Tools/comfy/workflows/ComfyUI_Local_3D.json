@@ -1,0 +1,221 @@
+{
+  "load": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "sample_cleric.jpg"
+    }
+  },
+  "1": {
+    "class_type": "ImageOnlyCheckpointLoader",
+    "inputs": {
+      "ckpt_name": "hunyuan_3d_v2.1.safetensors"
+    }
+  },
+  "2": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "shift": 1.73
+    }
+  },
+  "3": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "1",
+        1
+      ],
+      "image": [
+        "load",
+        0
+      ],
+      "crop": "center"
+    }
+  },
+  "4": {
+    "class_type": "Hunyuan3Dv2Conditioning",
+    "inputs": {
+      "clip_vision_output": [
+        "3",
+        0
+      ]
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentHunyuan3Dv2",
+    "inputs": {
+      "resolution": 3072,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "2",
+        0
+      ],
+      "seed": 0,
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "positive": [
+        "4",
+        0
+      ],
+      "negative": [
+        "4",
+        1
+      ],
+      "latent_image": [
+        "5",
+        0
+      ],
+      "denoise": 1.0
+    }
+  },
+  "7": {
+    "class_type": "VAEDecodeHunyuan3D",
+    "inputs": {
+      "samples": [
+        "6",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ],
+      "num_chunks": 8000,
+      "octree_resolution": 256
+    }
+  },
+  "8": {
+    "class_type": "VoxelToMesh",
+    "inputs": {
+      "voxel": [
+        "7",
+        0
+      ],
+      "algorithm": "surface net",
+      "threshold": 0.6
+    }
+  },
+  "9": {
+    "class_type": "FillHoles",
+    "inputs": {
+      "mesh": [
+        "8",
+        0
+      ],
+      "max_perimeter": 0.03,
+      "weld_epsilon_rel": 1e-05,
+      "max_vertices": 16,
+      "fill_chains": false
+    }
+  },
+  "10": {
+    "class_type": "WeldVertices",
+    "inputs": {
+      "mesh": [
+        "9",
+        0
+      ],
+      "epsilon_rel": 1e-05,
+      "epsilon_abs": 0.0
+    }
+  },
+  "save_tex": {
+    "class_type": "SaveGLB",
+    "inputs": {
+      "mesh": [
+        "10",
+        0
+      ],
+      "filename_prefix": "local3d/mesh"
+    }
+  },
+  "view_tex": {
+    "class_type": "Preview3D",
+    "inputs": {
+      "model_file": [
+        "tofile",
+        0
+      ]
+    }
+  },
+  "body": {
+    "class_type": "SAM3DBody_Loader",
+    "inputs": {
+      "model_file": "sam_3d_body_dinov3_int8_convrot.safetensors"
+    }
+  },
+  "pred": {
+    "class_type": "SAM3DBody_Predict",
+    "inputs": {
+      "sam3d_body_model": [
+        "body",
+        0
+      ],
+      "image": [
+        "load",
+        0
+      ],
+      "run_hand_refinement": true,
+      "fov": 60.0,
+      "batch_size": 64
+    }
+  },
+  "anim": {
+    "class_type": "BuildPoseFile",
+    "inputs": {
+      "pose_data": [
+        "pred",
+        0
+      ],
+      "format": "glb",
+      "format.mesh_style": "body_mesh",
+      "format.mesh_style.bone_vis": "off",
+      "format.mesh_style.shader": "default",
+      "format.bone_smooth_window": 0,
+      "fps": 24.0,
+      "camera_translation": "off",
+      "track_index": -1,
+      "sam3d_body_model": [
+        "body",
+        0
+      ]
+    }
+  },
+  "save_rig": {
+    "class_type": "SaveGLB",
+    "inputs": {
+      "mesh": [
+        "anim",
+        0
+      ],
+      "filename_prefix": "local3d/rigged"
+    }
+  },
+  "view_rig": {
+    "class_type": "Preview3D",
+    "inputs": {
+      "model_file": [
+        "anim",
+        0
+      ]
+    }
+  },
+  "tofile": {
+    "class_type": "MeshToFile3D",
+    "inputs": {
+      "mesh": [
+        "10",
+        0
+      ]
+    }
+  }
+}

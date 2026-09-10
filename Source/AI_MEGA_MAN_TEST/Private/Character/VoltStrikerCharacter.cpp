@@ -11,6 +11,9 @@
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
 #include "Net/UnrealNetwork.h"
+#include "InputCoreTypes.h"
+#include "Components/CapsuleComponent.h"
+#include "Character/VoltStrikerAnimInstance.h"
 #include "Ability/GA_BasicShot.h"
 #include "Ability/GA_ChargeShot.h"
 #include "Ability/GA_DashShot.h"
@@ -49,10 +52,10 @@ AVoltStrikerCharacter::AVoltStrikerCharacter()
 	AttributeSet = CreateDefaultSubobject<UVoltStrikerAttributeSet>(TEXT("AttributeSet"));
 
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = true;
+	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 	GetCharacterMovement()->JumpZVelocity = 700.f;
 	GetCharacterMovement()->AirControl = 0.35f;
@@ -78,12 +81,65 @@ void AVoltStrikerCharacter::BeginPlay()
 		FRotator ControlRot = PC->GetControlRotation();
 		ControlRot.Pitch = DefaultCameraPitch;
 		PC->SetControlRotation(ControlRot);
+
+		// Capture the mouse so mouse-look (Turn/LookUp & Enhanced IA_Look) gets deltas.
+		PC->SetShowMouseCursor(false);
+		FInputModeGameOnly InputMode;
+		InputMode.SetConsumeCaptureMouseDown(true);
+		PC->SetInputMode(InputMode);
 	}
 }
 
 void AVoltStrikerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	// Continuous keyboard movement (hold a key to keep moving).
+	if (Controller && (bMoveForward || bMoveBack || bMoveLeft || bMoveRight))
+	{
+		const FRotator YawRot(0.f, Controller->GetControlRotation().Yaw, 0.f);
+		const FVector Fwd = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
+		const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+		const float F = (bMoveForward ? 1.f : 0.f) - (bMoveBack ? 1.f : 0.f);
+		const float R = (bMoveRight ? 1.f : 0.f) - (bMoveLeft ? 1.f : 0.f);
+		AddMovementInput(Fwd, F);
+		AddMovementInput(Right, R);
+	}
+
+	// Animation state vars + wall-slide detection.
+	UCharacterMovementComponent* CMC = GetCharacterMovement();
+	UVoltStrikerAnimInstance* Anim = Cast<UVoltStrikerAnimInstance>(GetMesh()->GetAnimInstance());
+	if (CMC && Anim)
+	{
+		const float MaxWalk = CMC->MaxWalkSpeed > 0.f ? CMC->MaxWalkSpeed : 1.f;
+		Anim->Speed = CMC->Velocity.Size() / MaxWalk;
+		Anim->bIsInAir = CMC->IsFalling();
+
+		bWallSlideActive = false;
+		if (CMC->IsFalling())
+		{
+			FVector Facing(GetActorForwardVector().X, GetActorForwardVector().Y, 0.f);
+			if (Facing.IsNearlyZero()) { Facing = FVector(1.f, 0.f, 0.f); }
+			FCollisionQueryParams QP(SCENE_QUERY_STAT(WallSlideProbe), false, this);
+			FHitResult Hit;
+			const FVector Origin = GetActorLocation() + FVector::UpVector * (GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 0.4f);
+			const FVector End = Origin + Facing.GetSafeNormal() * 80.f;
+			if (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_WorldStatic, QP) &&
+				Hit.bBlockingHit && FMath::Abs(Hit.Normal.Z) < 0.4f)
+			{
+				bWallSlideActive = true;
+				LastWallNormal = Hit.Normal;
+				FVector V = CMC->Velocity;
+				V.Z = FMath::Max(V.Z, -280.f);
+				CMC->Velocity = V;
+			}
+		}
+		Anim->bIsWallSlide = bWallSlideActive;
+
+		if (WallJumpTimer > 0.f) { WallJumpTimer -= DeltaSeconds; }
+		bWallJumpActive = WallJumpTimer > 0.f;
+		Anim->bIsWallJump = bWallJumpActive;
+	}
 
 	if (bIsCharging)
 	{
@@ -243,6 +299,21 @@ void AVoltStrikerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 			EIC->BindAction(DashAction, ETriggerEvent::Started, this, &AVoltStrikerCharacter::DashPressed);
 		}
 	}
+
+	// Robust default-style raw keyboard bindings (guaranteed movement/jump regardless of IMC mapping).
+	PlayerInputComponent->BindKey(EKeys::W, IE_Pressed, this, &AVoltStrikerCharacter::MoveForwardPressed);
+	PlayerInputComponent->BindKey(EKeys::W, IE_Released, this, &AVoltStrikerCharacter::MoveForwardReleased);
+	PlayerInputComponent->BindKey(EKeys::S, IE_Pressed, this, &AVoltStrikerCharacter::MoveBackPressed);
+	PlayerInputComponent->BindKey(EKeys::S, IE_Released, this, &AVoltStrikerCharacter::MoveBackReleased);
+	PlayerInputComponent->BindKey(EKeys::A, IE_Pressed, this, &AVoltStrikerCharacter::MoveLeftPressed);
+	PlayerInputComponent->BindKey(EKeys::A, IE_Released, this, &AVoltStrikerCharacter::MoveLeftReleased);
+	PlayerInputComponent->BindKey(EKeys::D, IE_Pressed, this, &AVoltStrikerCharacter::MoveRightPressed);
+	PlayerInputComponent->BindKey(EKeys::D, IE_Released, this, &AVoltStrikerCharacter::MoveRightReleased);
+	PlayerInputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &AVoltStrikerCharacter::PlayerJump);
+	PlayerInputComponent->BindKey(EKeys::SpaceBar, IE_Released, this, &ACharacter::StopJumping);
+	// Raw mouse look via the legacy Turn/LookUp axes defined in DefaultInput.ini (reliable, no IMC dependency).
+	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AVoltStrikerCharacter::AddControllerYawInput);
+	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AVoltStrikerCharacter::AddControllerPitchInput);
 }
 
 void AVoltStrikerCharacter::Move(const FInputActionValue& Value)
@@ -255,6 +326,36 @@ void AVoltStrikerCharacter::Move(const FInputActionValue& Value)
 		const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
 		AddMovementInput(Forward, Axis.Y);
 		AddMovementInput(Right, Axis.X);
+	}
+}
+
+void AVoltStrikerCharacter::MoveForwardPressed() { bMoveForward = true; }
+void AVoltStrikerCharacter::MoveForwardReleased() { bMoveForward = false; }
+void AVoltStrikerCharacter::MoveBackPressed() { bMoveBack = true; }
+void AVoltStrikerCharacter::MoveBackReleased() { bMoveBack = false; }
+void AVoltStrikerCharacter::MoveLeftPressed() { bMoveLeft = true; }
+void AVoltStrikerCharacter::MoveLeftReleased() { bMoveLeft = false; }
+void AVoltStrikerCharacter::MoveRightPressed() { bMoveRight = true; }
+void AVoltStrikerCharacter::MoveRightReleased() { bMoveRight = false; }
+
+void AVoltStrikerCharacter::PlayerJump()
+{
+	if (bWallSlideActive && !LastWallNormal.IsNearlyZero())
+	{
+		// Wall-jump: launch up and away from the wall.
+		if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+		{
+			FVector LaunchVel = LastWallNormal * 900.f + FVector::UpVector * 720.f;
+			CMC->Velocity = LaunchVel;
+			CMC->SetMovementMode(MOVE_Falling);
+			bWallSlideActive = false;
+			bWallJumpActive = true;
+			WallJumpTimer = 0.35f;
+		}
+	}
+	else
+	{
+		Jump();
 	}
 }
 

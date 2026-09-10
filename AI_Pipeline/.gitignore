@@ -1,0 +1,8 @@
+# artefatos pesados/gerados — não versionar
+work/
+logs/
+tmp/
+weights/
+engines/
+.install_manifest.json
+*.log

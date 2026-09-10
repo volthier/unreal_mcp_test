@@ -104,6 +104,19 @@ protected:
 	void FireReleased();
 	void DashPressed();
 
+	// Robust default-style raw keyboard handlers (guaranteed movement regardless of IMC mapping).
+	void MoveForwardPressed();
+	void MoveForwardReleased();
+	void MoveBackPressed();
+	void MoveBackReleased();
+	void MoveLeftPressed();
+	void MoveLeftReleased();
+	void MoveRightPressed();
+	void MoveRightReleased();
+
+	// Jump (supports wall-jump).
+	void PlayerJump();
+
 	void InitAbilityActorInfo();
 	void SpawnWeapon();
 
@@ -117,6 +130,18 @@ protected:
 	float ChargeHoldTime = 0.f;
 	float LastReleasedChargeHold = 0.f;
 	bool bIsCharging = false;
+
+	// Continuous keyboard movement held-state.
+	bool bMoveForward = false;
+	bool bMoveBack = false;
+	bool bMoveLeft = false;
+	bool bMoveRight = false;
+
+	// Wall-slide / wall-jump state.
+	bool bWallSlideActive = false;
+	bool bWallJumpActive = false;
+	float WallJumpTimer = 0.f;
+	FVector LastWallNormal = FVector::ZeroVector;
 
 public:
 	float GetLastReleasedChargeHold() const { return LastReleasedChargeHold; }

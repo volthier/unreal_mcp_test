@@ -1,0 +1,63 @@
+{
+  "schema": "ai3d-pipeline/v1",
+  "root": null,
+  "blender_app": "/Applications/Blender.app/Contents/MacOS/Blender",
+  "unreal_project": "/Users/volthier/Documents/Unreal Projects/AI_MEGA_MAN_TEST/AI_MEGA_MAN_TEST.uproject",
+  "unreal_editor_cmd_pattern": "/Applications/Unreal Engine/UE_{version}/Engine/Binaries/Mac/UnrealEditor-Cmd",
+  "lm_server": {
+    "base_url": "http://localhost:1234/v1",
+    "critic_model": "Qwen3-VL-8B-Instruct",
+    "llamamesh_model": "LLaMA-Mesh",
+    "timeout_s": 300
+  },
+  "comfyui": {
+    "base_url": "http://127.0.0.1:8188",
+    "flux_workflow_json": null,
+    "enabled": true
+  },
+  "hunyuan3d": {
+    "weights_dir": null,
+    "stage1": { "num_inference_steps": 50, "guidance_scale": 7.5, "octree_resolution": 256 },
+    "stage2": { "max_num_view": 6, "resolution": 512, "texture_size": 4096 }
+  },
+  "trellis": {
+    "repo": "engines/trellis2-mlx",
+    "resolution": 1024,
+    "texture_size": 2048,
+    "material_mode": "Opaque",
+    "mesh_repair": "Fast Repair",
+    "decimation_target": 200000
+  },
+  "routing": {
+    "simple": ["hy3d", "llamamesh"],
+    "complex": ["trellis", "hy3d"]
+  },
+  "qcs": {
+    "hub_budgets_tris": { "prop": 20000, "env": 50000, "creature": 60000, "char": 80000 },
+    "texture_min_res": 1024,
+    "min_bones": 15,
+    "min_anim_duration_s": 1.0,
+    "allow_quarantine_after_failures": 3
+  },
+  "mocap": {
+    "camera": 0,
+    "seconds_per_action": 10,
+    "confidence_floor": 0.4,
+    "fps": 30
+  },
+  "loop": {
+    "max_fix_rounds": 3,
+    "preview_views": 8,
+    "human_gate": true,
+    "auto_approve": false,
+    "purge_drafts_days": 14
+  },
+  "paths": {
+    "engines": "engines",
+    "weights": "weights",
+    "work": "work",
+    "manifests": "work/manifests",
+    "logs": "logs",
+    "tmp": "tmp"
+  }
+}

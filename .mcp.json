@@ -15,6 +15,14 @@
 				"BLENDER_HOST": "localhost",
 				"BLENDER_PORT": "9876"
 			}
+		},
+		"comfy-mcp":
+		{
+			"command": "/Users/volthier/.venvs/comfy-mcp/bin/comfy-mcp",
+			"env":
+			{
+				"COMFY_BIN": "/Users/volthier/.venvs/comfy-mcp/bin/comfy"
+			}
 		}
 	}
 }

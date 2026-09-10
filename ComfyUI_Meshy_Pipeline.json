@@ -1,0 +1,675 @@
+{
+  "id": "5a1059d3-63af-46da-8585-8f32c67b5f01",
+  "revision": 1,
+  "last_node_id": 10,
+  "last_link_id": 8,
+  "version": "0.4",
+  "groups": [],
+  "definitions": {
+    "subgraphs": []
+  },
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.65,
+      "offset": [
+        120,
+        240
+      ]
+    },
+    "frontendVersion": "1.35.7",
+    "workflowRendererVersion": "LG"
+  },
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        40,
+        20
+      ],
+      "size": [
+        340,
+        320
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&amp;R": "LoadImage"
+      },
+      "widgets_values": [
+        "sample_cleric.jpg",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "sample_cleric.jpg",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 2,
+      "type": "MeshyImageToModelNode",
+      "pos": [
+        460,
+        20
+      ],
+      "size": [
+        340,
+        320
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "should_remesh",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "should_remesh"
+          },
+          "link": null
+        },
+        {
+          "name": "symmetry_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "symmetry_mode"
+          },
+          "link": null
+        },
+        {
+          "name": "should_texture",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "should_texture"
+          },
+          "link": null
+        },
+        {
+          "name": "pose_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "pose_mode"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "ultra_mode",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "ultra_mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model_file",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "meshy_task_id",
+          "type": "MESHY_TASK_ID",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "GLB",
+          "type": "FILE_3D_GLB",
+          "links": null
+        },
+        {
+          "name": "FBX",
+          "type": "FILE_3D_FBX",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&amp;R": "MeshyImageToModelNode"
+      },
+      "widgets_values": [
+        "latest",
+        "false",
+        "auto",
+        "false",
+        "",
+        0,
+        true
+      ],
+      "widgets_values_named": {
+        "model": "latest",
+        "should_remesh": "false",
+        "symmetry_mode": "auto",
+        "should_texture": "false",
+        "pose_mode": "",
+        "seed": 0,
+        "ultra_mode": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "MeshyRefineNode",
+      "pos": [
+        890,
+        20
+      ],
+      "size": [
+        320,
+        240
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "meshy_task_id",
+          "type": "MESHY_TASK_ID",
+          "link": 2
+        },
+        {
+          "name": "enable_pbr",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_pbr"
+          },
+          "link": null
+        },
+        {
+          "name": "texture_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "texture_prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "texture_resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "texture_resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "texture_image",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model_file",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "meshy_task_id",
+          "type": "MESHY_TASK_ID",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "GLB",
+          "type": "FILE_3D_GLB",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "FBX",
+          "type": "FILE_3D_FBX",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&amp;R": "MeshyRefineNode"
+      },
+      "widgets_values": [
+        "latest",
+        true,
+        "",
+        "4k"
+      ],
+      "widgets_values_named": {
+        "model": "latest",
+        "enable_pbr": true,
+        "texture_prompt": "",
+        "texture_resolution": "4k"
+      }
+    },
+    {
+      "id": 4,
+      "type": "MeshyRigModelNode",
+      "pos": [
+        1300,
+        20
+      ],
+      "size": [
+        300,
+        180
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meshy_task_id",
+          "type": "MESHY_TASK_ID",
+          "link": 3
+        },
+        {
+          "name": "height_meters",
+          "type": "FLOAT",
+          "widget": {
+            "name": "height_meters"
+          },
+          "link": null
+        },
+        {
+          "name": "texture_image",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model_file",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "rig_task_id",
+          "type": "MESHY_RIGGED_TASK_ID",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "GLB",
+          "type": "FILE_3D_GLB",
+          "links": null
+        },
+        {
+          "name": "FBX",
+          "type": "FILE_3D_FBX",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&amp;R": "MeshyRigModelNode"
+      },
+      "widgets_values": [
+        1.7
+      ],
+      "widgets_values_named": {
+        "height_meters": 1.7
+      }
+    },
+    {
+      "id": 5,
+      "type": "MeshyAnimateModelNode",
+      "pos": [
+        1700,
+        20
+      ],
+      "size": [
+        300,
+        170
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rig_task_id",
+          "type": "MESHY_RIGGED_TASK_ID",
+          "link": 4
+        },
+        {
+          "name": "action_id",
+          "type": "INT",
+          "widget": {
+            "name": "action_id"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model_file",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "GLB",
+          "type": "FILE_3D_GLB",
+          "links": [
+            5,
+            6
+          ]
+        },
+        {
+          "name": "FBX",
+          "type": "FILE_3D_FBX",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&amp;R": "MeshyAnimateModelNode"
+      },
+      "widgets_values": [
+        0
+      ],
+      "widgets_values_named": {
+        "action_id": 0
+      }
+    },
+    {
+      "id": 6,
+      "type": "Preview3D",
+      "pos": [
+        2080,
+        -30
+      ],
+      "size": [
+        300,
+        220
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model_file",
+          "type": "STRING,FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D",
+          "widget": {
+            "name": "model_file"
+          },
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&amp;R": "Preview3D"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "model_file": ""
+      }
+    },
+    {
+      "id": 7,
+      "type": "SaveGLB",
+      "pos": [
+        2080,
+        240
+      ],
+      "size": [
+        280,
+        120
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH,FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D_PLY,FILE_3D_SPLAT,FILE_3D_SPZ,FILE_3D_KSPLAT,FILE_3D_SPLAT_ANY,FILE_3D_POINT_CLOUD_ANY,FILE_3D",
+          "link": 6
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&amp;R": "SaveGLB"
+      },
+      "widgets_values": [
+        "meshy/animated"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "meshy/animated"
+      }
+    },
+    {
+      "id": 8,
+      "type": "Preview3D",
+      "pos": [
+        1250,
+        300
+      ],
+      "size": [
+        300,
+        220
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model_file",
+          "type": "STRING,FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D",
+          "widget": {
+            "name": "model_file"
+          },
+          "link": 7
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&amp;R": "Preview3D"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "model_file": ""
+      }
+    },
+    {
+      "id": 9,
+      "type": "SaveGLB",
+      "pos": [
+        1250,
+        560
+      ],
+      "size": [
+        280,
+        120
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH,FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D_PLY,FILE_3D_SPLAT,FILE_3D_SPZ,FILE_3D_KSPLAT,FILE_3D_SPLAT_ANY,FILE_3D_POINT_CLOUD_ANY,FILE_3D",
+          "link": 8
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&amp;R": "SaveGLB"
+      },
+      "widgets_values": [
+        "meshy/refined"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "meshy/refined"
+      }
+    },
+    {
+      "id": 10,
+      "type": "MarkdownNote",
+      "pos": [
+        40,
+        400
+      ],
+      "size": [
+        760,
+        400
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&amp;R": "MarkdownNote"
+      },
+      "widgets_values": [
+        "# Meshy Image → Textured + Rigged + Animated 3D\n\nPipeline: **Image → Mesh → Refine/Texture → Rig → Animate → Save.**\n\n## Como usar\n1. Na aba **Templates**, abra este workflow.\n2. No nó **LoadImage**, escolha sua imagem de referência.\n3. Rode (a ordem é automática).\n\n## Sobre o nó **Meshy: Image to Model**\n- `should_remesh=false` para um rascunho, ou `true` para malha otimizada.\n- `should_texture=false` aqui; a textura vem no nó **Refine**.\n- `ultra_mode=true` usa uma passada extra de refinamento (modelo `latest`).\n\n## Refine → Rig → Animate\n- **Refine** melhora a geometria e aplica textura PBR (4k).\n- **Rig** auto-riga o personagem (melhor em humanoides texturizados).\n- **Animate** aplica um movimento (action_id 0..696 — veja a biblioteca da Meshy).\n\n## Requisitos\n- Logado na sua conta **ComfyUI** (os nós Meshy consomem créditos do Comfy).\n- Auto-rig funciona melhor em humanoides texturizados com membros claros.\n\n## Saídas\n- `ComfyUI/output/meshy/animated.glb` (final) e `.../refined.glb` (texturizado)."
+      ],
+      "widgets_values_named": {}
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      1,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      1,
+      3,
+      1,
+      "MESHY_TASK_ID"
+    ],
+    [
+      3,
+      3,
+      1,
+      4,
+      0,
+      "MESHY_TASK_ID"
+    ],
+    [
+      4,
+      4,
+      1,
+      5,
+      0,
+      "MESHY_RIGGED_TASK_ID"
+    ],
+    [
+      5,
+      5,
+      1,
+      6,
+      0,
+      "FILE_3D_GLB"
+    ],
+    [
+      6,
+      5,
+      1,
+      7,
+      0,
+      "FILE_3D_GLB"
+    ],
+    [
+      7,
+      3,
+      2,
+      8,
+      0,
+      "FILE_3D_GLB"
+    ],
+    [
+      8,
+      3,
+      2,
+      9,
+      0,
+      "FILE_3D_GLB"
+    ]
+  ]
+}

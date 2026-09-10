@@ -66,6 +66,10 @@
 		{
 			"Name": "ChaosClothAssetToolset",
 			"Enabled": true
+		},
+		{
+			"Name": "UnrealMCP",
+			"Enabled": false
 		}
 	]
 }
