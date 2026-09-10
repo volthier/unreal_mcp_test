@@ -137,6 +137,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
     bool SelectSavedCharacter(const FString& CharacterId, FString& OutError);
 
+    /** Apaga um personagem da conta (a tela pede confirmacao antes de chamar isto). */
+    UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
+    bool DeleteSavedCharacter(const FString& CharacterId, FString& OutError);
+
+    /** Id do personagem ativo (para a tela saber quem esta em uso). */
+    UFUNCTION(BlueprintPure, Category = "Runner|Criacao")
+    FString GetActiveCharacterId() const { return ActiveCharacterId; }
+
     // ---------- Selecao e ficha ----------
     UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
     bool SelectChassis(FName ChassisId, FString& OutError);
@@ -235,4 +243,6 @@ private:
     FName SelectedChassis;
     FName SelectedClass;
     FString PendingCharacterName;
+    /** Id do personagem carregado na ficha ativa ("R-01"). */
+    FString ActiveCharacterId;
 };

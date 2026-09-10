@@ -282,6 +282,55 @@ Em execução: console **`Runner.Veil 0`** desliga na hora (e `1` liga).
 > composição (mesmos números, mesmo gradiente) num PNG. Foi assim que a bola do mouse saiu de discreta para
 > cheia: a primeira calibragem lia como névoa, não como bola.
 
+## 5e. Vitrine 3D, ficha na tela, confirmação e exclusão
+
+### A vitrine (o corpo parado enquanto você escolhe)
+
+`ARunnerPreviewActor` (`Source/PloidrekRPG/Public/UI/RunnerPreviewActor.h`) é um ator que nasce **longe do mapa**
+(Z = 50.000: ninguém vê o boneco no cenário) com:
+
+| Peça | Papel |
+|---|---|
+| `USkeletalMeshComponent` | o corpo do chassi, girando devagar (16°/s) para mostrar o volume |
+| `USceneCaptureComponent2D` | câmera apontada para o corpo, escrevendo numa `UTextureRenderTarget2D` de 512² |
+| `UDirectionalLightComponent` (0.6, ciano) | só preenchimento: a luz do mundo já ilumina, isto evita o lado chapado |
+
+A captura usa `PrimitiveRenderMode = UseShowOnlyList` com **só este ator** na lista: o mapa do menu não entra na
+imagem, mas a luz do mundo (sol e skylight) continua valendo. A tinta do chassi entra pelo **mesmo material de
+overlay do jogo** (parâmetro `AccentColor`), então a cor na vitrine é a cor que o pawn vai ter em campo.
+
+O widget mostra isso num **monitor**: moldura de aço com filete de latão (`230 × 300`). Passear o mouse pela lista
+já troca o corpo (`OnHovered` da linha) — é assim que dá para comparar chassi sem clicar.
+
+> ⚠️ **O que a automação não alcança:** a captura só existe com o renderizador ligado, então nenhum teste headless
+> vê essa imagem. O código é verificado por compilação e pelo resto da suíte; **o visual é o seu Play que julga**.
+> Se o corpo aparecer de cabeça para baixo, é o flip do alvo de captura — um ajuste de uma linha no pincel.
+
+### A ficha (janela de atributos)
+
+Ao lado do monitor, a ficha do que está selecionado — tudo vindo dos dados e das regras, nada escrito à mão:
+
+- **nome, corpo e tinta** do chassi;
+- os **seis atributos** com valor final (base 8 + bônus do chassi) e modificador — bônus positivo em Aether, negativo em cobre;
+- **vantagens** primária e secundária;
+- com a classe escolhida: **HP nível 1, CA, dado de vida, foco (atributos primário/secundário) e células de Éter**, tudo calculado por `URunnerRules`.
+
+### Confirmação e exclusão
+
+Nada de criar ou apagar em um clique só. O passo `Confirm` é uma janela:
+
+| Ação | O que a janela mostra | Confirmar faz |
+|---|---|---|
+| **Criar personagem** | nome, corpo (com o tipo), classe, HP nível 1, CA e o dado de vida | cria a ficha e entra no jogo |
+| **Excluir** (botão ao lado de cada Runner) | o nome e chassi · classe do Runner, avisando que não tem volta | apaga, e a lista se refaz |
+
+O nome é validado **antes** de abrir a janela (erro de nome aparece direto, sem confirmação inútil). Cancelar volta
+para o passo que pediu a confirmação.
+
+`URunnerSession::DeleteSavedCharacter` só apaga personagem **da conta logada**; se era o que estava em uso, a ficha
+ativa sai junto. Personagens passam a usar o **primeiro id livre** (`R-01`, `R-02`, …), então excluir alguém do meio
+não faz dois Runners com o mesmo id — e o nome do apagado volta a ficar disponível.
+
 ## 6. Roadmap por rodadas
 
 | Rodada | Entrega | Verificação |
@@ -294,7 +343,9 @@ Em execução: console **`Runner.Veil 0`** desliga na hora (e `1` liga).
 | **7** ✅ | **feito:** **login EOS migrado do canônico** (Auth Interface, Dev Auth + conta Epic, reserva local) e **janela pós-login** novo/existente com até 8 Runners por conta | **7 suítes verdes** — a nova `Runner.Sessao.VariosPersonagens` cria 2 Runners na mesma conta, lista, seleciona cada um e confere o isolamento entre contas |
 | **8 (atual)** | **teste de Play do autor** com o EOS de DEV — a única coisa que a automação não alcança (§6c) | play mostra o menu, o login EOS responde, a janela lista os Runners e o corpo anda/corre/pula |
 | **10** ✅ | **feito:** nome do personagem (regra + ficha + lista), paleta canônica no código (`RunnerPalette.h`), menu com cara de jogo e o **véu** que circula pela tela, ronda os botões e se abre em bola no mouse | **9 suítes verdes**; véu calibrável em *Project Settings > Game > Runner > Veu* e desligável com `Runner.Veil 0` |
-| **11 (atual)** | **teste de Play do autor** com o formulário novo e o véu | play mostra o menu em latão/âmbar, o campo de nome do Runner e a bola do véu seguindo o mouse |
+| **11** ✅ | **feito:** vitrine 3D do chassi (captura para textura, mostrada num "monitor"), ficha de atributos ao lado, **confirmação** ao criar e **excluir com confirmação** | **9 suítes verdes** (a `VariosPersonagens` cobre apagar, id reaproveitado e nome liberado) |
+| **12 (atual)** | **teste de Play do autor** com vitrine, ficha, véu e as confirmações | play mostra o corpo girando no monitor, a ficha mudando ao passar o mouse, e as duas janelas de confirmação |
+| **13** | migração dos widgets do canônico (saída A) e, se o autor quiser, WBP por cima do C++ | menu com arte própria |
 | **12** | migração dos widgets do canônico (saída A) e, se o autor quiser, WBP por cima do C++ | menu com arte própria |
 
 ## 6b. Como o fluxo roda hoje (passo a passo)
@@ -314,8 +365,10 @@ Em execução: console **`Runner.Veil 0`** desliga na hora (e `1` liga).
    └── conta SEM personagens → "Criar novo Runner" → segue para o passo 4
 3b. Escolher o chassi  (10 opções + os Clyffen aparecem como extintos e são recusados)
 4. Escolher a classe  (6 opções)
-5. Dar o NOME do Runner e criar                [ValidateCharacterName -> CreateCharacterProfile]
+5. Dar o NOME do Runner e criar                [ValidateCharacterName -> Confirm -> CreateCharacterProfile]
    └ regra: 3 a 16 caracteres, letras/numeros/espaco/_/-, unico na conta
+   └ a janela de confirmacao mostra corpo, classe, HP, CA e o dado de vida antes de valer
+   └ na lista de Runners, o botao Excluir (ao lado de cada um) tambem passa pela confirmacao
    └ grava a ficha na conta e troca de GameMode:
      OpenLevel(NewMap, "?game=/Script/PloidrekRPG.AFGameMode")
 6. AFGameMode::HandleStartingNewPlayer

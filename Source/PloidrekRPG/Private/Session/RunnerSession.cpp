@@ -459,7 +459,45 @@ bool URunnerSession::SelectSavedCharacter(const FString& CharacterId, FString& O
 
     Perfil.CharacterName = Salvo->GetDisplayName();
     ActiveProfile = Perfil;
+    ActiveCharacterId = Salvo->CharacterId;
     bHasCharacter = true;
+    OutError.Reset();
+    return true;
+}
+
+bool URunnerSession::DeleteSavedCharacter(const FString& CharacterId, FString& OutError)
+{
+    if (!bLoggedIn)
+    {
+        OutError = TEXT("Sem conta ativa.");
+        return false;
+    }
+
+    const int32 Indice = SavedCharacters.IndexOfByPredicate(
+        [this, &CharacterId](const FRunnerSavedCharacter& Salvo)
+        {
+            return Salvo.AccountName == AccountKey && Salvo.CharacterId == CharacterId;
+        });
+
+    if (Indice == INDEX_NONE)
+    {
+        OutError = FString::Printf(TEXT("Personagem '%s' nao encontrado nesta conta."), *CharacterId);
+        return false;
+    }
+
+    // Se era o personagem em uso, a ficha ativa sai junto.
+    if (bHasCharacter && ActiveCharacterId == CharacterId)
+    {
+        ClearCharacter();
+    }
+
+    SavedCharacters.RemoveAt(Indice);
+    if (!SaveCharacters())
+    {
+        OutError = TEXT("Nao foi possivel gravar a lista de personagens.");
+        return false;
+    }
+
     OutError.Reset();
     return true;
 }
@@ -656,7 +694,30 @@ bool URunnerSession::CreateCharacterProfile(FRunnerCharacterProfile& OutProfile,
     // Guarda na conta como um personagem novo (a lista que aparece no proximo login).
     FRunnerSavedCharacter Novo;
     Novo.AccountName = AccountKey;
-    Novo.CharacterId = FString::Printf(TEXT("R-%02d"), GetSavedCharacters().Num() + 1);
+    // Primeiro id livre: contar a lista daria id repetido depois de excluir alguem do meio.
+    FString NovoId;
+    for (int32 Numero = 1; Numero <= MaxCharacterSlots; ++Numero)
+    {
+        const FString Candidato = FString::Printf(TEXT("R-%02d"), Numero);
+        const bool bJaUsado = SavedCharacters.ContainsByPredicate(
+            [this, &Candidato](const FRunnerSavedCharacter& Salvo)
+            {
+                return Salvo.AccountName == AccountKey && Salvo.CharacterId == Candidato;
+            });
+        if (!bJaUsado)
+        {
+            NovoId = Candidato;
+            break;
+        }
+    }
+    if (NovoId.IsEmpty())
+    {
+        OutError = TEXT("Sem id livre para um personagem novo.");
+        return false;
+    }
+
+    Novo.CharacterId = NovoId;
+    ActiveCharacterId = NovoId;
     Novo.ChassisId = SelectedChassis;
     Novo.ClassId = SelectedClass;
     Novo.CharacterName = PendingCharacterName.TrimStartAndEnd();
@@ -705,4 +766,5 @@ void URunnerSession::ClearCharacter()
     SelectedChassis = NAME_None;
     SelectedClass = NAME_None;
     PendingCharacterName.Reset();
+    ActiveCharacterId.Reset();
 }

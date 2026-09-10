@@ -122,7 +122,7 @@
 | `PROC-001` | **Agentes e subagentes são esperados** neste pipeline — o playbook §0 e §17 já definem como (MUST / MUST NOT) | 🔴 | Playbook vigente aqui e citado no onboarding; nenhuma tarefa delegada sem DoD |
 | `PROC-002` | Sem CI (build + smoke test) apesar de o playbook exigir como gate | 🟠 | Pipeline mínimo: build + smoke (abre mapa, spawna, 1 inimigo, ataque funciona) |
 | `PROC-003` | Playbook cita UE 5.7 e o projeto alvo é 5.8 | 🟡 | Versão corrigida no playbook |
-| `PROC-005` | **Custo do véu em hardware fraco** — o véu desenha ~20 quads por quadro no Slate; é barato no desktop, mas o alvo é multi-hardware (`PROC-004`) | 🟡 | Medir no alvo fraco e, se preciso, desligar por plataforma (`bVeuLigado` no projeto ou `Runner.Veil 0`) |
+| `PROC-005` | **Custo do véu e da vitrine em hardware fraco** — o véu desenha ~20 quads por quadro no Slate e a vitrine faz **uma captura de cena por quadro** (512², só o ator da lista) enquanto o menu está aberto | 🟡 | Medir no alvo fraco; se preciso, desligar por plataforma (`bVeuLigado`, `Runner.Veil 0`) e/ou reduzir a captura (LadoDaCaptura) ou capturar sob demanda |
 | `PROC-004` | Alvo **multi-hardware** (PC → mobile → web) ainda não está registrado como restrição de arquitetura | 🔴 | `Docs/Target_Hardware.md` com a lista do que é proibido usar por causa disso |
 
 ---

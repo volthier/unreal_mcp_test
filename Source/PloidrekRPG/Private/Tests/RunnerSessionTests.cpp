@@ -156,6 +156,29 @@ bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
 
     TestFalse(TEXT("id inexistente e recusado"), Sessao->SelectSavedCharacter(TEXT("R-99"), Erro));
 
+    // Apagar personagem: a lista encolhe, o id e o nome voltam a ficar livres, e o que nao existe e recusado.
+    TestFalse(TEXT("id inexistente nao apaga"), Sessao->DeleteSavedCharacter(TEXT("R-99"), Erro));
+    if (Meus.Num() == 2)
+    {
+        const FString IdApagado = Meus[0].CharacterId;
+        TestTrue(TEXT("apaga o primeiro"), Sessao->DeleteSavedCharacter(IdApagado, Erro));
+        TestEqual(TEXT("sobrou um personagem"), Sessao->GetSavedCharacters().Num(), 1);
+        TestFalse(TEXT("apagar de novo o mesmo falha"), Sessao->DeleteSavedCharacter(IdApagado, Erro));
+
+        // O id e o nome do apagado voltam a ser livres.
+        Sessao->SelectChassis(FName(TEXT("Vitaspark")), Erro);
+        Sessao->SelectClass(FName(TEXT("Blaster")), Erro);
+        Sessao->SetPendingCharacterName(TEXT("Volt"));
+        FRunnerCharacterProfile Terceiro;
+        TestTrue(TEXT("cria de novo com o nome e o id livres"), Sessao->CreateCharacterProfile(Terceiro, Erro));
+
+        const TArray<FRunnerSavedCharacter> Depois = Sessao->GetSavedCharacters();
+        TestEqual(TEXT("voltou a dois personagens"), Depois.Num(), 2);
+        const bool bReaproveitou = Depois.ContainsByPredicate([&IdApagado](const FRunnerSavedCharacter& S)
+            { return S.CharacterId == IdApagado; });
+        TestTrue(TEXT("o id do apagado foi reaproveitado"), bReaproveitou);
+    }
+
     // Outra conta nao enxerga estes personagens
     URunnerSession* Outra = NewObject<URunnerSession>();
     const FString Nome2 = Nome + TEXT("b");
