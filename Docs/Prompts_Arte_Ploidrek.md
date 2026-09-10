@@ -365,7 +365,36 @@ Os dois eixos são independentes — 10 × 6 = as **60 combinações** que a su�
 | a `Body` do `DT_Chassis` virou tipo de corpo | a `Body` passa a descrever a **forma da aura**: `Slender` = fitas longas e finas; `Stocky` = casca densa e larga; `Fragile` = véu fino que tremula; `Unstable` = rompida, espetando e falhando |
 | a malha do chassi apontava para o manequim | a malha do manequim pertence à **classe**, não ao chassi |
 
-**Prompt do chassi (cérebro-cristal):**
+### 9b.2 **Onde a classe carrega o cristal** (a lógica X / Zero / Axl)
+
+**A referência do autor:** em Mega Man X, o X tem o cristal **vermelho**, o Zero tem na **testa** (verde) e o Axl
+também na testa (**azul**). Ou seja: **o corpo é um só, e o cristal fica num lugar do corpo** — e *quem* é o
+personagem se lê por **onde** o cristal está, não só pela cor.
+
+Isso cria **duas identidades independentes no mesmo personagem**, as duas visíveis de cima:
+
+| Eixo | O que informa | Quem decide |
+|---|---|---|
+| **Cor do núcleo** | *o que* o Runner faz (frio, crítica, éter, silêncio…) | **o chassi** (§9b) |
+| **Lugar do núcleo** | *quem* o Runner é (a classe, o corpo) | **a classe** |
+
+**Proposta de colocação por classe** (6 posições distintas):
+
+| Classe | Onde o cristal mora | Por quê |
+|---|---|---|
+| **Blaster** | **na testa**, sob a viseira | é quem mira: o cristal é o olho (a lógica do X) |
+| **Breaker** | **no peito**, em casulo blindado | provocação: o tanque **mostra** o núcleo — "vem pegar" |
+| **Blade** | **no antebraço da arma** | duelista: o núcleo vive onde o golpe nasce |
+| **Support** | **na palma da mão aberta** | quem cura oferece a mão |
+| **Engineer** | **na omoplata / doca dorsal** | é de onde os drones decolam |
+| **Sentinel** | **no braço do escudo** | o cristal é o emissor do campo que defende |
+
+> **Alerta de leitura (câmera alta):** com a câmera do jogo, o que aparece bem são **peito, ombros, dorso e topo
+> do capacete**. Testa lê parcialmente; **palma da mão só lê quando o Support abre a mão** (ataque, cura, emote).
+> Isso não invalida a escolha — dá **leitura situacional** — mas quem for animar precisa saber que a palma é a
+> posição de menor visibilidade e que o Support deve ter um gesto de exposição (por exemplo, ao conjurar).
+
+**Prompt do chassi (cérebro-cristal, SOZINHO — decisão do autor):**
 
 ```text
 [STYLE ANCHOR]
@@ -373,7 +402,8 @@ A RUNNER CHASSIS. It is NOT a robot, NOT a humanoid, NOT a body: it is a small c
 self-lit crystal core about the size of two fists - floating inside a VISIBLE AURA that behaves like wind:
 a luminous formation like the ice-bloom that grows around frozen surfaces, a cold glowing wind circling the
 crystal. AURA COLOUR: <cor do núcleo do chassi, §9b>. AURA FORM: <form da aura pela Body do DataTable>.
-No arms, no legs, no head, no face. Plain background, the crystal on a plinth, the aura in motion.
+No arms, no legs, no head, no face, NO cradle and NO housing: the crystal and the aura are the whole object,
+on their own. Plain mid-gray background, the aura in motion, museum-reliquary lighting.
 ```
 
 ## 9c. **Humanização e apresentação** (adendo do autor) — **isto é da CLASSE**
