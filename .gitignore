@@ -64,3 +64,7 @@ Captures/
 
 # (o plugin de terceiros UnrealMCP foi REMOVIDO do projeto: a MCP oficial da engine 5.8
 #  e a que roda. Ver Docs/AssetPipeline3D.md)
+
+# Backup local e ferramentas auxiliares (nunca versionar)
+_backup/
+.tools/
