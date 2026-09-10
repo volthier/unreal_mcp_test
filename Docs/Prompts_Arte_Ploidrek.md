@@ -87,6 +87,44 @@ no perspective distortion. 4096x4096, sharp edges, no text.
 | **Cryonix** | Stocky cryogenic chassis: cryo core, frost on the plating, cooling coils, everything it touches slows down |
 | **Clyffen** *(extinto — só para registro)* | Extinct 11th model in direct symbiosis with ether: ethereal translucent plating, ancient elegant design, faded and broken |
 
+### 4b. O método que funcionou (v001 → v002) — e que fica valendo
+
+A **v001** produziu dez chassis com cor e material certos e **a mesma silhueta**: mesma pose, mesmo volume,
+câmera de frente. Parecia um set bonito e era um **sistema de design quebrado** — o tipo de erro que passa
+despercebido olhando imagem por imagem.
+
+Foi a **folha de contato em silhueta pura** que pegou (`Tools/art/contact_sheet.py`, que joga cada asset para
+preto no branco): com dez formas iguais lado a lado, o problema ficou óbvio em dois segundos.
+
+**O que a v002 mudou no prompt** — e que passa a ser obrigatório para chassis e classes:
+
+```text
+[STYLE ANCHOR]
+Camera: looking DOWN at about 55 degrees above the horizon (top-down action game view): you see the top of
+the shoulders, the helmet crest and the whole back unit. Dorsal silhouette is the main read.
+BODY TYPE: <o tipo do DataTable — STOCKY / SLENDER / FRAGILE / UNSTABLE, com as consequências de volume>
+SHAPE SIGNATURE: <uma ideia de forma única daquele asset, não genérica>
+POSE: <pose diferente por asset — quem está agachado não pode ter a mesma pose de quem está plantado>
+[regras de leitura + pedido da silhueta preta no canto da imagem]
+```
+
+**Truque que vale manter:** pedir *"no canto superior direito, desenhe também a silhueta preta do mesmo
+personagem sobre branco"*. O modelo passa a desenhar **pensando em forma** — e a folha de contato ganha o
+teste de leitura de graça.
+
+**Resultado medido:** na v001, dez silhuetas pertenciam a **duas famílias** (troncudo e esguio). Na v002, cada
+chassi tem forma própria: Vitaspark é uma cunha agachada com aleta dorsal, Ghostnet é uma fera baixa de braços
+longos, Droneframe é um corpo pequeno com drone pairando, Forgekin tem chaminés fumegando, Techno é esguio e
+ereto com painel holográfico.
+
+**Limite honesto da v002:** o modelo **ignora a instrução de câmera** — saiu em três-quartos de frente (~30°),
+não em 55° de cima. Ou seja: são **folhas de design**, ótimas para decidir forma e cor, mas **não** validam
+ainda o que o jogador vê de cima. Essa validação é no 3D, com a câmera do jogo apontada para a malha — que é
+exatamente o próximo passo da cadeia (imagem → Hunyuan3D → Rigify → UE).
+
+**Os dois mais fracos da v002** (candidatos a v003): **Overcore** (pedi instável e assimétrico; saiu um mech
+equilibrado com núcleo aceso) e **Aetheric** (os fragmentos flutuantes ficaram discretos demais).
+
 ## 5. Prompts — CLASSES (retrato de interface)
 
 O estilo é o das amostras existentes: **ilustração, contorno grosso, cor chapada**, não render 3D.

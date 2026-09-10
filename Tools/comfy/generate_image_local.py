@@ -63,7 +63,9 @@ async def principal() -> int:
             if args.list_tools:
                 ferramentas = await sessao.list_tools()
                 for f in ferramentas.tools:
-                    campos = list((f.inputSchema or {}).get('properties', {}).keys())
+                    # o SDK expoe input_schema (pydantic); versoes antigas usavam inputSchema
+                    esquema = getattr(f, 'input_schema', None) or getattr(f, 'inputSchema', None) or {}
+                    campos = list((esquema or {}).get('properties', {}).keys())
                     print(f'  - {f.name}: {campos}')
                 return 0
 
