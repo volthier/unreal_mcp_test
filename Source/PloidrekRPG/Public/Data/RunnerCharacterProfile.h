@@ -16,6 +16,10 @@ struct PLOIDREKRPG_API FRunnerCharacterProfile
     GENERATED_BODY()
 
     UPROPERTY(BlueprintReadOnly, Category = "Perfil") FString AccountName;
+
+    /** O nome que o jogador deu ao Runner (obrigatorio na criacao, ver Runner.Sessao.RegrasDeConta). */
+    UPROPERTY(BlueprintReadOnly, Category = "Perfil") FString CharacterName;
+
     UPROPERTY(BlueprintReadOnly, Category = "Perfil") FName ChassisId;
     UPROPERTY(BlueprintReadOnly, Category = "Perfil") FName ClassId;
 

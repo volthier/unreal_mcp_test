@@ -9,17 +9,112 @@
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/Spacer.h"
+#include "Components/Widget.h"
 #include "Data/RunnerChassisData.h"
 #include "Data/RunnerGameSettings.h"
+#include "Styling/CoreStyle.h"
+#include "Styling/SlateTypes.h"
+#include "UI/RunnerPalette.h"
+#include "UI/RunnerVeilWidget.h"
 #include "Data/RunnerClassData.h"
 #include "Session/RunnerSession.h"
 #include "Session/RunnerSessionSubsystem.h"
 
 namespace
 {
-    const FLinearColor PanelColor(0.02f, 0.03f, 0.06f, 0.94f);
-    const FLinearColor TextColor(0.85f, 0.92f, 1.0f, 1.0f);
+    // Cores: todas vindas de RunnerPalette, que segue Docs/SteampunkPalette.md. Nenhum hexadecimal
+    // solto aqui — se a cor nao esta na paleta, a discussao e de arte.
+    constexpr float RaioDoPainel = 12.f;
+    constexpr float RaioDoBotao = 6.f;
+    constexpr float RaioDoCampo = 5.f;
+
+    /** Caixa arredondada (com contorno opcional): o acabamento de latao sobre aco escuro. */
+    FSlateBrush Caixa(const FLinearColor& Preenchimento, const float Raio,
+                      const FLinearColor& Contorno = FLinearColor::Transparent, const float Espessura = 0.f)
+    {
+        if (Contorno.A <= 0.f || Espessura <= 0.f)
+        {
+            return FSlateRoundedBoxBrush(Preenchimento, Raio);
+        }
+        return FSlateRoundedBoxBrush(Preenchimento, Raio, Contorno, Espessura);
+    }
+
+    UTextBlock* CriarTexto(UWidgetTree* Arvore, const FString& Conteudo, const float Tamanho,
+                           const FLinearColor& Cor, const FName Tipo = TEXT("Bold"))
+    {
+        UTextBlock* Texto = Arvore->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+        Texto->SetText(FText::FromString(Conteudo));
+        Texto->SetColorAndOpacity(FSlateColor(Cor));
+        Texto->SetAutoWrapText(true);
+        Texto->SetFont(FCoreStyle::GetDefaultFontStyle(Tipo, Tamanho));
+        return Texto;
+    }
+
+    /** Filete de latao: separa o cabecalho do corpo, como uma placa de metal. */
+    UWidget* CriarFilete(UWidgetTree* Arvore, const FLinearColor& Cor, const float Altura)
+    {
+        USpacer* Espaco = Arvore->ConstructWidget<USpacer>(USpacer::StaticClass());
+        Espaco->SetSize(FVector2D(0.f, Altura));
+
+        UBorder* Filete = Arvore->ConstructWidget<UBorder>(UBorder::StaticClass());
+        Filete->SetBrush(Caixa(Cor, Altura * 0.5f));
+        Filete->SetPadding(FMargin(0.f));
+        Filete->SetContent(Espaco);
+        return Filete;
+    }
+
+    /** Botao no estilo do jogo: caixa arredondada com contorno, hover que acende. */
+    void EstilizarBotao(UButton* Botao, const FLinearColor& Normal, const FLinearColor& Hover,
+                        const FLinearColor& Contorno, const float Espessura)
+    {
+        if (!Botao)
+        {
+            return;
+        }
+        FButtonStyle Estilo;
+        Estilo.SetNormal(Caixa(Normal, RaioDoBotao, Contorno, Espessura));
+        Estilo.SetHovered(Caixa(Hover, RaioDoBotao, Contorno, Espessura));
+        Estilo.SetPressed(Caixa(Normal * 0.75f, RaioDoBotao, Contorno, Espessura));
+        Estilo.SetDisabled(Caixa(Normal * 0.35f, RaioDoBotao));
+        Estilo.SetNormalPadding(FMargin(12.f, 9.f));
+        Estilo.SetPressedPadding(FMargin(12.f, 10.f, 12.f, 8.f));
+        Botao->SetStyle(Estilo);
+        Botao->SetBackgroundColor(FLinearColor::White);
+    }
+
+    /** Campo de texto: fundo escuro, contorno de latao que acende no foco. */
+    void EstilizarCampo(UEditableTextBox* Campo)
+    {
+        if (!Campo)
+        {
+            return;
+        }
+        FEditableTextBoxStyle Estilo;
+        Estilo.SetBackgroundImageNormal(Caixa(RunnerPalette::FundoCampo(), RaioDoCampo, RunnerPalette::BordaCampo(), 1.f));
+        Estilo.SetBackgroundImageHovered(Caixa(RunnerPalette::FundoCampo(), RaioDoCampo, RunnerPalette::LataoPolido(0.8f), 1.f));
+        Estilo.SetBackgroundImageFocused(Caixa(RunnerPalette::Silhueta(0.95f), RaioDoCampo, RunnerPalette::Ambar(0.9f), 1.5f));
+        Estilo.SetBackgroundImageReadOnly(Caixa(RunnerPalette::AcoEscuro(0.8f), RaioDoCampo, RunnerPalette::BordaCampo(), 1.f));
+        Estilo.SetForegroundColor(RunnerPalette::TextoCorpo());
+        Estilo.SetFocusedForegroundColor(RunnerPalette::Rebites());
+        Estilo.SetPadding(FMargin(10.f, 7.f));
+        Campo->SetWidgetStyle(Estilo);
+    }
+
+    /** Cada filho do VerticalBox com um respiro embaixo. */
+    void Adicionar(UVerticalBox* Caixa, UWidget* Filho, const float EspacoAbaixo = 8.f)
+    {
+        if (!Caixa || !Filho)
+        {
+            return;
+        }
+        if (UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Caixa->AddChild(Filho)))
+        {
+            Slot->SetPadding(FMargin(0.f, 0.f, 0.f, EspacoAbaixo));
+        }
+    }
 }
 
 void URunnerOptionButton::HandleClicked()
@@ -54,15 +149,35 @@ void URunnerMenuWidget::NativeOnInitialized()
     UCanvasPanel* Canvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
     WidgetTree->RootWidget = Canvas;
 
+    // Painel: placa de aco escuro com contorno de latao escovado (paleta canonica).
     UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
-    Panel->SetBrushColor(PanelColor);
+    Panel->SetBrush(Caixa(RunnerPalette::FundoPainel(), RaioDoPainel, RunnerPalette::BordaPainel(), 1.5f));
+    Panel->SetPadding(FMargin(26.f, 22.f));
     UCanvasPanelSlot* PanelSlot = Canvas->AddChildToCanvas(Panel);
     PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f));
     PanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-    PanelSlot->SetSize(FVector2D(620.f, 560.f));
+    PanelSlot->SetSize(FVector2D(680.f, 620.f));
 
     RootBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
-    Panel->AddChild(RootBox);
+    Panel->SetContent(RootBox);
+
+    // O veu entra por ULTIMO no canvas: aqui quem entra depois desenha por cima, e e isso que faz
+    // a neblina passar por cima dos botoes em vez de ficar so atras deles.
+    Veil = CreateWidget<URunnerVeilWidget>(GetOwningPlayer(), URunnerVeilWidget::StaticClass());
+    if (Veil)
+    {
+        // Calibragem vem do Project Settings > Game > Runner > Veu (nada fixo no codigo).
+        if (const URunnerGameSettings* AjustesDoVeu = GetDefault<URunnerGameSettings>())
+        {
+            Veil->Intensidade = AjustesDoVeu->bVeuLigado ? AjustesDoVeu->IntensidadeDoVeu : 0.f;
+            Veil->RaioDaBolaDoMouse = AjustesDoVeu->RaioDaBolaDoMouse;
+            Veil->Velocidade = AjustesDoVeu->VelocidadeDoVeu;
+        }
+
+        UCanvasPanelSlot* VeilSlot = Canvas->AddChildToCanvas(Veil);
+        VeilSlot->SetAnchors(FAnchors(0.f, 0.f, 1.f, 1.f));
+        VeilSlot->SetOffsets(FMargin(0.f));
+    }
 
     // O EOS responde assincrono: a tela reage ao fim do login por este delegate.
     if (URunnerSession* Sessao = GetSession())
@@ -90,35 +205,33 @@ void URunnerMenuWidget::RebuildLayout()
 
     RootBox->ClearChildren();
     OptionBindings.Reset();
+
+    // Tudo que o veu vai rondar neste passo (botoes e campos).
+    TArray<UWidget*> AlvosDoVeu;
+
     StatusText = nullptr;
     AccountBox = nullptr;
     PasswordBox = nullptr;
     UserNameBox = nullptr;
     ConfirmBox = nullptr;
+    NameBox = nullptr;
 
     URunnerSession* Session = GetSession();
 
-    UTextBlock* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-    Title->SetColorAndOpacity(FSlateColor(TextColor));
+    // Cabecalho: marca em latao polido, o passo atual em letra miuda e um filete de metal.
+    Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("PLOIDREKRPG"), 26.f, RunnerPalette::LataoPolido()), 2.f);
+
+    FString Passo;
     switch (CurrentStep)
     {
-        case ERunnerMenuStep::Login:
-            Title->SetText(FText::FromString(TEXT("PLOIDREKRPG — entrar")));
-            break;
-        case ERunnerMenuStep::CreateAccount:
-            Title->SetText(FText::FromString(TEXT("Criar conta")));
-            break;
-        case ERunnerMenuStep::CharacterSelect:
-            Title->SetText(FText::FromString(TEXT("Seus Runners")));
-            break;
-        case ERunnerMenuStep::Chassis:
-            Title->SetText(FText::FromString(TEXT("Escolha o chassi")));
-            break;
-        case ERunnerMenuStep::Class:
-            Title->SetText(FText::FromString(TEXT("Escolha a classe")));
-            break;
+        case ERunnerMenuStep::Login:           Passo = TEXT("NEXUS-7 · ACESSO"); break;
+        case ERunnerMenuStep::CreateAccount:   Passo = TEXT("NEXUS-7 · NOVA CONTA"); break;
+        case ERunnerMenuStep::CharacterSelect: Passo = TEXT("SEUS RUNNERS"); break;
+        case ERunnerMenuStep::Chassis:         Passo = TEXT("ESCOLHA O CHASSI"); break;
+        case ERunnerMenuStep::Class:           Passo = TEXT("ESCOLHA A CLASSE"); break;
     }
-    RootBox->AddChild(Title);
+    Adicionar(RootBox, CriarTexto(WidgetTree, Passo, 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 10.f);
+    Adicionar(RootBox, CriarFilete(WidgetTree, RunnerPalette::LataoEscovado(0.75f), 1.5f), 14.f);
 
     // Com EOS ativo, os campos do login sao os do Dev Auth Tool: campo 1 = onde o tool esta
     // ouvindo, campo 2 = o NOME da credencial criada nele (nao e senha). Sem EOS, e o e-mail e a
@@ -134,33 +247,39 @@ void URunnerMenuWidget::RebuildLayout()
         if (bCamposDoDevAuth)
         {
             UTextBlock* AjudaEOS = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-            AjudaEOS->SetColorAndOpacity(FSlateColor(TextColor));
+            AjudaEOS->SetColorAndOpacity(FSlateColor(RunnerPalette::TextoFraco()));
+            AjudaEOS->SetFont(FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 11.f));
             AjudaEOS->SetAutoWrapText(true);
             AjudaEOS->SetText(FText::FromString(FString::Printf(
                 TEXT("Dev Auth Tool: campo 1 = onde o tool esta ouvindo (%s); campo 2 = o nome que voce deu a credencial. O tool precisa estar rodando."),
                 *HostDevAuth)));
-            RootBox->AddChild(AjudaEOS);
+            Adicionar(RootBox, AjudaEOS, 12.f);
         }
         else if (CurrentStep == ERunnerMenuStep::CreateAccount)
         {
             UTextBlock* AjudaConta = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-            AjudaConta->SetColorAndOpacity(FSlateColor(TextColor));
+            AjudaConta->SetColorAndOpacity(FSlateColor(RunnerPalette::TextoFraco()));
+            AjudaConta->SetFont(FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 11.f));
             AjudaConta->SetAutoWrapText(true);
             AjudaConta->SetText(FText::FromString(TEXT("Senha: 8+ caracteres, com uma maiuscula, uma minuscula e um caractere especial (ex.: ! @ # $ %).")));
-            RootBox->AddChild(AjudaConta);
+            Adicionar(RootBox, AjudaConta, 12.f);
         }
 
         // Campo 1: o host do Dev Auth (pre-preenchido) ou o e-mail da conta.
         AccountBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
         AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:8081") : TEXT("e-mail")));
-        RootBox->AddChild(AccountBox);
+        EstilizarCampo(AccountBox);
+        Adicionar(RootBox, AccountBox, 10.f);
+        AlvosDoVeu.Add(AccountBox);
 
         // Nome de usuario existe so na criacao da conta local.
         if (CurrentStep == ERunnerMenuStep::CreateAccount)
         {
             UserNameBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
             UserNameBox->SetHintText(FText::FromString(TEXT("nome de usuario (3+, letras numeros _ -)")));
-            RootBox->AddChild(UserNameBox);
+            EstilizarCampo(UserNameBox);
+            Adicionar(RootBox, UserNameBox, 10.f);
+            AlvosDoVeu.Add(UserNameBox);
         }
 
         PasswordBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
@@ -169,14 +288,18 @@ void URunnerMenuWidget::RebuildLayout()
             : (CurrentStep == ERunnerMenuStep::CreateAccount
                 ? TEXT("senha (8+, maiuscula, minuscula, especial)") : TEXT("senha"))));
         PasswordBox->SetIsPassword(!bCamposDoDevAuth);
-        RootBox->AddChild(PasswordBox);
+        EstilizarCampo(PasswordBox);
+        Adicionar(RootBox, PasswordBox, 10.f);
+        AlvosDoVeu.Add(PasswordBox);
 
         if (CurrentStep == ERunnerMenuStep::CreateAccount)
         {
             ConfirmBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
             ConfirmBox->SetHintText(FText::FromString(TEXT("confirmar senha")));
             ConfirmBox->SetIsPassword(true);
-            RootBox->AddChild(ConfirmBox);
+            EstilizarCampo(ConfirmBox);
+            Adicionar(RootBox, ConfirmBox, 10.f);
+            AlvosDoVeu.Add(ConfirmBox);
         }
 
         // Com EOS o campo 1 ja vem preenchido: o jogador digita so a credencial.
@@ -191,14 +314,17 @@ void URunnerMenuWidget::RebuildLayout()
         || CurrentStep == ERunnerMenuStep::CharacterSelect)
     {
         UScrollBox* List = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
-        RootBox->AddChild(List);
+        Adicionar(RootBox, List, 12.f);
 
-        auto AdicionarOpcao = [this, List](const FString& Rotulo, const FName Id)
+        auto AdicionarOpcao = [this, List, &AlvosDoVeu](const FString& Rotulo, const FName Id)
         {
             UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-            UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-            Text->SetText(FText::FromString(Rotulo));
-            Text->SetColorAndOpacity(FSlateColor(TextColor));
+            EstilizarBotao(Button, RunnerPalette::LinhaDeOpcao(), RunnerPalette::LinhaDeOpcaoHover(),
+                           RunnerPalette::BordaCampo(), 1.f);
+            AlvosDoVeu.Add(Button);
+
+            UTextBlock* Text = CriarTexto(WidgetTree, Rotulo, 13.f, RunnerPalette::TextoCorpo());
+            Text->SetAutoWrapText(false);
             Button->AddChild(Text);
 
             URunnerOptionButton* Binding = NewObject<URunnerOptionButton>(this);
@@ -238,16 +364,33 @@ void URunnerMenuWidget::RebuildLayout()
         }
     }
 
+    // Nome do personagem: e por ele que o jogador reconhece o Runner na lista depois.
+    if (CurrentStep == ERunnerMenuStep::Class)
+    {
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("NOME DO RUNNER"), 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 4.f);
+
+        NameBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+        NameBox->SetHintText(FText::FromString(TEXT("nome do personagem (3 a 16 caracteres)")));
+        NameBox->SetText(FText::FromString(Session ? Session->GetPendingCharacterName() : FString()));
+        EstilizarCampo(NameBox);
+        Adicionar(RootBox, NameBox, 12.f);
+        AlvosDoVeu.Add(NameBox);
+    }
+
     StatusText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-    StatusText->SetColorAndOpacity(FSlateColor(TextColor));
-    RootBox->AddChild(StatusText);
+    StatusText->SetColorAndOpacity(FSlateColor(RunnerPalette::Vapor(0.85f)));
+    StatusText->SetFont(FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 12.f));
+    StatusText->SetAutoWrapText(true);
+    Adicionar(RootBox, StatusText, 12.f);
 
     const bool bEOS = Session && Session->IsEOSAvailable();
 
-    // Botao principal
+    // Botao principal: ambar cheio, texto escuro — e a acao que o passo pede.
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-    UTextBlock* PrimaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-    PrimaryText->SetColorAndOpacity(FSlateColor(TextColor));
+    EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
+                   RunnerPalette::LuzDeRua(0.9f), 1.f);
+    UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 15.f, RunnerPalette::TextoDoBotao());
+    PrimaryText->SetAutoWrapText(false);
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
@@ -260,12 +403,15 @@ void URunnerMenuWidget::RebuildLayout()
     }
     Primary->AddChild(PrimaryText);
     Primary->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnPrimaryClicked);
-    RootBox->AddChild(Primary);
+    Adicionar(RootBox, Primary, 8.f);
+    AlvosDoVeu.Add(Primary);
 
-    // Botao secundario
+    // Botao secundario: ferro forjado com contorno de latao.
     UButton* Secondary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-    UTextBlock* SecondaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-    SecondaryText->SetColorAndOpacity(FSlateColor(TextColor));
+    EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
+                   RunnerPalette::LataoEscovado(0.8f), 1.f);
+    UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 14.f, RunnerPalette::TextoCorpo());
+    SecondaryText->SetAutoWrapText(false);
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
@@ -278,12 +424,15 @@ void URunnerMenuWidget::RebuildLayout()
     }
     Secondary->AddChild(SecondaryText);
     Secondary->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnSecondaryClicked);
-    RootBox->AddChild(Secondary);
+    Adicionar(RootBox, Secondary, 8.f);
+    AlvosDoVeu.Add(Secondary);
 
     // Terceiro botao: so aparece onde ha uma terceira acao util.
     TertiaryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-    UTextBlock* TertiaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-    TertiaryText->SetColorAndOpacity(FSlateColor(TextColor));
+    EstilizarBotao(TertiaryButton, RunnerPalette::BotaoTerciario(), RunnerPalette::BotaoTerciarioHover(),
+                   RunnerPalette::Cobre(0.7f), 1.f);
+    UTextBlock* TertiaryText = CriarTexto(WidgetTree, FString(), 13.f, RunnerPalette::Cobre(0.95f));
+    TertiaryText->SetAutoWrapText(false);
     bool bMostraTerceiro = false;
     if (CurrentStep == ERunnerMenuStep::Login)
     {
@@ -298,7 +447,14 @@ void URunnerMenuWidget::RebuildLayout()
     TertiaryButton->AddChild(TertiaryText);
     TertiaryButton->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnTertiaryClicked);
     TertiaryButton->SetVisibility(bMostraTerceiro ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-    RootBox->AddChild(TertiaryButton);
+    Adicionar(RootBox, TertiaryButton, 4.f);
+    AlvosDoVeu.Add(TertiaryButton);
+
+    // O veu passa a rondar o que existe neste passo (os alvos sao fracos: a tela se reconstroi).
+    if (Veil)
+    {
+        Veil->SetTargets(AlvosDoVeu);
+    }
 }
 
 void URunnerMenuWidget::GoToStep(const ERunnerMenuStep NewStep)
@@ -498,6 +654,12 @@ void URunnerMenuWidget::OnPrimaryClicked()
 
         case ERunnerMenuStep::Class:
         {
+            // O nome digitado vai para a sessao, que valida a regra antes de criar a ficha.
+            if (NameBox)
+            {
+                Session->SetPendingCharacterName(NameBox->GetText().ToString());
+            }
+
             FRunnerCharacterProfile Perfil;
             if (!Session->CreateCharacterProfile(Perfil, Erro))
             {

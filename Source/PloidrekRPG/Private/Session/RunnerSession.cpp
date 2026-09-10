@@ -13,6 +13,8 @@ namespace
 {
     constexpr int32 MinUserNameLength = 3;
     constexpr int32 MinPasswordLength = 8;
+    constexpr int32 MinCharacterNameLength = 3;
+    constexpr int32 MaxCharacterNameLength = 16;
     constexpr int32 MaxCharacterSlots = 8;
     const TCHAR* AccountsFileName = TEXT("RunnerAccounts.tsv");
     const TCHAR* CharactersFileName = TEXT("RunnerCharacters.tsv");
@@ -58,13 +60,15 @@ void URunnerSession::LoadAccountsIfNeeded()
         {
             TArray<FString> Parts;
             Line.ParseIntoArray(Parts, TEXT("\t"), true);
-            if (Parts.Num() == 4 && !Parts[0].IsEmpty() && !Parts[1].IsEmpty())
+            if (Parts.Num() >= 4 && !Parts[0].IsEmpty() && !Parts[1].IsEmpty())
             {
                 FRunnerSavedCharacter Salvo;
                 Salvo.AccountName = Parts[0];
                 Salvo.CharacterId = Parts[1];
                 Salvo.ChassisId = FName(*Parts[2]);
                 Salvo.ClassId = FName(*Parts[3]);
+                // Personagens gravados antes do campo de nome entram sem nome (a lista mostra chassi + classe).
+                Salvo.CharacterName = Parts.IsValidIndex(4) ? Parts[4] : FString();
                 SavedCharacters.Add(Salvo);
             }
         }
@@ -87,7 +91,8 @@ bool URunnerSession::SaveCharacters() const
     for (const FRunnerSavedCharacter& Salvo : SavedCharacters)
     {
         Lines.Add(Salvo.AccountName + TEXT("\t") + Salvo.CharacterId + TEXT("\t")
-            + Salvo.ChassisId.ToString() + TEXT("\t") + Salvo.ClassId.ToString());
+            + Salvo.ChassisId.ToString() + TEXT("\t") + Salvo.ClassId.ToString()
+            + TEXT("\t") + Salvo.CharacterName);
     }
     return FFileHelper::SaveStringArrayToFile(Lines, *(FPaths::ProjectSavedDir() / CharactersFileName));
 }
@@ -452,6 +457,7 @@ bool URunnerSession::SelectSavedCharacter(const FString& CharacterId, FString& O
         return false;
     }
 
+    Perfil.CharacterName = Salvo->GetDisplayName();
     ActiveProfile = Perfil;
     bHasCharacter = true;
     OutError.Reset();
@@ -561,6 +567,51 @@ bool URunnerSession::IsSelectionComplete() const
     return bLoggedIn && !SelectedChassis.IsNone() && !SelectedClass.IsNone();
 }
 
+bool URunnerSession::ValidateCharacterName(const FString& Name, FString& OutError)
+{
+    const FString Nome = Name.TrimStartAndEnd();
+
+    if (Nome.IsEmpty())
+    {
+        OutError = TEXT("De um nome ao seu Runner.");
+        return false;
+    }
+    if (Nome.Len() < MinCharacterNameLength)
+    {
+        OutError = FString::Printf(TEXT("O nome do Runner precisa de pelo menos %d caracteres."), MinCharacterNameLength);
+        return false;
+    }
+    if (Nome.Len() > MaxCharacterNameLength)
+    {
+        OutError = FString::Printf(TEXT("O nome do Runner pode ter no maximo %d caracteres."), MaxCharacterNameLength);
+        return false;
+    }
+    for (const TCHAR Caractere : Nome)
+    {
+        if (!FChar::IsAlnum(Caractere) && Caractere != TEXT(' ') && Caractere != TEXT('_') && Caractere != TEXT('-'))
+        {
+            OutError = TEXT("No nome do Runner use letras, numeros, espaco, _ ou -.");
+            return false;
+        }
+    }
+
+    OutError.Reset();
+    return true;
+}
+
+bool URunnerSession::IsCharacterNameTaken(const FString& Name) const
+{
+    const FString Nome = Name.TrimStartAndEnd();
+    for (const FRunnerSavedCharacter& Salvo : SavedCharacters)
+    {
+        if (Salvo.AccountName == AccountKey && Salvo.CharacterName.Equals(Nome, ESearchCase::IgnoreCase))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool URunnerSession::CreateCharacterProfile(FRunnerCharacterProfile& OutProfile, FString& OutError)
 {
     if (!bLoggedIn)
@@ -574,10 +625,21 @@ bool URunnerSession::CreateCharacterProfile(FRunnerCharacterProfile& OutProfile,
         return false;
     }
 
+    // O nome e obrigatorio: e por ele que o jogador reconhece o personagem na lista.
+    if (!ValidateCharacterName(PendingCharacterName, OutError))
+    {
+        return false;
+    }
+
     LoadAccountsIfNeeded();
     if (GetSavedCharacters().Num() >= MaxCharacterSlots)
     {
         OutError = FString::Printf(TEXT("A conta ja tem %d personagens (limite)."), MaxCharacterSlots);
+        return false;
+    }
+    if (IsCharacterNameTaken(PendingCharacterName))
+    {
+        OutError = FString::Printf(TEXT("Ja existe um Runner chamado '%s' nesta conta."), *PendingCharacterName.TrimStartAndEnd());
         return false;
     }
 
@@ -587,6 +649,8 @@ bool URunnerSession::CreateCharacterProfile(FRunnerCharacterProfile& OutProfile,
         return false;
     }
 
+    ActiveProfile.CharacterName = PendingCharacterName.TrimStartAndEnd();
+
     bHasCharacter = true;
 
     // Guarda na conta como um personagem novo (a lista que aparece no proximo login).
@@ -595,6 +659,7 @@ bool URunnerSession::CreateCharacterProfile(FRunnerCharacterProfile& OutProfile,
     Novo.CharacterId = FString::Printf(TEXT("R-%02d"), GetSavedCharacters().Num() + 1);
     Novo.ChassisId = SelectedChassis;
     Novo.ClassId = SelectedClass;
+    Novo.CharacterName = PendingCharacterName.TrimStartAndEnd();
     SavedCharacters.Add(Novo);
     SaveCharacters();
 
@@ -639,4 +704,5 @@ void URunnerSession::ClearCharacter()
     bHasCharacter = false;
     SelectedChassis = NAME_None;
     SelectedClass = NAME_None;
+    PendingCharacterName.Reset();
 }

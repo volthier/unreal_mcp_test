@@ -33,9 +33,16 @@ struct PLOIDREKRPG_API FRunnerSavedCharacter
     UPROPERTY(BlueprintReadOnly, Category = "Personagem") FName ChassisId;
     UPROPERTY(BlueprintReadOnly, Category = "Personagem") FName ClassId;
 
-    /** Como aparece na lista: "Vitaspark · Blaster". */
+    /** O nome que o jogador deu ao personagem na criacao ("Volt", "Kardys-7"). */
+    UPROPERTY(BlueprintReadOnly, Category = "Personagem") FString CharacterName;
+
+    /** Como aparece na lista: o nome do personagem, ou chassi + classe enquanto ele nao tem nome. */
     FString GetDisplayName() const
     {
+        if (!CharacterName.IsEmpty())
+        {
+            return CharacterName;
+        }
         return FString::Printf(TEXT("%s · %s"), *ChassisId.ToString(), *ClassId.ToString());
     }
 };
@@ -150,6 +157,25 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
     bool CreateCharacterProfile(FRunnerCharacterProfile& OutProfile, FString& OutError);
 
+    // ---------- Nome do personagem ----------
+    /**
+     * Regra do nome do personagem (na tela de criacao): 3 a 16 caracteres, letras, numeros,
+     * espaco, _ ou -. Pura de proposito: a tela mostra o erro e o teste cobra a regra.
+     */
+    UFUNCTION(BlueprintPure, Category = "Runner|Criacao")
+    static bool ValidateCharacterName(const FString& Name, FString& OutError);
+
+    /** Nome escolhido na tela de criacao, usado pelo CreateCharacterProfile. */
+    UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
+    void SetPendingCharacterName(const FString& Name) { PendingCharacterName = Name.TrimStartAndEnd(); }
+
+    UFUNCTION(BlueprintPure, Category = "Runner|Criacao")
+    FString GetPendingCharacterName() const { return PendingCharacterName; }
+
+    /** Esse nome ja e de outro personagem desta conta? */
+    UFUNCTION(BlueprintPure, Category = "Runner|Criacao")
+    bool IsCharacterNameTaken(const FString& Name) const;
+
     /** Seleciona o primeiro personagem salvo da conta (compatibilidade). */
     UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
     bool RestoreCharacter(FString& OutError);
@@ -208,4 +234,5 @@ private:
     FString AccountKey;
     FName SelectedChassis;
     FName SelectedClass;
+    FString PendingCharacterName;
 };

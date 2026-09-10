@@ -224,6 +224,64 @@ chaveados pela identidade da conta (e-mail no local, conta EOS na plataforma).
 > desenvolvimento). Quem valida identidade de verdade é o EOS/EAS — a conta local existe para o slice rodar
 > offline. Registrado no backlog como `MIG-010`.
 
+## 5d. Cara de jogo: paleta, nome do personagem e o véu
+
+### O nome do personagem
+
+A tela de criação passou a pedir o **nome do Runner** (no passo da classe, junto do botão de criar). A regra é
+pura e testada (`URunnerSession::ValidateCharacterName`, caso a caso em `Runner.Sessao.RegrasDeConta`):
+
+| Regra | Mensagem |
+|---|---|
+| obrigatório | *De um nome ao seu Runner.* |
+| 3 a 16 caracteres | *O nome do Runner precisa de pelo menos 3 caracteres.* (idem máximo) |
+| letras, números, espaço, `_` ou `-` | *No nome do Runner use letras, numeros, espaco, _ ou -.* |
+| único dentro da conta | *Ja existe um Runner chamado 'Volt' nesta conta.* |
+
+O nome viaja junto: fica na ficha (`FRunnerCharacterProfile::CharacterName`) e é ele que aparece na lista de
+Runners (`FRunnerSavedCharacter::GetDisplayName()`), com *chassi · classe* só como reserva para personagens
+gravados antes do campo existir.
+
+### A paleta
+
+`Source/PloidrekRPG/Public/UI/RunnerPalette.h` traduz o documento canônico `Docs/SteampunkPalette.md` para código:
+latão `#c9a227`, âmbar `#ffb040`, ferro `#3a3a42`, aço `#2a2a30`, silhueta `#1a1a2e`, rebites `#d8c890`,
+vapor `#c8c0a8`, forja `#c86a30`. **Nenhum hexadecimal solto no widget** — quem quiser uma cor nova, primeiro
+ela existe na paleta de arte.
+
+O que mudou na tela: painel de aço escuro com contorno de latão (caixa arredondada, sem precisar de textura),
+cabeçalho com a marca + o passo atual e um filete de metal, botão principal âmbar com texto escuro, secundário
+em ferro, terceiro em cobre, campos escuros que acendem no foco, e respiro entre os elementos.
+
+### O véu
+
+`URunnerVeilWidget` é um efeito de **interface** em C++/Slate — não é material nem asset: o gradiente radial é
+gerado em memória (`UTexture2D::CreateTransient`, queda `(1-d)^2.2`) e pintado no `NativePaint`.
+
+| O que | Como |
+|---|---|
+| circulam pela tela | fios de neblina vapor em curvas de Lissajous com fases no ângulo áureo |
+| rondam os botões | cada botão/campo do passo vira um alvo; o fio orbita com raio **maior** que o retângulo, então a neblina **passa por cima** do botão e não lê como fundo |
+| seguem o mouse | a bola de dispersão: halo largo + neblina cheia + calor de forja no centro, sempre no cursor |
+
+O véu é o **último filho do canvas**, e é isso que faz ele desenhar por cima do painel. Ele é
+`HitTestInvisible`, então **não rouba clique** de nenhum botão.
+
+**Ajustar sem recompilar** — *Project Settings > Game > Runner > **Veu***:
+
+| Campo | Para que |
+|---|---|
+| `bVeuLigado` | liga/desliga |
+| `IntensidadeDoVeu` | 0 quase invisível · 1 como desenhado · 1.5 carregado |
+| `RaioDaBolaDoMouse` | tamanho da bola que segue o cursor (padrão 300 px) |
+| `VelocidadeDoVeu` | velocidade da circulação |
+
+Em execução: console **`Runner.Veil 0`** desliga na hora (e `1` liga).
+
+> **Como conferir sem o jogo:** `python3 Tools/preview/veil_preview.py Saved/Preview_Veu.png` desenha a mesma
+> composição (mesmos números, mesmo gradiente) num PNG. Foi assim que a bola do mouse saiu de discreta para
+> cheia: a primeira calibragem lia como névoa, não como bola.
+
 ## 6. Roadmap por rodadas
 
 | Rodada | Entrega | Verificação |
@@ -235,7 +293,9 @@ chaveados pela identidade da conta (e-mail no local, conta EOS na plataforma).
 | **5** ✅ | **feito:** locomoção do corpo (idle/andar/correr/ar) + teste que spawna o personagem num mundo real | **5 suítes verdes**, incluindo `Runner.Corpo.MalhaEAnimacao` |
 | **7** ✅ | **feito:** **login EOS migrado do canônico** (Auth Interface, Dev Auth + conta Epic, reserva local) e **janela pós-login** novo/existente com até 8 Runners por conta | **7 suítes verdes** — a nova `Runner.Sessao.VariosPersonagens` cria 2 Runners na mesma conta, lista, seleciona cada um e confere o isolamento entre contas |
 | **8 (atual)** | **teste de Play do autor** com o EOS de DEV — a única coisa que a automação não alcança (§6c) | play mostra o menu, o login EOS responde, a janela lista os Runners e o corpo anda/corre/pula |
-| **9** | **acabamento visual** do menu (WBP/Style Set) e migração dos widgets do canônico (saída A) | menu com a cara do jogo |
+| **10** ✅ | **feito:** nome do personagem (regra + ficha + lista), paleta canônica no código (`RunnerPalette.h`), menu com cara de jogo e o **véu** que circula pela tela, ronda os botões e se abre em bola no mouse | **9 suítes verdes**; véu calibrável em *Project Settings > Game > Runner > Veu* e desligável com `Runner.Veil 0` |
+| **11 (atual)** | **teste de Play do autor** com o formulário novo e o véu | play mostra o menu em latão/âmbar, o campo de nome do Runner e a bola do véu seguindo o mouse |
+| **12** | migração dos widgets do canônico (saída A) e, se o autor quiser, WBP por cima do C++ | menu com arte própria |
 
 ## 6b. Como o fluxo roda hoje (passo a passo)
 
@@ -254,7 +314,8 @@ chaveados pela identidade da conta (e-mail no local, conta EOS na plataforma).
    └── conta SEM personagens → "Criar novo Runner" → segue para o passo 4
 3b. Escolher o chassi  (10 opções + os Clyffen aparecem como extintos e são recusados)
 4. Escolher a classe  (6 opções)
-5. "Criar personagem"                          [URunnerSession::CreateCharacterProfile]
+5. Dar o NOME do Runner e criar                [ValidateCharacterName -> CreateCharacterProfile]
+   └ regra: 3 a 16 caracteres, letras/numeros/espaco/_/-, unico na conta
    └ grava a ficha na conta e troca de GameMode:
      OpenLevel(NewMap, "?game=/Script/PloidrekRPG.AFGameMode")
 6. AFGameMode::HandleStartingNewPlayer

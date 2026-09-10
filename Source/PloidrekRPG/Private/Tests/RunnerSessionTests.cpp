@@ -47,6 +47,13 @@ bool FRunnerSessionFlowTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("aceita chassi valido"), Sessao->SelectChassis(FName(TEXT("Vitaspark")), Erro));
     TestFalse(TEXT("recusa classe inexistente"), Sessao->SelectClass(FName(TEXT("Nenhuma")), Erro));
     TestTrue(TEXT("aceita classe valida"), Sessao->SelectClass(FName(TEXT("Blaster")), Erro));
+
+    // O nome do personagem e obrigatorio e tem regra propria (ver Runner.Sessao.RegrasDeConta).
+    {
+        FRunnerCharacterProfile SemNome;
+        TestFalse(TEXT("sem nome nao cria a ficha"), Sessao->CreateCharacterProfile(SemNome, Erro));
+    }
+    Sessao->SetPendingCharacterName(TEXT("Volt"));
     TestTrue(TEXT("selecao completa"), Sessao->IsSelectionComplete());
 
     // Ficha: Vitaspark e esguio -> FOR 7, DES 10, CON 9; CA 10; HP = 3*8 + mod(CON 9) = 23.
@@ -106,19 +113,27 @@ bool FRunnerMultiCharacterTest::RunTest(const FString& Parameters)
     // Primeiro Runner
     TestTrue(TEXT("chassi do Runner 1"), Sessao->SelectChassis(FName(TEXT("Vitaspark")), Erro));
     TestTrue(TEXT("classe do Runner 1"), Sessao->SelectClass(FName(TEXT("Blaster")), Erro));
+    Sessao->SetPendingCharacterName(TEXT("Volt"));
     FRunnerCharacterProfile Perfil1;
     TestTrue(TEXT("cria o Runner 1"), Sessao->CreateCharacterProfile(Perfil1, Erro));
+    TestEqual(TEXT("o nome vai para a ficha"), Perfil1.CharacterName, FString(TEXT("Volt")));
 
     // Segundo Runner, na mesma conta
     TestTrue(TEXT("chassi do Runner 2"), Sessao->SelectChassis(FName(TEXT("Forgekin")), Erro));
     TestTrue(TEXT("classe do Runner 2"), Sessao->SelectClass(FName(TEXT("Breaker")), Erro));
+    Sessao->SetPendingCharacterName(TEXT("Brasa"));
     FRunnerCharacterProfile Perfil2;
     TestTrue(TEXT("cria o Runner 2"), Sessao->CreateCharacterProfile(Perfil2, Erro));
+
+    // O nome e unico dentro da conta.
+    Sessao->SetPendingCharacterName(TEXT("Volt"));
+    TestFalse(TEXT("recusa nome repetido na conta"), Sessao->CreateCharacterProfile(Perfil2, Erro));
 
     const TArray<FRunnerSavedCharacter> Meus = Sessao->GetSavedCharacters();
     TestEqual(TEXT("a conta tem 2 personagens"), Meus.Num(), 2);
     if (Meus.Num() == 2)
     {
+        TestEqual(TEXT("o nome aparece na lista"), Meus[0].GetDisplayName(), FString(TEXT("Volt")));
         TestEqual(TEXT("chassi do primeiro"), Meus[0].ChassisId.ToString(), FString(TEXT("Vitaspark")));
         TestEqual(TEXT("classe do primeiro"), Meus[0].ClassId.ToString(), FString(TEXT("Blaster")));
         TestEqual(TEXT("chassi do segundo"), Meus[1].ChassisId.ToString(), FString(TEXT("Forgekin")));

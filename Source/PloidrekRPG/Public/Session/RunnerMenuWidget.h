@@ -88,6 +88,12 @@ protected:
     UPROPERTY() TObjectPtr<UEditableTextBox> PasswordBox;
     UPROPERTY() TObjectPtr<UEditableTextBox> UserNameBox;
     UPROPERTY() TObjectPtr<UEditableTextBox> ConfirmBox;
+
+    /** Nome do personagem (so no passo de escolher a classe, onde a ficha e criada). */
+    UPROPERTY() TObjectPtr<UEditableTextBox> NameBox;
+
+    /** O veu de vapor que circula pela tela e acompanha o mouse. */
+    UPROPERTY() TObjectPtr<class URunnerVeilWidget> Veil;
     UPROPERTY() TObjectPtr<UButton> TertiaryButton;
     UPROPERTY() TArray<TObjectPtr<URunnerOptionButton>> OptionBindings;
 
