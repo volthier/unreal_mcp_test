@@ -161,6 +161,32 @@ menu agora mostra como rótulo, em vez de "conta/senha"):
 > O tool **precisa ficar rodando** enquanto o jogo faz o login. Se ele estiver fechado, o `EOS_Auth_Login`
 > falha e o motivo aparece no próprio status do menu e no `LogOnline`.
 
+### 5b.1 Se o tool **não abrir** no macOS (aconteceu aqui)
+
+São **três** sintomas encadeados, todos do macOS — nada a ver com o EOS:
+
+| O que aparece | Por que |
+|---|---|
+| `"EOS_DevAuthTool" Not Opened — Apple cannot verify that "EOS_DevAuthTool" is free of malware` (com *Move to Trash*) | o app foi **baixado** e ficou com o atributo de **quarentena**. A assinatura é legítima (`codesign --verify` = *valid on disk*, Developer ID da Epic) — o Gatekeeper é que barra |
+| Abre e mostra `A JavaScript error occurred in the main process / Error: ENOENT: no such file or directory` | o macOS rodou o app **translocado**, de `/private/var/folders/.../AppTranslocation/...` (caminho aleatório e somente-leitura). O app procura os próprios arquivos no caminho original e não acha |
+| `"EOS_DevAuthTool" would like to access files in your Documents folder` | o app está dentro de `~/Documents`, que é pasta protegida. **Clique OK** (uma vez) |
+
+**Conserto (uma vez):**
+
+```sh
+# 1. tirar a quarentena (o translocado e o bloqueio do Gatekeeper acabam juntos)
+xattr -dr com.apple.quarantine "/caminho/SDK/Tools/EOS_DevAuthTool.app"
+
+# 2. abrir pelo caminho real
+open "/caminho/SDK/Tools/EOS_DevAuthTool.app"
+
+# 3. conferir que NAO esta mais translocado (o caminho tem que ser o real)
+pgrep -fl EOS_DevAuthTool
+```
+
+Se o `xattr` responder `Operation not permitted`: quem está rodando o comando não tem permissão de escrita fora do
+projeto — rode você mesmo no Terminal, ou autorize o modo amplo.
+
 ## 6. Roadmap por rodadas
 
 | Rodada | Entrega | Verificação |
