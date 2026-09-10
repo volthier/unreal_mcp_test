@@ -32,6 +32,16 @@ public:
      */
     UPROPERTY(config, EditAnywhere, Category = "EOS") FString EOSDevAuthHost;
 
+    // --- Vitrine 3D do menu (o corpo que aparece girando enquanto voce escolhe) ---
+    /** Giro do corpo na vitrine, em graus por segundo (0 deixa parado de frente). */
+    UPROPERTY(config, EditAnywhere, Category = "Vitrine") float GiroDaVitrine = 16.f;
+
+    /** Distancia da camera da vitrine ao corpo, em centimetros (maior = corpo menor no monitor). */
+    UPROPERTY(config, EditAnywhere, Category = "Vitrine") float DistanciaDaVitrine = 280.f;
+
+    /** Campo de visao da camera da vitrine (maior = mais corpo no quadro). */
+    UPROPERTY(config, EditAnywhere, Category = "Vitrine") float CampoDeVisaoDaVitrine = 45.f;
+
     // --- Veu da interface (a neblina que circula pela tela e segue o mouse) ---
     /** Liga/desliga o veu. Tambem da para desligar em execucao com o console: Runner.Veil 0 */
     UPROPERTY(config, EditAnywhere, Category = "Veu") bool bVeuLigado = true;

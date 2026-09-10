@@ -983,6 +983,17 @@ UWidget* URunnerMenuWidget::CriarBlocoDaVitrine()
             FActorSpawnParameters Parametros;
             Parametros.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
             Vitrine = Mundo->SpawnActor<ARunnerPreviewActor>(ARunnerPreviewActor::StaticClass(), FTransform::Identity, Parametros);
+
+            // Enquadramento vem do Project Settings (nada fixo no codigo).
+            if (Vitrine)
+            {
+                if (const URunnerGameSettings* AjustesDaVitrine = GetDefault<URunnerGameSettings>())
+                {
+                    Vitrine->GrausPorSegundo = AjustesDaVitrine->GiroDaVitrine;
+                    Vitrine->DistanciaDaCamera = AjustesDaVitrine->DistanciaDaVitrine;
+                    Vitrine->CampoDeVisao = AjustesDaVitrine->CampoDeVisaoDaVitrine;
+                }
+            }
         }
     }
 

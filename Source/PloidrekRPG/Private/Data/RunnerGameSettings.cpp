@@ -14,4 +14,9 @@ URunnerGameSettings::URunnerGameSettings()
 
     // Porta escolhida no Epic Dev Auth Tool do DEV.
     EOSDevAuthHost = TEXT("localhost:8081");
+
+    // Enquadramento da vitrine: ajustavel sem recompilar depois de ver o corpo no monitor.
+    GiroDaVitrine = 16.f;
+    DistanciaDaVitrine = 280.f;
+    CampoDeVisaoDaVitrine = 45.f;
 }
