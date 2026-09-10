@@ -2,6 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Engine/AssetManager.h"
+
 #include "Data/RunnerCharacterFactory.h"
 #include "Data/RunnerCharacterProfile.h"
 #include "Data/RunnerRules.h"
@@ -181,6 +183,27 @@ bool FRunnerIconTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("tank e escudo"), RunnerIcons::GlifoDoPapel(ERunnerRole::Tank) == ERunnerIconGlyph::Escudo);
     TestTrue(TEXT("suporte e mais"), RunnerIcons::GlifoDoPapel(ERunnerRole::Support) == ERunnerIconGlyph::Mais);
     TestTrue(TEXT("dps e cruz"), RunnerIcons::GlifoDoPapel(ERunnerRole::DPS) == ERunnerIconGlyph::Cruz);
+    return true;
+}
+
+
+/**
+ * O plugin Game Features cobra uma regra de Asset Manager para GameFeatureData ao abrir o editor
+ * ("Asset Manager settings do not include an entry for assets of type GameFeatureData"). Sem ela o
+ * log abre com erro em LoadErrors, mesmo sem o projeto usar game features.
+ *
+ * Este teste consulta EXATAMENTE a mesma condicao que o plugin verifica (a regra padrao do tipo),
+ * entao ele quebra se alguem remover a entrada de Config/DefaultGame.ini.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerAssetManagerRuleTest, "Runner.Config.RegraDeGameFeatureData",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerAssetManagerRuleTest::RunTest(const FString& Parameters)
+{
+    const FPrimaryAssetId IdDoTipo(FPrimaryAssetType(TEXT("GameFeatureData")), NAME_None);
+    const FPrimaryAssetRules Regras = UAssetManager::Get().GetPrimaryAssetRules(IdDoTipo);
+
+    TestFalse(TEXT("o Config declara a regra de GameFeatureData (Config/DefaultGame.ini)"), Regras.IsDefault());
     return true;
 }
 
