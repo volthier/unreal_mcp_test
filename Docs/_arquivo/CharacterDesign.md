@@ -1,5 +1,9 @@
 # VoltStriker Character Design
 
+> ⚠️ **Decisão aberta nº 1 do `Docs/PloidrekRPG_GDD_v3.md`:** o VoltStriker é **um chassi Runner com nome próprio**, um
+> N.E.R.V. específico, ou apenas um **asset de protótipo**? Isso define se o mesh/skeleton atual é reaproveitado como um
+> dos 10 chassis (e sob qual nome) ou arquivado.
+
 **Codename:** VoltStriker  
 **Theme:** Electric Plasma Combat Robot  
 **Height:** 1.55 m  

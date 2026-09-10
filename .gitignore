@@ -30,3 +30,18 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
+
+# Python (ComfyUI MCP tooling)
+__pycache__/
+*.pyc
+
+# AI-generated outputs (regenerable via ComfyUI MCP)
+Art/generated/
+\n# Estudo / referência e derivados de obra de terceiros — ficam FORA do histórico\n# (ver Docs/BACKLOG_Tecnico.md, itens IP-004 e IP-005). Os arquivos continuam no disco.\nArt/Megaman.obj\nArt/Megaman.stl\nArt/reference/*.fbx\nArt/*.zip\n
+
+# Estudo / referencia e derivados de obra de terceiros - ficam FORA do historico
+# (ver Docs/BACKLOG_Tecnico.md, itens IP-004 e IP-005). Os arquivos continuam no disco.
+Art/Megaman.obj
+Art/Megaman.stl
+Art/reference/*.fbx
+Art/*.zip
