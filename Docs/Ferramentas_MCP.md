@@ -117,7 +117,31 @@ aplicar o patch já reconecta sem reiniciar nada.
 para o executável. E é ele que quebra em `run_workflow` (`ComfyCliError`): para gerar imagem o caminho direto pela
 **API HTTP do ComfyUI** (`Tools/comfy/*.py`) continua sendo o mais confiável.
 
-**Blender** — arquitetura em **duas partes**: um addon *dentro* do Blender (`BLENDERMCP`, escutando na 9876) e um
+**Blender / porta 9876** — é o **socket entre as duas partes**: o addon dentro do Blender **escuta** em
+`127.0.0.1:9876` e o servidor MCP (spawnado pelo DSH) mantém uma **conexão estabelecida** com ele. Estado
+conferido nas duas pontas:
+
+```text
+Blender   (addon)         127.0.0.1:9876 (LISTEN)
+python3.1 (servidor MCP)  127.0.0.1:62330 -> 127.0.0.1:9876 (ESTABLISHED)
+```
+
+**A porta está fixada no registro, de propósito:**
+
+```yaml
+env:
+  BLENDER_HOST: 127.0.0.1
+  BLENDER_PORT: '9876'
+```
+
+Motivo: o servidor tem `DEFAULT_HOST = "localhost"` e, no macOS, `localhost` pode resolver para **IPv6 (`::1`)**
+enquanto o addon escuta em **IPv4 (`127.0.0.1`)** — uma falha silenciosa esperando acontecer. Fixando `127.0.0.1`, o
+cabo é IPv4 nas duas pontas (confirmado no `lsof`).
+
+Onde a porta pode divergir: o addon guarda `bpy.types.Scene.blendermcp_port` (**default 9876**, editável no painel N,
+que mostra *"Connected on port X"*). **Se mudar no painel, mude aqui também.**
+
+**Blender** (continuação) — arquitetura em **duas partes**: um addon *dentro* do Blender (`BLENDERMCP`, escutando na 9876) e um
 servidor MCP em stdio que faz a ponte. Consequências: (1) o addon **só roda com o Blender em modo gráfico** — em
 `blender -b` ele mesmo recusa ("cannot start server in background mode"); (2) o autor precisa clicar em
 **"Connect to Claude"** no painel N do Blender; (3) servidor e addon têm **versões casadas** — o addon instalado
