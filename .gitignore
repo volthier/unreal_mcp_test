@@ -62,5 +62,5 @@ Content/**/*.png
 Captures/
 *.log
 
-# Binarios de plataforma do plugin MCP (4 plataformas, ~285 MB no repo)
-Plugins/UnrealMCP/Source/ThirdParty/UnrealMcpBridge/*/unreal-mcp-bridge*
+# (o plugin de terceiros UnrealMCP foi REMOVIDO do projeto: a MCP oficial da engine 5.8
+#  e a que roda. Ver Docs/AssetPipeline3D.md)

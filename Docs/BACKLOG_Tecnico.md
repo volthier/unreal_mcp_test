@@ -90,7 +90,8 @@
 | `ORG-002` | **Binários versionados no git sem LFS** — medido: **295 MB de `.git`**, 649 arquivos versionados, e **282 MB só de binários pré-compilados do plugin** (`unreal-mcp-bridge` de 69–75 MB em 4 plataformas) | 🔴 | Ver **`ORG-010`** — estrategia de versionamento definida e aplicada |
 | `ORG-010` | **Estratégia de controle de versão para projeto com binários** (decisão) | 🔴 | Regra escrita: o que entra no git (texto, código, dado, **finais aprovados**) e o que não entra (**gerado**, intermediário, fonte DCC pesada). LFS ligado; binários de plugin fora do histórico |
 | `ORG-011` | **`.uasset`/`.umap` são binários e não fazem merge** — dois editores no mesmo asset corrompem | 🔴 | Regra de **lock**: só humano edita asset pelo editor; agente só toca texto, código e dado |
-| `ORG-012` | 282 MB de binários de plugin já estão **no histórico** (imutável) | 🟠 | Removidos com `git filter-repo` **agora** (1 dev, 4 commits = barato) — depois fica caro |
+| `ORG-012` | Binários de plugin **no histórico** (imutável) — **288 MB** medidos no commit anterior | 🟠 | Aguardando decisão (reescrita de histórico adiada pelo autor). O envio futuro **já parou**: o plugin foi arquivado |
+| `ORG-013` | ✅ **Plugin de terceiros `UnrealMCP` REMOVIDO do projeto** — 605 MB apagados do disco e **288 MB fora do versionamento**. Estava desabilitado, sem referência em `Config/` e o `.mcp.json` nunca apontou para ele; a MCP da engine 5.8 é a que roda | ✅ | Feito; `.uproject` limpo, `.gitignore` ajustado e `AssetPipeline3D.md` atualizado |
 | `ORG-003` | 8 variantes de `SKM_*` e 5 skeletons — versioning fora de controle | 🟠 | **1 skeleton canônico** por categoria + 1 mesh final + LODs; o resto arquivado |
 | `ORG-004` | Fontes `.fbx` dentro de `Content/` | 🟡 | Movidos para `Art/` |
 | `ORG-005` | Duplicatas de GDD em `Docs/` e `Art/` (v1 e v2, idênticas) | 🟡 | ✅ **resolvido:** movidas para `Docs/_arquivo/` e `Art/_arquivo/`; `Art/` só contém arte |

@@ -33,7 +33,7 @@
 ### Unreal — MCP da engine (plugin embutido Epic)
 - Plugin `ModelContextProtocol` (Experimental) habilitado no `.uproject`.
 - Porta **8000**, path **`/mcp`**, `bAutoStartServer=True` (config em `Config/DefaultEditorPerProjectUserSettings.ini` + `Saved/Config/MacEditor/EditorPerProjectUserSettings.ini`).
-- Observação: o plugin não-autorico `Plugins/UnrealMCP` (IvanMurzak, stdio/cloud porta 8080) está presente mas **sem configurar** — opcional, sem conflito com a porta 8000.
+- Observação: o plugin de terceiros `UnrealMCP` (IvanMurzak) foi **removido do projeto** — estava desabilitado no `.uproject`, não era citado em nenhum `Config/` e o `.mcp.json` nunca apontou para ele. A engine **5.8 já traz a MCP oficial** (`ModelContextProtocol` + `MCPClientToolset` + Toolsets), que é a que roda na porta **8000**. Se algum dia for preciso, é plugin público: baixar de novo e habilitar no `.uproject`.
 
 ### Blender — MCP
 - Addon **Blender MCP v1.2** em `~/Library/Application Support/Blender/5.2/scripts/addons/addon.py`.
