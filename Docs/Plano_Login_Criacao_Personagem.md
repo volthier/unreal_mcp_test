@@ -94,8 +94,47 @@ DefaultArtifactName=Ploidrek
 > ⚠️ **Segredo não versionado.** O canônico traz o **`ClientSecret`** junto com os identificadores. Ele ficou
 > **deliberadamente de fora** deste arquivo: é credencial de servidor, não pode ir para o cliente nem para o Git.
 > Os **identificadores** (ClientId, ProductId, SandboxId, DeploymentId, EncryptionKey) são públicos por natureza e vieram.
-> O Dev Auth **não precisa** do secret; se algum dia precisar (troca de código / EOS Connect), ele entra em
-> `Config/UserEngine.ini` (fora do versionamento).
+> O Dev Auth **não precisa** do secret: o tool autentica com a **sua conta Epic**, não com credencial de cliente.
+> Se algum dia o fluxo exigir o secret (troca de código / EOS Connect), ele entra em `Config/UserEngine.ini`
+> (fora do versionamento).
+
+## 5b. Dev Auth Tool no **macOS** (o login de desenvolvedor)
+
+O tool **vem dentro do pacote do SDK**, na pasta `Tools/` — e o pacote traz o build de **macOS** junto com o de Windows:
+
+```
+SDK/Tools/EOS_DevAuthTool.app                     <- macOS (x86_64; roda sob Rosetta 2)
+SDK/Tools/EOS_DevAuthTool-darwin-x64-1.2.1.zip    <- o mesmo app, empacotado
+SDK/Tools/EOS_DevAuthTool-win32-x64-1.2.1.zip     <- Windows
+```
+
+> **O SDK não precisa ser instalado à parte.** O engine **5.8 já embarca o SDK 1.19.1.2** — exatamente a versão do
+> pacote baixado — em `Engine/Binaries/ThirdParty/EOSSDK/Mac/libEOSSDK-Mac-Shipping.dylib` (conferido no
+> `eos_version.h` do engine: 1.19.1.2). Do pacote baixado, o que se usa é **só o Dev Auth Tool**.
+
+**Passo a passo**
+
+1. Abrir o tool (Finder, ou pelo terminal):
+   ```sh
+   open "/Users/volthier/Documents/Freevoltz/EOS-SDK-IOS-53289219-Release-v1.19.1.2/SDK/Tools/EOS_DevAuthTool.app"
+   ```
+2. Escolher uma **porta TCP** para o tool ouvir os pedidos de login (ex.: `6547`).
+3. Entrar com a **conta Epic Games de desenvolvedor** (e-mail, senha e MFA) — dentro do tool.
+4. Dar um **nome** à credencial (ex.: `dev-volt`). **Uma credencial por conta Epic**: para testar
+   multiplayer local são necessárias duas contas Epic.
+5. No menu do jogo, no passo de entrada: **campo 1** = `localhost:6547` · **campo 2** = `dev-volt`.
+
+**Por que esses dois campos?** É o que a doc oficial define para o tipo `EOS_LCT_Developer` (e é o que o
+menu agora mostra como rótulo, em vez de "conta/senha"):
+
+| Campo do menu | `EOS_Auth_Credentials` | Valor |
+|---|---|---|
+| campo 1 | `Id` | `localhost:<porta>` — host e porta onde o tool está ouvindo |
+| campo 2 | `Token` | o **nome** dado à credencial no tool |
+| (botão) | `Type` | `developer` |
+
+> O tool **precisa ficar rodando** enquanto o jogo faz o login. Se ele estiver fechado, o `EOS_Auth_Login`
+> falha e o motivo aparece no próprio status do menu e no `LogOnline`.
 
 ## 6. Roadmap por rodadas
 
@@ -150,7 +189,7 @@ lista e seleciona cada um) · vínculos entre assets
 package path correto).
 
 **O que deve aparecer ao dar Play em `NewMap`:** o menu com o título *"PLOIDREKRPG — entrar"*, campo de conta,
-campo de credencial e os botões **Entrar (EOS — Dev Auth)** / **Entrar com a conta Epic (EOS)** / **Criar conta nova (local)**.
+campo de credencial e os botões **Entrar com o EOS (Dev Auth Tool)** / **Entrar com a conta Epic (EOS)** / **Criar conta nova (local)**.
 Depois do login, a janela **"escolha seu Runner"** — a lista dos personagens da conta, ou o convite a criar o primeiro. No log:
 
 ```

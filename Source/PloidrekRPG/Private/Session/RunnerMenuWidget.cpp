@@ -117,15 +117,29 @@ void URunnerMenuWidget::RebuildLayout()
     }
     RootBox->AddChild(Title);
 
+    // Com EOS ativo, os dois campos sao os do Dev Auth Tool: campo 1 = host:porta onde o tool
+    // esta ouvindo, campo 2 = o NOME da credencial criada nele (nao e senha). Sem EOS, sao a
+    // conta e a senha locais.
+    const bool bCamposDoDevAuth = CurrentStep == ERunnerMenuStep::Login && Session && Session->IsEOSAvailable();
+
     if (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount)
     {
+        if (bCamposDoDevAuth)
+        {
+            UTextBlock* AjudaEOS = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+            AjudaEOS->SetColorAndOpacity(FSlateColor(TextColor));
+            AjudaEOS->SetAutoWrapText(true);
+            AjudaEOS->SetText(FText::FromString(TEXT("Dev Auth Tool: campo 1 = host:porta do tool (ex.: localhost:6547); campo 2 = o nome que voce deu a credencial. O tool precisa estar rodando.")));
+            RootBox->AddChild(AjudaEOS);
+        }
+
         AccountBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        AccountBox->SetHintText(FText::FromString(TEXT("conta")));
+        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:6547") : TEXT("conta")));
         RootBox->AddChild(AccountBox);
 
         PasswordBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        PasswordBox->SetHintText(FText::FromString(TEXT("senha")));
-        PasswordBox->SetIsPassword(true);
+        PasswordBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("nome da credencial") : TEXT("senha")));
+        PasswordBox->SetIsPassword(!bCamposDoDevAuth);
         RootBox->AddChild(PasswordBox);
     }
 
@@ -194,7 +208,7 @@ void URunnerMenuWidget::RebuildLayout()
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
-            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar (EOS — Dev Auth: conta + credencial)") : TEXT("Entrar (local)")));
+            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar com o EOS (Dev Auth Tool)") : TEXT("Entrar (local)")));
             break;
         case ERunnerMenuStep::CreateAccount:     PrimaryText->SetText(FText::FromString(TEXT("Criar conta"))); break;
         case ERunnerMenuStep::CharacterSelect:   PrimaryText->SetText(FText::FromString(TEXT("Criar novo Runner"))); break;
