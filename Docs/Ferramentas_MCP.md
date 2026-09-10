@@ -95,6 +95,39 @@ continuam em `Tools/unreal/*.py`, rodando por commandlet. A alternativa melhor p
 (porta 30010, que também está de pé), que executa Python **dentro do editor aberto** — mais rápido e sem a cegueira de
 World Partition do commandlet.
 
+## 3.5 **Os três MCPs registrados nativamente** (10/09)
+
+| Servidor | Transporte | O que alcança | Ferramentas nativas |
+|---|---|---|---|
+| **unreal** | `streamable-http` → `http://127.0.0.1:8000/mcp` | o **editor UE aberto** (plugin oficial `ModelContextProtocol` do UE 5.8) | `mcp__unreal__list_toolsets` · `describe_toolset` · `call_tool` (→ 17 toolsets) |
+| **comfy** | `stdio` → `~/.venvs/comfy-mcp/bin/comfy-mcp` | o **ComfyUI** local (porta 8188) | `mcp__comfy__*` (`server_info`, `generate_image`, `search_models`…) |
+| **blender** | `stdio` → `~/.venvs/blender-mcp/bin/blender-mcp` | o **Blender aberto**, via addon escutando em `127.0.0.1:9876` | `mcp__blender__*` (`get_object_info`, `get_scene_info`, `disable_telemetry`…) |
+
+Tudo declarado no perfil do DSH (`~/.dsh/profiles/web/cordis.patch.yml`), com `failOnStartupError: false` em
+todos: **nenhum dos três pode derrubar o perfil quando estiver desligado**. O perfil tem `patchReload: live`, então
+aplicar o patch já reconecta sem reiniciar nada.
+
+### Pegadinhas de cada um (todas encontradas na prática)
+
+**Unreal** — o servidor expõe só 3 ferramentas de entrada e quer o nome **qualificado** (`Toolset.Tool`, com
+`toolset_name` separado de `tool_name`); o `CaptureViewport` **exige** `annotations` explícito; a imagem volta
+**dentro do JSON de texto** (`returnValue.image.data` em base64), não como bloco de imagem do MCP.
+
+**ComfyUI** — o `comfy-mcp` embrulha o **CLI `comfy`** por baixo, então o env precisa de `COMFY_BIN` apontando
+para o executável. E é ele que quebra em `run_workflow` (`ComfyCliError`): para gerar imagem o caminho direto pela
+**API HTTP do ComfyUI** (`Tools/comfy/*.py`) continua sendo o mais confiável.
+
+**Blender** — arquitetura em **duas partes**: um addon *dentro* do Blender (`BLENDERMCP`, escutando na 9876) e um
+servidor MCP em stdio que faz a ponte. Consequências: (1) o addon **só roda com o Blender em modo gráfico** — em
+`blender -b` ele mesmo recusa ("cannot start server in background mode"); (2) o autor precisa clicar em
+**"Connect to Claude"** no painel N do Blender; (3) servidor e addon têm **versões casadas** — o addon instalado
+estava mais velho que o servidor, e o conserto é o comando que o próprio servidor sugere:
+`~/.venvs/blender-mcp/bin/blender-mcp install-addon`, e depois desabilitar/habilitar o addon ou reiniciar o Blender.
+
+> **Ainda é script:** o toolset do editor do Unreal **não** importa asset nem cria ator — essas operações continuam
+> em `Tools/unreal/*.py` por commandlet. O caminho melhor para elas é o **Remote Control API (porta 30010)**, que
+> executa Python **dentro do editor aberto**.
+
 ## 4. Recomendação
 
 1. **Unreal**: habilitar o **Unreal MCP** oficial (uma entrada de plugin no `.uproject` + reiniciar o editor) e,
