@@ -54,6 +54,47 @@ operador de UI que não roda em background).
 | precisa de permissão fora do workspace | só HTTP local |
 | eu julgo por relatório de texto | **eu poderia tirar screenshot e julgar com os olhos** |
 
+## 3.4 **Feito:** o Unreal MCP está registrado nativamente (10/09)
+
+O MCP do editor está **de pé e ligado ao harness**, então o agente chama o editor com as ferramentas nativas
+`mcp__unreal__list_toolsets` · `mcp__unreal__describe_toolset` · `mcp__unreal__call_tool` — **sem cliente
+intermediário**. Provas: `POST /mcp → 200` (protocolo 2025-06-18), 17 toolsets, e uma captura de viewport tirada
+e conferida pelo próprio agente.
+
+**Como ficou registrado:** no perfil do DSH, em `~/.dsh/profiles/web/cordis.patch.yml` (o `web` era o único perfil e
+não tinha MCP nenhum; o plugin é o `dsh-mcp-client`):
+
+```yaml
+- insert:
+    - id: mcp-unreal
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        transport: streamable-http
+        serverName: unreal
+        url: 'http://127.0.0.1:8000/mcp'
+        headers: {}
+        toolCallTimeoutMs: 120000
+        failOnStartupError: false      # o editor não está sempre ligado
+        reconnect: { enabled: true, initialDelayMs: 2000, maxDelayMs: 30000, maxAttempts: 10 }
+```
+
+O perfil tem `patchReload: live`, então **não precisou reiniciar nada**: o DSH recarregou o patch, abriu conexão
+com o editor (visível no `lsof -iTCP:8000`) e as ferramentas apareceram na sessão.
+
+> **Nota de transparência:** antes disso eu havia escrito um cliente Python próprio
+> (`Tools/unreal/mcp_unreal.py`) porque presumi que não alcançava o MCP pelo harness. Era **desnecessário** — o
+> certo era registrar o servidor. O arquivo foi removido.
+
+**Pegadinhas do formato, para quem for mexer** (todas resolvidas no caminho): o servidor expõe só 3 ferramentas de
+entrada e quer o nome **qualificado** (`Toolset.Tool`, com `toolset_name` separado do `tool_name`); o
+`CaptureViewport` **exige** o parâmetro `annotations` explícito; e a imagem volta **dentro do JSON de texto**
+(`returnValue.image.data` em base64), não como bloco de imagem do MCP — para olhar, basta decodificar o base64.
+
+**O que ainda é script, e por quê:** o toolset do editor **não** tem importar asset nem criar ator. Essas operações
+continuam em `Tools/unreal/*.py`, rodando por commandlet. A alternativa melhor para elas é o **Remote Control API**
+(porta 30010, que também está de pé), que executa Python **dentro do editor aberto** — mais rápido e sem a cegueira de
+World Partition do commandlet.
+
 ## 4. Recomendação
 
 1. **Unreal**: habilitar o **Unreal MCP** oficial (uma entrada de plugin no `.uproject` + reiniciar o editor) e,
