@@ -385,7 +385,7 @@ Isso cria **duas identidades independentes no mesmo personagem**, as duas visív
 | **Blaster** | **na testa**, sob a viseira | é quem mira: o cristal é o olho (a lógica do X) |
 | **Breaker** | **no peito**, em casulo blindado | provocação: o tanque **mostra** o núcleo — "vem pegar" |
 | **Blade** | **no antebraço da arma** | duelista: o núcleo vive onde o golpe nasce |
-| **Support** | **na palma da mão aberta** | quem cura oferece a mão |
+| **Support** | **nas costas da mão** | quem cura oferece a mão — e o cristal fica na face que o mundo vê quando ele estende o braço |
 | **Engineer** | **na omoplata / doca dorsal** | é de onde os drones decolam |
 | **Sentinel** | **no braço do escudo** | o cristal é o emissor do campo que defende |
 
