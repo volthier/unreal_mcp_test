@@ -341,7 +341,51 @@ DataTable — é o que salva o leitor daltônico e o que dá leitura quando a co
 > depende do autor, porque mexe em `Data/DT_Chassis.csv` — que também alimenta a tinta do corpo no jogo e os
 > ícones. Aplicada a cor, eu reimporto o DataTable e regero a arte dos chassis na v003.
 
-## 9c. **Humanização e apresentação** (adendo do autor)
+## 9b.1 **O chassi é o cérebro-cristal — o corpo é da CLASSE** (correção do autor)
+
+**O que eu tinha errado:** tratei o chassi como **corpo** (Stocky/Slender/Fragile/Unstable viraram tipo de corpo de
+um robô humanoide). O autor corrigiu: **o chassi é igual para todos** — ele é um **pequeno cérebro de cristal com
+uma aura**, *"como aquela suntuosa formação que fica ao redor do gelo, um vento visível, gelado, glowing"*.
+
+| | O que é | O que define |
+|---|---|---|
+| **Chassi** (10) | **cérebro-cristal + aura** — a mesma forma física para todo Runner | o **núcleo**: cor e comportamento da aura (§9b), e a **habilidade** |
+| **Classe** (6) | **o corpo** que o Runner usa | a **anatomia** e a **apresentação** (as cinco de §9c) |
+
+**Consequência de leitura do modelo:** o fluxo é **chassi → classe**, e é por isso que ele funciona assim na tela:
+primeiro você escolhe **a luz** (o que o seu Runner *faz*), depois escolhe **o corpo** (quem o seu Runner *é*).
+Os dois eixos são independentes — 10 × 6 = as **60 combinações** que a suíte de automação já valida em
+`Runner.Fluxo.ChassiEClasse`.
+
+### O que isso muda na arte
+
+| Antes (errado) | Agora |
+|---|---|
+| arte do chassi = robô humanoide de 10 tipos | arte do chassi = **10 cérebros-cristal com 10 auras** (cor e forma do §9b) |
+| a `Body` do `DT_Chassis` virou tipo de corpo | a `Body` passa a descrever a **forma da aura**: `Slender` = fitas longas e finas; `Stocky` = casca densa e larga; `Fragile` = véu fino que tremula; `Unstable` = rompida, espetando e falhando |
+| a malha do chassi apontava para o manequim | a malha do manequim pertence à **classe**, não ao chassi |
+
+**Prompt do chassi (cérebro-cristal):**
+
+```text
+[STYLE ANCHOR]
+A RUNNER CHASSIS. It is NOT a robot, NOT a humanoid, NOT a body: it is a small crystal brain - a faceted
+self-lit crystal core about the size of two fists - floating inside a VISIBLE AURA that behaves like wind:
+a luminous formation like the ice-bloom that grows around frozen surfaces, a cold glowing wind circling the
+crystal. AURA COLOUR: <cor do núcleo do chassi, §9b>. AURA FORM: <form da aura pela Body do DataTable>.
+No arms, no legs, no head, no face. Plain background, the crystal on a plinth, the aura in motion.
+```
+
+## 9c. **Humanização e apresentação** (adendo do autor) — **isto é da CLASSE**
+
+> ⚠️ **Correção de escopo:** a apresentação (Masculine / Feminine / MaleFem / Femasc / Androgynous) **não pertence
+> ao chassi** — o chassi é a mesma coisa para todo mundo. **É a classe que define o corpo**, e é aí que a
+> apresentação entra. A tabela de forma e rosto abaixo continua valendo; o que muda é **onde ela é aplicada**.
+
+**Referência de estilo do corpo do jogador (autor):** `Art/reference/TronRoll3.jpg` e as amostras de
+`Art/Classes/` — gente com **rosto, expressão, cabelo e anatomia crível**, desenhada com calor. *"Se ficar muito
+mecânico como os da imagem gerada, não presta para ser os players."* Ou seja: o estilo robótico e sem rosto está
+**proibido** para corpo de jogador — ele é a linguagem dos **Apagados** (§9d).
 
 **O que o autor apontou:** os chassis gerados estão **robotizados demais** — sem corpo humano, sem rosto, sem
 gênero. Num mundo de avanço tecnológico, a expectativa é o contrário: são **pessoas** com hardware, e o elenco
@@ -423,6 +467,11 @@ Ou seja: o que estava **errado como personagem jogável** (oco, sem rosto, mecâ
 
 > **Convenção de nome** (segue o `AI_Pipeline/README.md`): `creature_apagado_<nome>_vNNN`. A arte já gerada está em
 > `Art/generated/apagados/` (`apagado_<chassi>_v001.png` e `_v002.png`, 20 arquivos), reaproveitada como conceito.
+
+> **Confirmado pelo autor:** a folha v002 (a leva de chassis robóticos, homogênea e sem rosto) **pode ser os
+> Apagados corrompidos iniciais** — justamente porque são **muito parecidos entre si** e **nada humanoides**. A
+> homogeneidade que reprovava o conjunto como elenco de heróis **aprova** ele como horda: cascas iguais, sem rosto,
+> vindas do mesmo lugar.
 
 > **A cor de identidade vale aqui também:** o Apagado mantém a cor do chassi de origem (§9b), porque é isso que faz
 > o jogador entender que aquele inimigo **era** um chassi — e a inversão (luz falhando em vez de luz firme) é a única
