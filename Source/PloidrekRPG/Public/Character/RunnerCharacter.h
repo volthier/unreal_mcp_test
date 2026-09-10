@@ -6,6 +6,7 @@
 #include "Interfaces/CombatInterface.h"
 #include "GameplayEffectTypes.h"
 #include "Net/UnrealNetwork.h"
+#include "Data/RunnerCharacterProfile.h"
 #include "RunnerCharacter.generated.h"
 
 class UAbilitySystemComponent;
@@ -44,6 +45,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void AddStartupAbilities();
+
+	/** Aplica a ficha escolhida na criacao: corpo (malha) + cor de destaque do chassi. */
+	UFUNCTION(BlueprintCallable, Category = "Runner|Criacao")
+	void ApplyProfile(const FRunnerCharacterProfile& Profile);
+
+	/** Ficha ativa deste personagem (chassi + classe + numeros derivados). */
+	UPROPERTY(BlueprintReadOnly, Category = "Runner|Criacao")
+	FRunnerCharacterProfile CharacterProfile;
+
+	/** Cor de destaque do chassi — placeholder visual ate existir arte propria. */
+	UPROPERTY(BlueprintReadOnly, Category = "Runner|Criacao")
+	FLinearColor AccentColor = FLinearColor::White;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	AWeaponBase* GetEquippedWeapon() const { return EquippedWeapon; }

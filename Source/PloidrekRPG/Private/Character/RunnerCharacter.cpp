@@ -14,6 +14,8 @@
 #include "InputCoreTypes.h"
 #include "Components/CapsuleComponent.h"
 #include "Character/RunnerAnimInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/SkeletalMesh.h"
 #include "Ability/GA_BasicShot.h"
 #include "Ability/GA_ChargeShot.h"
 #include "Ability/GA_DashShot.h"
@@ -436,4 +438,44 @@ void ARunnerCharacter::SetWeaponChargeVisual_Implementation(float NormalizedChar
 USkeletalMeshComponent* ARunnerCharacter::GetCombatMesh_Implementation() const
 {
 	return GetMesh();
+}
+
+void ARunnerCharacter::ApplyProfile(const FRunnerCharacterProfile& Profile)
+{
+	CharacterProfile = Profile;
+	AccentColor = Profile.AccentColor;
+
+	// Corpo: enquanto nao existe arte propria, o chassi aponta para o manequim da engine
+	// (Manny/Quinn), que ja traz esqueleto, physics asset e Control Rigs.
+	if (USkeletalMesh* Body = Profile.BodyMesh.LoadSynchronous())
+	{
+		GetMesh()->SetSkeletalMesh(Body);
+		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
+		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+		GetMesh()->SetRelativeScale3D(FVector(1.f));
+
+		// Tinta de placeholder. Os materiais do manequim nao expoem parametro de cor, entao
+		// isto so aparece quando existir material de overlay proprio (tarefa registrada).
+		if (UMaterialInterface* BaseMaterial = GetMesh()->GetMaterial(0))
+		{
+			if (UMaterialInstanceDynamic* Dynamic = UMaterialInstanceDynamic::Create(BaseMaterial, this))
+			{
+				Dynamic->SetVectorParameterValue(TEXT("Color"), Profile.AccentColor);
+				Dynamic->SetVectorParameterValue(TEXT("BaseColor"), Profile.AccentColor);
+				GetMesh()->SetMaterial(0, Dynamic);
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("ApplyProfile: chassi '%s' sem malha apontada na DataTable — o personagem fica sem corpo."),
+			*Profile.ChassisId.ToString());
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("ApplyProfile: conta=%s chassi=%s classe=%s HP=%d CA=%d corpo=%s"),
+		*Profile.AccountName, *Profile.ChassisId.ToString(), *Profile.ClassId.ToString(),
+		Profile.MaxHitPoints, Profile.ArmorClass,
+		Profile.BodyMesh.IsNull() ? TEXT("nenhum") : *Profile.BodyMesh.ToString());
 }
