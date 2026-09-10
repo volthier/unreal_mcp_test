@@ -37,7 +37,6 @@ __pycache__/
 
 # AI-generated outputs (regenerable via ComfyUI MCP)
 Art/generated/
-\n# Estudo / referência e derivados de obra de terceiros — ficam FORA do histórico\n# (ver Docs/BACKLOG_Tecnico.md, itens IP-004 e IP-005). Os arquivos continuam no disco.\nArt/Megaman.obj\nArt/Megaman.stl\nArt/reference/*.fbx\nArt/*.zip\n
 
 # ---------------------------------------------------------------------------
 # Pesados, gerados ou inseguros para o GitHub

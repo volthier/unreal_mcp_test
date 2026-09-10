@@ -87,7 +87,10 @@
 | ID | Issue | Sev | DoD |
 |---|---|---|---|
 | `ORG-001` | `Content/` organizado **por IP** e não por tipo | 🟠 | Árvore alvo do `Docs/OrganizationAnalysis.md` §3 aplicada com fix-up de redirectors |
-| `ORG-002` | Binários versionados no git sem LFS (`.blend`, `.fbx`, PNG 4K) | 🟠 | git-lfs (ou decisão explícita de não versionar fonte DCC) |
+| `ORG-002` | **Binários versionados no git sem LFS** — medido: **295 MB de `.git`**, 649 arquivos versionados, e **282 MB só de binários pré-compilados do plugin** (`unreal-mcp-bridge` de 69–75 MB em 4 plataformas) | 🔴 | Ver **`ORG-010`** — estrategia de versionamento definida e aplicada |
+| `ORG-010` | **Estratégia de controle de versão para projeto com binários** (decisão) | 🔴 | Regra escrita: o que entra no git (texto, código, dado, **finais aprovados**) e o que não entra (**gerado**, intermediário, fonte DCC pesada). LFS ligado; binários de plugin fora do histórico |
+| `ORG-011` | **`.uasset`/`.umap` são binários e não fazem merge** — dois editores no mesmo asset corrompem | 🔴 | Regra de **lock**: só humano edita asset pelo editor; agente só toca texto, código e dado |
+| `ORG-012` | 282 MB de binários de plugin já estão **no histórico** (imutável) | 🟠 | Removidos com `git filter-repo` **agora** (1 dev, 4 commits = barato) — depois fica caro |
 | `ORG-003` | 8 variantes de `SKM_*` e 5 skeletons — versioning fora de controle | 🟠 | **1 skeleton canônico** por categoria + 1 mesh final + LODs; o resto arquivado |
 | `ORG-004` | Fontes `.fbx` dentro de `Content/` | 🟡 | Movidos para `Art/` |
 | `ORG-005` | Duplicatas de GDD em `Docs/` e `Art/` (v1 e v2, idênticas) | 🟡 | ✅ **resolvido:** movidas para `Docs/_arquivo/` e `Art/_arquivo/`; `Art/` só contém arte |
