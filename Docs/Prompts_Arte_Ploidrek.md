@@ -330,6 +330,41 @@ símbolo de gênero"). Cada categoria tem assinatura de corpo e de rosto:
 `FRunnerChassisData`; a malha por chassi passa a ser Manny ou Quinn conforme a tabela acima, o que dá distinção
 real em campo **hoje**, com asset da própria engine.
 
+## 9d. **Os Apagados** — a família corrompida (para onde foi a arte "robótica")
+
+**A decisão do autor:** os chassis gerados antes do adendo de humanização (robotizados, sem rosto) **não são
+desperdício — são os Apagados**. E isso cai exatamente no canônico: o GDD §2.6 diz que os Apagados são *"os
+tomados pela névoa — o que sobra deles continua lá dentro, e às vezes sai"*.
+
+Ou seja: o que estava **errado como personagem jogável** (oco, sem rosto, mecânico, sem gente dentro) é
+**exatamente certo** como inimigo. A cara de casca vazia deixou de ser defeito e virou a regra da família.
+
+### Regras visuais dos Apagados
+
+| Regra | Como aparece |
+|---|---|
+| **Casca oca** | as placas têm brechas que mostram **interior vazio** — cabos soltos, nada dentro. Não é corpo ferido: é corpo que **não está mais lá** |
+| **Sem rosto** | placa facial lisa ou viseira **morta/preta**; às vezes **um** optivo piscando (nunca os dois) |
+| **Luz errada** | o núcleo de identidade continua na cor daquele chassi, mas **falhando**: piscando, meio apagado, vazando pelas fissuras. É o que faz o jogador reconhecer *"isso já foi um Vitaspark"* |
+| **Ferrugem e remendo** | oxidação e **peças trocadas entre chassi** — braço de Charger no torso de uma Vox. Eles são feitos de sobras, e isso conta a história sem texto |
+| **Véu nas juntas** | névoa saindo das fissuras (liga a família ao Faden, o Véu do GDD §2.7) |
+| **Silhueta quebrada** | proporção humana **quebrada**: um braço grande demais, cabeça torta, perna arrastada. A leitura é "humano, mas não" |
+
+### Onde eles entram na taxonomia (GDD §7.2)
+
+| Categoria | Uso | Origem na arte atual |
+|---|---|---|
+| **Minion** (enxame) | hordas e corredores: 1 ataque simples, 0 reação | unidades pequenas, no porte do Droneframe |
+| **Regular** | patrulhas e setores | as cascas de tamanho humano (a maior parte do que já está gerado) |
+| **Elite** | guardas e eventos: 1 reação | uma casca crescida, com membros extras e dois núcleos falhando |
+
+> **Convenção de nome** (segue o `AI_Pipeline/README.md`): `creature_apagado_<nome>_vNNN`. A arte já gerada está em
+> `Art/generated/apagados/` (`apagado_<chassi>_v001.png` e `_v002.png`, 20 arquivos), reaproveitada como conceito.
+
+> **A cor de identidade vale aqui também:** o Apagado mantém a cor do chassi de origem (§9b), porque é isso que faz
+> o jogador entender que aquele inimigo **era** um chassi — e a inversão (luz falhando em vez de luz firme) é a única
+> diferença entre o herói e a casca. Se as cores forem aprovadas, valem para as duas famílias.
+
 ## 10. Gramática visual (o que se aprende com o mood board — e o que NÃO se copia)
 
 O mood board interno é `Art/reference/`: folhas de personagem de robô assinadas por artistas
