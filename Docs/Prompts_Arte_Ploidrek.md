@@ -507,6 +507,34 @@ Ou seja: o que estava **errado como personagem jogável** (oco, sem rosto, mecâ
 > o jogador entender que aquele inimigo **era** um chassi — e a inversão (luz falhando em vez de luz firme) é a única
 > diferença entre o herói e a casca. Se as cores forem aprovadas, valem para as duas famílias.
 
+## 9e. **Img2img com as referências** — a receita que funciona (medida, não achada)
+
+Descrever estilo em palavras não cola. O caminho que funciona é **usar as referências do projeto como base** e
+deixar o modelo reinterpretar. Ferramenta: `Tools/comfy/img2img_style.py` (local, sem nuvem, sem custo).
+
+**Como ela funciona:** lê o grafo que o ComfyUI executou (`Tools/comfy/workflows/z_image_turbo_base.json`, salvo do
+histórico dele — não inventei nó nenhum), troca o latent vazio por `LoadImage` + `VAEEncode`, sobe a referência para
+o ComfyUI, enfileira, espera e baixa o resultado. Parâmetro principal: **`--denoise`**.
+
+### O que os três testes ensinaram
+
+| Teste | Referência | Denoise | Resultado |
+|---|---|---|---|
+| 1 | `Art/Classes/sample_tank.jpg` (robô sem rosto) | 0,60 | **estilo veio, mas veio o robô também** — cor e "natureza" da referência dominam, paleta azul/branca inclusive |
+| 2 | recorte do TronRoll3 **sem a cabeça** | 0,72 | paleta do prompt assumiu (latão) e o **cristal apareceu no peito** ✔ — mas **sem rosto**, porque o recorte não tinha cabeça |
+| 3 | recorte **com a cabeça** | 0,70 | ✅ **o alvo:** homem com rosto, olhos e cabelo, masculino por proporção, latão e cobre da paleta, cristal âmbar no peito, silhueta de tanque |
+
+**Três regras que ficam:**
+
+1. **Denoise 0,68–0,72 é a faixa útil** para corpo de classe: abaixo disso a referência manda (e se ela é robô, sai
+   robô); acima, o prompt manda e o estilo se perde. **0,70 é o ponto.**
+2. **O recorte precisa conter a cabeça.** Sem cabeça não há rosto — e sem rosto não existe corpo de jogador (§9c).
+3. **O prompt manda na paleta a partir de 0,70.** Foi assim que a referência azul/branca virou latão/cobre com
+   âmbar no peito — que é a paleta do projeto.
+
+**Cuidado observado:** aos 0,70 o modelo ainda **arrasta props da referência** (no teste 3 apareceu um hidrante do
+desenho vizinho). Solução: recortar mais apertado e acrescentar `no props, no background objects` ao pedido.
+
 ## 10. Gramática visual (o que se aprende com o mood board — e o que NÃO se copia)
 
 O mood board interno é `Art/reference/`: folhas de personagem de robô assinadas por artistas

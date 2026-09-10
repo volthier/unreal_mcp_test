@@ -1,0 +1,7 @@
+STYLE ANCHOR - industrial-forge steampunk crossed with action sci-fi. Keep the EXACT art style of the reference image: warm painted game character art, clean silhouette, readable face. Palette: polished brass #c9a227, brushed brass #a8842c, copper #b87333, forged iron #3a3a42, dark steel #2a2a30, amber glass #ffb040, steam #c8c0a8, cold cyan #40e0ff accents. No text, no watermark. ORIGINAL design - no existing franchise likeness.
+
+PLAYER CHARACTER BODY for the class BREAKER: a front-line tank, heavy tower shield and massive gauntlets, area taunt emitter on the shoulders, reactive barrier plates. HUMANISED: a human man with a strong jaw and visible eyes, short hair, believable anatomy, the armour worn OVER a living body, hands with fingers, synthetic skin at the neck. PRESENTATION: MASCULINE - shoulders clearly wider than the hips, V-shaped torso, thick neck; the presentation comes from silhouette and proportion, never from costume.
+
+THE CHASSIS CRYSTAL: a faceted glowing crystal core set in an armoured housing in the CENTRE OF THE CHEST, with a visible aura of light around it (the crystal of the Runner, worn in the body of this class).
+
+Full body, standing, plain light background, character concept sheet style.
