@@ -19,6 +19,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Menu")
 	TSubclassOf<URunnerMenuWidget> MenuWidgetClass;
 
+	/**
+	 * Tag do ator de camera que o menu usa como ponto de vista.
+	 * O canonico tinha um mapa proprio para o login (MainMenuMap) com a cena atras da UI; a camera vive
+	 * nesse mapa e o menu apenas aponta para ela. Sem tag, cai na primeira ACameraActor do nivel.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Menu")
+	FName MenuCameraTag = TEXT("MenuCamera");
+
 protected:
 	virtual void BeginPlay() override;
+
+	/** Aponta o jogador para a camera do mapa do menu. Devolve false se o mapa nao tiver camera. */
+	bool AplicarCameraDoMapa(APlayerController* PlayerController);
 };

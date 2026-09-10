@@ -4,20 +4,40 @@
 
 #include "Engine/World.h"
 #include "GameFramework/WorldSettings.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Character/MenuGameMode.h"
 
 /**
- * O elo de entrada: o mapa do jogo precisa apontar para o GameMode do MENU,
- * senao o jogador cai direto no mundo sem passar pelo login.
- * Este teste le o WorldSettings do mapa de verdade.
+ * O elo de entrada: o mapa que o JOGO abre precisa apontar para o GameMode do MENU, senao o jogador cai
+ * direto no mundo sem passar pelo login.
+ *
+ * O mapa NAO e escrito aqui na mao: o teste le o GameDefaultMap da config, para nao passar por acidente
+ * quando o mapa de entrada muda (foi o caso quando o projeto passou a ter um mapa de login proprio, como
+ * no canonico, em vez de abrir o NewMap).
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerMapEntryTest, "Runner.Entrada.MapaApontaParaOMenu",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FRunnerMapEntryTest::RunTest(const FString& Parameters)
 {
-    UWorld* Mapa = LoadObject<UWorld>(nullptr, TEXT("/Game/NewMap.NewMap"));
-    if (!TestNotNull(TEXT("mapa NewMap carregou"), Mapa))
+    FString CaminhoConfigurado;
+    const bool bAchou = GConfig && GConfig->GetString(TEXT("/Script/Engine.Settings"), TEXT("GameDefaultMap"),
+                                                     CaminhoConfigurado, GEngineIni);
+    if (!TestTrue(TEXT("a config define GameDefaultMap"), bAchou && !CaminhoConfigurado.IsEmpty()))
+    {
+        return false;
+    }
+
+    // GameDefaultMap vem como /Game/Maps/MainMenuMap.MainMenuMap
+    FString CaminhoObjeto = CaminhoConfigurado;
+    if (!CaminhoObjeto.Contains(TEXT(".")))
+    {
+        const FString Nome = FPaths::GetBaseFilename(CaminhoObjeto);
+        CaminhoObjeto = CaminhoObjeto + TEXT(".") + Nome;
+    }
+
+    UWorld* Mapa = LoadObject<UWorld>(nullptr, *CaminhoObjeto);
+    if (!TestNotNull(*FString::Printf(TEXT("mapa de entrada carregou (%s)"), *CaminhoObjeto), Mapa))
     {
         return false;
     }
