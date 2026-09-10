@@ -6,7 +6,26 @@
 > divergem hoje (o pawn em C++ é terceira pessoa de controle direto, o que contradiz o modelo descrito abaixo).
 
 **Fonte da intenção (palavras do autor):** *"o jogo é 3D, clica para andar que nem LoL e ataque também, mas com a
-jogabilidade de Megaman e regras de DnD"*.
+jogabilidade de Megaman e regras de DnD"*. Sobre a locomoção: *"é click de mouse para andar e tem pulo"*.
+
+### O canônico já dizia isso (e melhor)
+
+O playbook do projeto canônico (`/Users/Shared/ASHES/git/UNREAL/PloidrekRPG/Docs/ENGINEERING_PLAYBOOK_UNREAL.md`)
+tem a seção **5 — "Combate LoL + leitura Albion + 'feel' MegaMan (top-down 3D)"**, que é literalmente o modelo
+descrito aqui:
+
+| O que o canônico manda | Seção |
+|---|---|
+| **top-down 3D** (câmera alta, legibilidade de MMO isométrico) | §5 (título) |
+| **Enhanced Input device-agnostic**: `IA_Move`, `IA_Aim`, `IA_PrimaryAttack`, `IA_Ability_Q/W/E/R`, **`IA_Dash`**, **`IA_Jump`**, `IA_Interact`, `IA_Cancel`, `IA_Zoom` | §4.1 |
+| **Targeting Mode universal**: press → telegraph (cone/círculo/linha) → atualizar alvo → confirmar → cancelar | §5.1 |
+| **Cursor no mundo** no KBM; aim-cursor/direção+alcance no controle; drag no touch | §5.1 |
+| **MUST NOT** depender de mouse-only targeting | §5.1 |
+| **Dash/jump com cooldown/custo e regras claras**; sem verticalidade caótica | §5.2 |
+| **GAS obrigatório** para QWER, cooldown, custo, status | §6.1 |
+
+O nosso scaffold em C++ já está alinhado nesses dois últimos (GAS + Enhanced Input no `Build.cs`): é o
+reaproveitamento que o GDD §15.1 já previa.
 
 **Estado da arte (verificado):**
 
@@ -34,9 +53,10 @@ jogabilidade de Megaman e regras de DnD"*.
 > Ou seja: **o código atual não é o jogo descrito** — ele é um scaffold que veio do renome do VoltStriker (o próprio
 > GDD §15.1 já registra que a malha era teste de pipeline e o scaffold GAS é reaproveitável).
 
-## 2. Câmera — decisão 1
+## 2. Câmera — **DECIDIDO: fixo alta (top-down 3D)**
 
-**Proposta (não canônica até você confirmar):** câmera **de ângulo fixo** sobre o Runner, não perseguição colada.
+**Decisão do autor (fechada):** câmera **fixa alta** — nada de perseguição colada no ombro. É o que o canônico
+chama de **top-down 3D** (§5) e o que dá leitura de combate estilo MMO isométrico.
 
 | Parâmetro | Valor proposto | Por quê |
 |---|---|---|
@@ -49,22 +69,29 @@ jogabilidade de Megaman e regras de DnD"*.
 capacete, tinta do chassi) — detalhe fino de superfície quase não aparece. Isso muda a prioridade dos assets: primeiro
 **silhueta legível em ângulo alto**, depois textura.
 
-## 3. Andar e atacar por clique — decisão 2
+## 3. Andar e atacar por clique — **DECIDIDO** (com lock de alvo)
 
 | Ação | Entrada | Comportamento |
 |---|---|---|
 | Andar | clique (e segurar) no chão | `MoveToLocation` em NavMesh; alvo marcado no chão |
 | Andar no ar / verticalidade | Space (pulo), Space+parede (wall jump), Shift (dash) | **é aqui que mora o feel de Mega Man**: pulo e dash continuam sendo controle direto, mesmo com o resto no clique |
-| Ataque básico | clique sobre o inimigo | disparo/ação básica da classe; sem mira manual — o alvo é o que está sob o cursor |
-| Habilidades | teclas 1 a 4 | algumas miram **no ponto** (clique no chão), outras no **alvo** (clique no inimigo) |
-| Cancelar | Esc | cancela a habilidade armada |
+| Ataque básico | clique sobre o inimigo | disparo/ação básica da classe |
+| **Seleção de alvo / lock** | clique no inimigo (ou Tab para ciclar) | o alvo fica **fixado**: habilidades e ataque vão nele mesmo que o cursor se mova — é o que resolve o mesmo problema no controle e no touch |
+| Habilidades | teclas **Q/W/E/R** (canônico §4.1) | entram em **Targeting Mode** com telegraph (cone/círculo/linha), confirmam no clique e cancelam com Esc |
+| Cancelar | Esc | aborta o targeting e volta |
+
+**Conciliar clique × controle (exigência do canônico):** o KBM usa **cursor no mundo + clique**; controle e touch usam
+**aim-cursor / direção+alcance**, como manda o §5.1. O canônico é explícito: *"MUST NOT: depender de mouse-only
+targeting"* — então o **lock/seleção de alvo** não é só conforto, é o que faz a mesma mecânica existir nos três
+inputs. Barra de habilidades: `IA_PrimaryAttack` (clique) + `IA_Ability_Q/W/E/R` + `IA_Dash` + `IA_Jump` + `IA_Cancel`.
 
 **Regra de ouro proposta:** *andar é clique, agir é clique, mas a **mobilidade de precisão é tecla*** — é o que permite
 ter MOBA na locomoção e Mega Man no movimento.
 
-## 4. Janela de rodada × tempo real — decisão 3 (a mais delicada)
+## 4. Janela de rodada × tempo real — **DECIDIDO: nunca pausa**
 
-Aqui os dois referenciais brigam: LoL é contínuo, D&D é por turnos. **Proposta:**
+**Decisão do autor (fechada):** o combate **nunca pausa** — a mecânica em tempo real é justamente o que a base de
+D&D sustenta bem aqui. Ou seja, o referencial é LoL/Albion (contínuo), com as **regras** de 5e por dentro.
 
 - o combate corre **em tempo real**, mas o tempo é **fatiado em janelas de 6 s** com **tick de 0,5 s** (as regras do
   GDD §6.1 já são escritas assim): cada criatura tem, por janela, **1 Ação de Ataque, 1 Movimento, 1 Reação**;
@@ -98,9 +125,15 @@ Sensação não se escreve com adjetivo. Traduzido em números para o código co
 | HUD: nenhum | barra de habilidades (1-4), indicador de orçamento da janela, retículo/marcador de alvo |
 | sem noção de janela | `RunnerCombatWindow` (6 s / 0,5 s) alimentando o HUD e a IA |
 
-## 7. Decisões abertas (eu preciso de você)
+## 7. Decisões fechadas (autor, nesta ordem) e o que ainda falta calibrar
 
-1. **Câmera**: concorda com o ângulo fixo alto (50-55°, 10-14 m) ou quer perseguição colada (o que está no código)?
-2. **Tolerância a tempo real**: as habilidades entram por **tecla** com mira por clique (proposta) ou tudo por clique?
-3. **Mobilidade de precisão**: pulo/dash no **teclado** (proposta, para o feel de Mega Man) ou também por clique?
-4. **Pausa**: combate **nunca pausa** (proposta, é o modelo de ação) ou abre micro-pausa na escolha de habilidade?
+| # | Decisão | Valor |
+|---|---|---|
+| 1 | **Câmera** | **fixa alta** (top-down 3D, alinhado ao canônico §5) |
+| 2 | **Mira** | **lock/seleção de alvo** — clique no inimigo ou Tab para ciclar; KBM com cursor, controle/touch com aim-cursor (§5.1) |
+| 3 | **Pulo e dash** | **teclado** (`IA_Jump`/`IA_Dash` do canônico §4.1), com cooldown/custo (§5.2) |
+| 4 | **Pausa** | **nunca pausa** — tempo real com regras de 5e dentro |
+
+**O que ainda falta calibrar** (números, não conceito) — todos ajustáveis na implementação, sem reabrir decisão:
+inclinação e distância exatas da câmera, alcance do lock, tempos do §5 (pulo, dash, hitstop, telegraph) e quantos
+alvos o Tab cicla (proposto: os inimigos dentro do quadro, vizinhos primeiro).
