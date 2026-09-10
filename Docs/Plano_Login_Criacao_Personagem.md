@@ -143,11 +143,11 @@ SDK/Tools/EOS_DevAuthTool-win32-x64-1.2.1.zip     <- Windows
    ```sh
    open "/Users/volthier/Documents/Freevoltz/EOS-SDK-IOS-53289219-Release-v1.19.1.2/SDK/Tools/EOS_DevAuthTool.app"
    ```
-2. Escolher uma **porta TCP** para o tool ouvir os pedidos de login (ex.: `6547`).
+2. Escolher uma **porta TCP** para o tool ouvir os pedidos de login (no nosso DEV: **`8081`**).
 3. Entrar com a **conta Epic Games de desenvolvedor** (e-mail, senha e MFA) — dentro do tool.
 4. Dar um **nome** à credencial (ex.: `dev-volt`). **Uma credencial por conta Epic**: para testar
    multiplayer local são necessárias duas contas Epic.
-5. No menu do jogo, no passo de entrada: **campo 1** = `localhost:6547` · **campo 2** = `dev-volt`.
+5. No menu do jogo, no passo de entrada: **campo 1** = `localhost:8081` · **campo 2** = `dev-volt`.
 
 **Por que esses dois campos?** É o que a doc oficial define para o tipo `EOS_LCT_Developer` (e é o que o
 menu agora mostra como rótulo, em vez de "conta/senha"):
@@ -160,6 +160,9 @@ menu agora mostra como rótulo, em vez de "conta/senha"):
 
 > O tool **precisa ficar rodando** enquanto o jogo faz o login. Se ele estiver fechado, o `EOS_Auth_Login`
 > falha e o motivo aparece no próprio status do menu e no `LogOnline`.
+
+**Estado do ambiente DEV (13/set, verificado):** host `localhost:8081` · credencial `dev-volt` · `lsof` confirma
+`TCP *:8081 (LISTEN)` e o endpoint responde. Ou seja: **do lado do tool está pronto**; falta só o Play.
 
 ### 5b.1 Se o tool **não abrir** no macOS (aconteceu aqui)
 
