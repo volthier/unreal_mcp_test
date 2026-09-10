@@ -232,6 +232,52 @@ quando o destino for virar malha.
 > (ex.: metal escuro + latão da paleta como matéria e neon ciano como energia) — é pré-requisito de qualquer
 > lote de arte.
 
+## 9b. **Núcleo de identidade** — a ideia do autor, testada antes de virar regra
+
+**A ideia (autor):** o núcleo que eu desenhei em âmbar fixo passa a ser **o indicador do chassi** — cada chassi
+com o núcleo na cor dele. Faz sentido: com câmera alta e distante, um **ponto emissivo colorido no peito** é o
+elemento mais legível do personagem, mais do que qualquer detalhe de placa. E ele já tem casa nos dados:
+`FRunnerChassisData::AccentColor`.
+
+**O teste (`Tools/art/core_color_test.py`):** desenhei o núcleo de cada chassi em 128, 56 e **24 px** (o tamanho
+em que ele aparece com a câmera do jogo). Resultado honesto: **as cores atuais não sustentam a ideia**.
+
+| Colisão encontrada | Quem |
+|---|---|
+| três vermelhos/laranjas no mesmo canto do círculo cromático | **Charger** `#d94026` (matiz 9), **Overcore** `#ff2626` (matiz 0) e **Forgekin** `#d98026` (matiz 30) — a 24 px, Charger e Overcore são o mesmo ponto |
+| quatro frios na mesma faixa | **Droneframe** `#33e6b2` (163), **Aetheric** `#33e6ff` (187), **Cryonix** `#99d9ff` (202) e **Techno** `#2673ff` (219) |
+| amarelo duplicado | **Vitaspark** `#ffd91a` (50) e **Clyffen** `#ffcc33` (45) — sem problema de jogo, porque o Clyffen é extinto e nunca é escolhido |
+
+**Proposta de correção** (preserva a intenção de cada chassi e abre os matizes, com um outlier de *valor* para
+o Overcore, que fica inconfundível por ser o único quase branco):
+
+| Chassi | Hoje | Proposto | Por quê |
+|---|---|---|---|
+| Charger | `#d94026` | **`#d94026`** (mantém) | vermelho de impacto |
+| Forgekin | `#d98026` | **`#ff7a00`** | vira o laranja de forja, longe o bastante do vermelho do Charger |
+| Vitaspark | `#ffd91a` | **`#ffd91a`** (mantém) | amarelo elétrico |
+| Droneframe | `#33e6b2` | **`#9ad94c`** | verde-espectral de reconhecimento, sai da família do ciano |
+| Aetheric | `#33e6ff` | **`#40ffc0`** | é literalmente o **Aether da paleta** (`#40ffc0`) — hoje o chassi do Éter usa ciano, que é cor de gelo |
+| Cryonix | `#99d9ff` | **`#5ec8ff`** | ciano de gelo, mais saturado para não confundir com o branco-azulado do Techno |
+| Techno | `#2673ff` | **`#2673ff`** (mantém) | azul de dado |
+| Ghostnet | `#994ce6` | **`#994ce6`** (mantém) | violeta fantasma |
+| Vox | `#ff4cb2` | **`#ff4cb2`** (mantém) | magenta de voz |
+| Overcore | `#ff2626` | **`#fff0c4`** | branco-incandescente: sobrecarregado é o único quase branco, então se lê por **valor**, não por matiz |
+
+**Segundo diferenciador (não depende de cor):** a **forma do núcleo pelo tipo de corpo**, que já existe no
+DataTable — é o que salva o leitor daltônico e o que dá leitura quando a cor some no fundo:
+
+| Tipo de corpo | Forma do núcleo |
+|---|---|
+| **Stocky** | hexágono largo, com aro de rebites |
+| **Slender** | fenda vertical fina, alta |
+| **Fragile** | pequeno disco redondo, com três respiros |
+| **Unstable** | rachado e assimétrico, com sangramento de luz nas fissuras |
+
+> **Status:** a forma por tipo de corpo já vale como regra de arte (não muda dado nenhum). A troca de **cor**
+> depende do autor, porque mexe em `Data/DT_Chassis.csv` — que também alimenta a tinta do corpo no jogo e os
+> ícones. Aplicada a cor, eu reimporto o DataTable e regero a arte dos chassis na v003.
+
 ## 10. Gramática visual (o que se aprende com o mood board — e o que NÃO se copia)
 
 O mood board interno é `Art/reference/`: folhas de personagem de robô assinadas por artistas
