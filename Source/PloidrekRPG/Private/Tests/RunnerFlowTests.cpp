@@ -116,4 +116,72 @@ bool FRunnerChassiClasseTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+#include "UI/RunnerIconFactory.h"
+#include "Engine/Texture2D.h"
+
+
+/**
+ * Os icones da criacao sao desenhados por codigo. O teste garante que o desenho realmente sai
+ * (nao e textura vazia nem transparente) e que cada tipo de corpo/papel cai no glifo certo.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerIconTest, "Runner.UI.Icones",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerIconTest::RunTest(const FString& Parameters)
+{
+    struct FCaso
+    {
+        ERunnerIconGlyph Glifo;
+        const TCHAR* Nome;
+    };
+
+    const FCaso Casos[] = {
+        { ERunnerIconGlyph::Triangulo, TEXT("triangulo") },
+        { ERunnerIconGlyph::Quadrado,  TEXT("quadrado") },
+        { ERunnerIconGlyph::Losango,   TEXT("losango") },
+        { ERunnerIconGlyph::Cruz,      TEXT("cruz") },
+        { ERunnerIconGlyph::Anel,      TEXT("anel") },
+        { ERunnerIconGlyph::Mais,      TEXT("mais") },
+        { ERunnerIconGlyph::Escudo,    TEXT("escudo") },
+    };
+
+    constexpr int32 Lado = 64;
+    for (const FCaso& Caso : Casos)
+    {
+        UTexture2D* Icone = RunnerIcons::CriarIcone(GetTransientPackage(), Caso.Glifo,
+                                                    FLinearColor(0.85f, 0.25f, 0.15f), Lado);
+        if (!TestNotNull(*FString::Printf(TEXT("icone %s criado"), Caso.Nome), Icone))
+        {
+            continue;
+        }
+
+        TestEqual(*FString::Printf(TEXT("lado do icone %s"), Caso.Nome), Icone->GetSizeX(), Lado);
+
+        // Conta os pixels que aparecem: a placa ocupa boa parte do icone.
+        int32 Visiveis = 0;
+        FTexture2DMipMap& Mip = Icone->GetPlatformData()->Mips[0];
+        const uint8* Dados = static_cast<const uint8*>(Mip.BulkData.Lock(LOCK_READ_ONLY));
+        for (int32 Pixel = 0; Pixel < Lado * Lado; ++Pixel)
+        {
+            if (Dados[Pixel * 4 + 3] > 8)
+            {
+                ++Visiveis;
+            }
+        }
+        Mip.BulkData.Unlock();
+
+        TestTrue(*FString::Printf(TEXT("o icone %s desenhou algo"), Caso.Nome), Visiveis > 400);
+    }
+
+    // Cada tipo de corpo e cada papel precisam cair no glifo que os representa.
+    TestTrue(TEXT("corpo esguio e triangulo"), RunnerIcons::GlifoDoCorpo(ERunnerBodyType::Slender) == ERunnerIconGlyph::Triangulo);
+    TestTrue(TEXT("corpo truncoso e quadrado"), RunnerIcons::GlifoDoCorpo(ERunnerBodyType::Stocky) == ERunnerIconGlyph::Quadrado);
+    TestTrue(TEXT("corpo fragil e losango"), RunnerIcons::GlifoDoCorpo(ERunnerBodyType::Fragile) == ERunnerIconGlyph::Losango);
+    TestTrue(TEXT("tank e escudo"), RunnerIcons::GlifoDoPapel(ERunnerRole::Tank) == ERunnerIconGlyph::Escudo);
+    TestTrue(TEXT("suporte e mais"), RunnerIcons::GlifoDoPapel(ERunnerRole::Support) == ERunnerIconGlyph::Mais);
+    TestTrue(TEXT("dps e cruz"), RunnerIcons::GlifoDoPapel(ERunnerRole::DPS) == ERunnerIconGlyph::Cruz);
+    return true;
+}
+
 #endif

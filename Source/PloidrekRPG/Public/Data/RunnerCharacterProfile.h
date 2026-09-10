@@ -26,6 +26,9 @@ struct PLOIDREKRPG_API FRunnerCharacterProfile
     /** Valores finais: base 8 + bonus do chassi (ja com o -1 do corpo). */
     UPROPERTY(BlueprintReadOnly, Category = "Atributos") TMap<ERunnerAttribute, int32> Attributes;
 
+    /** Nivel do personagem. Hoje sempre 1: a progressao por XP ainda nao existe (GDD v3 par. 3.3). */
+    UPROPERTY(BlueprintReadOnly, Category = "Ficha") int32 Level = 1;
+
     UPROPERTY(BlueprintReadOnly, Category = "Ficha") int32 MaxHitPoints = 0;
     UPROPERTY(BlueprintReadOnly, Category = "Ficha") int32 HitPointsPerLevel = 0;
     UPROPERTY(BlueprintReadOnly, Category = "Ficha") int32 ArmorClass = 0;

@@ -8,6 +8,7 @@
 class UButton;
 class UCanvasPanel;
 class UEditableTextBox;
+class UTexture2D;
 class UScrollBox;
 class UTextBlock;
 class UVerticalBox;
@@ -31,7 +32,10 @@ enum class ERunnerMenuStep : uint8
 UENUM()
 enum class ERunnerOptionAction : uint8
 {
+    /** Escolhe o item (chassi/classe na grade). */
     Jogar,
+    /** Marca um Runner da lista, sem entrar no jogo. */
+    Selecionar,
     Excluir
 };
 
@@ -42,6 +46,20 @@ enum class ERunnerConfirmAction : uint8
     Nada,
     CriarPersonagem,
     ExcluirPersonagem
+};
+
+/** Ligacao entre uma aba (CHASSI/CLASSE) e o passo que ela abre. */
+UCLASS()
+class PLOIDREKRPG_API URunnerTabButton : public UObject
+{
+    GENERATED_BODY()
+
+public:
+    UPROPERTY() TObjectPtr<URunnerMenuWidget> Owner;
+    UPROPERTY() ERunnerMenuStep Destino = ERunnerMenuStep::Chassis;
+
+    UFUNCTION()
+    void HandleClicked();
 };
 
 /** Ligacao entre um botao de opcao (sem parametros) e o id que ele representa. */
@@ -96,6 +114,14 @@ public:
     /** Abre a janela de confirmacao (criar personagem / apagar personagem). */
     void AbrirConfirmacao(ERunnerConfirmAction Acao, const FString& Mensagem, const FString& CharacterId);
 
+    /** Troca de aba na tela de criacao (chassi <-> classe). */
+    void TrocarAba(ERunnerMenuStep Aba);
+
+    /** Marca um Runner da lista como o escolhido (mostra na vitrine e nos detalhes). */
+    void SelecionarPersonagem(const FString& CharacterId, bool bEntrarNoJogo);
+
+    UFUNCTION() void OnQuartoClicked();
+
 protected:
     void RebuildLayout();
     void SetStatus(const FString& Message);
@@ -124,11 +150,43 @@ protected:
     /** Linha de atributo: nome a esquerda, valor e modificador a direita. */
     UWidget* CriarLinhaDeAtributo(ERunnerAttribute Atributo, int32 Bonus);
     /** Preenche a info com o chassi (e a classe, quando ja escolhida). */
-    void PreencherInfo(UVerticalBox* Caixa, FName ChassisId, FName ClassId);
+    void PreencherInfo(UVerticalBox* Caixa, FName ChassisId, FName ClassId, const FString& TituloDoRunner = FString());
     /** A vitrine mostra o corpo deste chassi. */
     void MostrarNaVitrine(FName ChassiId);
     /** Termina o ator da vitrine (ao sair do menu). */
     void DestruirVitrine();
+
+    // ---------- Telas ----------
+    /**
+     * Tela de criacao (abas chassi/classe): ficha a esquerda, vitrine no meio, detalhes a direita,
+     * abas, grade de icones e o nome do Runner embaixo.
+     */
+    void ConstruirTelaDeCriacao(TArray<UWidget*>& AlvosDoVeu);
+
+    /** Tela dos Runners que ja existem: lista a esquerda, vitrine no meio, detalhes a direita. */
+    void ConstruirTelaDeRunners(TArray<UWidget*>& AlvosDoVeu);
+
+    /** Coluna da esquerda: a ficha resumida (chassi, classe, atributos, HP/CA). */
+    UWidget* CriarColunaDaFicha();
+
+    /** Coluna da direita: o detalhe do que esta selecionado, com o icone. */
+    UWidget* CriarColunaDeDetalhes();
+
+    /** Quantas colunas a grade de icones tem. */
+    static constexpr int32 ColunasDaGrade = 4;
+
+    /** Abas CHASSI/CLASSE da tela de criacao. */
+    UWidget* CriarAbas();
+
+    /** Grade de icones da aba atual (4 colunas). */
+    UWidget* CriarGradeDeIcones(TArray<UWidget*>& AlvosDoVeu);
+
+    /** Icone (gerado por codigo) do chassi / da classe, com cache. */
+    UTexture2D* IconeDoChassi(FName ChassiId);
+    UTexture2D* IconeDaClasse(FName ClassId);
+
+    /** Refaz vitrine, ficha e detalhes com o que esta selecionado agora. */
+    void AtualizarSelecao();
 
     // ---------- Confirmacao ----------
     /** Executa o que a janela de confirmacao estava pedindo. */
@@ -173,7 +231,20 @@ protected:
     FString IdDaConfirmacao;
     ERunnerMenuStep PassoAntesDaConfirmacao = ERunnerMenuStep::Class;
     UPROPERTY() TObjectPtr<UButton> TertiaryButton;
+    UPROPERTY() TObjectPtr<UButton> QuartoButton;
+
+    /** Colunas que se refrescam sem refazer a tela (ficha e detalhes). */
+    UPROPERTY() TObjectPtr<class UVerticalBox> FichaBox;
+    UPROPERTY() TObjectPtr<class UVerticalBox> DetalhesBox;
+
+    /** Runner marcado na lista de existentes. */
+    FString IdPersonagemSelecionado;
+
+    /** Icones gerados (chave = id do chassi/classe). */
+    UPROPERTY(Transient) TMap<FName, TObjectPtr<UTexture2D>> IconesDeChassi;
+    UPROPERTY(Transient) TMap<FName, TObjectPtr<UTexture2D>> IconesDeClasse;
     UPROPERTY() TArray<TObjectPtr<URunnerOptionButton>> OptionBindings;
+    UPROPERTY() TArray<TObjectPtr<URunnerTabButton>> TabBindings;
 
     ERunnerMenuStep CurrentStep = ERunnerMenuStep::Login;
     FName PendingChassis;

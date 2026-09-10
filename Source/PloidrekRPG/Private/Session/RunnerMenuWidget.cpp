@@ -15,6 +15,8 @@
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 #include "Components/Spacer.h"
 #include "Components/Widget.h"
 #include "Data/RunnerChassisData.h"
@@ -28,6 +30,7 @@
 #include "UI/RunnerPreviewActor.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateTypes.h"
+#include "UI/RunnerIconFactory.h"
 #include "UI/RunnerPalette.h"
 #include "UI/RunnerVeilWidget.h"
 #include "Data/RunnerClassData.h"
@@ -149,6 +152,20 @@ namespace
         }
     }
 
+    /** Cor do icone da classe, por papel: cada papel tem a sua luz na paleta. */
+    FLinearColor CorDoPapel(const ERunnerRole Papel)
+    {
+        switch (Papel)
+        {
+            case ERunnerRole::Tank:    return RunnerPalette::LataoPolido();
+            case ERunnerRole::DPS:     return RunnerPalette::Brasa();
+            case ERunnerRole::Support: return RunnerPalette::Aether();
+            case ERunnerRole::Control: return RunnerPalette::Ciano();
+            case ERunnerRole::Hybrid:  return RunnerPalette::Cobre();
+            default:                   return RunnerPalette::TextoCorpo();
+        }
+    }
+
     /** Cada filho do VerticalBox com um respiro embaixo. */
     void Adicionar(UVerticalBox* Caixa, UWidget* Filho, const float EspacoAbaixo = 8.f)
     {
@@ -174,6 +191,13 @@ void URunnerOptionButton::HandleClicked()
     if (Action == ERunnerOptionAction::Excluir)
     {
         Owner->AbrirConfirmacao(ERunnerConfirmAction::ExcluirPersonagem, FString(), CharacterId);
+        return;
+    }
+
+    // Na lista de Runners, clicar MARCA o personagem (o jogador ve os detalhes antes de entrar).
+    if (Action == ERunnerOptionAction::Selecionar)
+    {
+        Owner->SelecionarPersonagem(CharacterId, false);
         return;
     }
 
@@ -203,6 +227,14 @@ URunnerSession* URunnerMenuWidget::GetSession() const
         }
     }
     return nullptr;
+}
+
+void URunnerTabButton::HandleClicked()
+{
+    if (Owner)
+    {
+        Owner->TrocarAba(Destino);
+    }
 }
 
 void URunnerMenuWidget::NativeOnInitialized()
@@ -314,51 +346,14 @@ void URunnerMenuWidget::RebuildLayout()
     Adicionar(RootBox, CriarTexto(WidgetTree, Passo, 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 10.f);
     Adicionar(RootBox, CriarFilete(WidgetTree, RunnerPalette::LataoEscovado(0.75f), 1.5f), 14.f);
 
-    // Vitrine 3D a esquerda, ficha do que esta selecionado a direita.
-    const bool bPassoDeEscolha = CurrentStep == ERunnerMenuStep::Chassis || CurrentStep == ERunnerMenuStep::Class
-                              || CurrentStep == ERunnerMenuStep::CharacterSelect;
-    if (bPassoDeEscolha)
+    // Tela de escolha: criacao (abas chassi/classe) ou os Runners que ja existem.
+    if (CurrentStep == ERunnerMenuStep::Chassis || CurrentStep == ERunnerMenuStep::Class)
     {
-        UHorizontalBox* Topo = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-
-        if (UHorizontalBoxSlot* SlotDaVitrine = Cast<UHorizontalBoxSlot>(Topo->AddChild(CriarBlocoDaVitrine())))
-        {
-            SlotDaVitrine->SetPadding(FMargin(0.f, 0.f, 14.f, 0.f));
-            SlotDaVitrine->SetVerticalAlignment(VAlign_Top);
-        }
-        if (UHorizontalBoxSlot* SlotDaInfo = Cast<UHorizontalBoxSlot>(Topo->AddChild(CriarBlocoDeInfo())))
-        {
-            SlotDaInfo->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-            SlotDaInfo->SetVerticalAlignment(VAlign_Fill);
-        }
-        // Altura propria: a ficha rola dentro dela e nao empurra os botoes para fora do painel.
-        USizeBox* CaixaDoTopo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-        CaixaDoTopo->SetHeightOverride(AlturaDaVitrine);
-        CaixaDoTopo->AddChild(Topo);
-        Adicionar(RootBox, CaixaDoTopo, 12.f);
-
-        // O que a vitrine mostra ao abrir o passo.
-        FName ChassiDaInfo = NAME_None;
-        FName ClasseDaInfo = NAME_None;
-        if (Session)
-        {
-            if (CurrentStep == ERunnerMenuStep::CharacterSelect)
-            {
-                const TArray<FRunnerSavedCharacter> Meus = Session->GetSavedCharacters();
-                if (Meus.Num() > 0)
-                {
-                    ChassiDaInfo = Meus[0].ChassisId;
-                    ClasseDaInfo = Meus[0].ClassId;
-                }
-            }
-            else
-            {
-                ChassiDaInfo = Session->GetSelectedChassis();
-                ClasseDaInfo = Session->GetSelectedClass();
-            }
-        }
-        MostrarNaVitrine(ChassiDaInfo);
-        PreencherInfo(InfoBox, ChassiDaInfo, ClasseDaInfo);
+        ConstruirTelaDeCriacao(AlvosDoVeu);
+    }
+    else if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+    {
+        ConstruirTelaDeRunners(AlvosDoVeu);
     }
 
     // Janela de confirmacao (criar personagem / apagar personagem).
@@ -447,118 +442,7 @@ void URunnerMenuWidget::RebuildLayout()
         }
     }
 
-    // Listas de opcao. Os ids vem sempre dos dados (DataTable) ou dos personagens da conta.
-    if (CurrentStep == ERunnerMenuStep::Chassis || CurrentStep == ERunnerMenuStep::Class
-        || CurrentStep == ERunnerMenuStep::CharacterSelect)
-    {
-        UScrollBox* List = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
-        USizeBox* CaixaDaLista = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-        CaixaDaLista->SetHeightOverride(AlturaDaLista);
-        CaixaDaLista->AddChild(List);
-        Adicionar(RootBox, CaixaDaLista, 10.f);
-        AlvosDoVeu.Add(CaixaDaLista);
 
-        auto AdicionarOpcao = [this, List, &AlvosDoVeu](const FString& Rotulo, const FName Id,
-                                                        const ERunnerOptionAction Acao, const FString& CharacterId)
-        {
-            // Cada linha e uma caixa: o botao grande (jogar/escolher) e, quando cabe, o de apagar.
-            UHorizontalBox* LinhaDaOpcao = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-
-            UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-            EstilizarBotao(Button, RunnerPalette::LinhaDeOpcao(), RunnerPalette::LinhaDeOpcaoHover(),
-                           RunnerPalette::BordaCampo(), 1.f);
-            AlvosDoVeu.Add(Button);
-
-            UTextBlock* Text = CriarTexto(WidgetTree, Rotulo, 13.f, RunnerPalette::TextoCorpo());
-            Text->SetAutoWrapText(false);
-            Button->AddChild(Text);
-
-            URunnerOptionButton* Binding = NewObject<URunnerOptionButton>(this);
-            Binding->OptionId = Id;
-            Binding->Owner = this;
-            Binding->Action = Acao;
-            Binding->CharacterId = CharacterId;
-            OptionBindings.Add(Binding);
-            Button->OnClicked.AddDynamic(Binding, &URunnerOptionButton::HandleClicked);
-            Button->OnHovered.AddDynamic(Binding, &URunnerOptionButton::HandleHovered);
-
-            if (UHorizontalBoxSlot* SlotDaLinha = Cast<UHorizontalBoxSlot>(LinhaDaOpcao->AddChild(Button)))
-            {
-                SlotDaLinha->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-            }
-
-            // Apagar so faz sentido para personagem que ja existe.
-            if (Acao == ERunnerOptionAction::Jogar && !CharacterId.IsEmpty())
-            {
-                UButton* BotaoApagar = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-                EstilizarBotao(BotaoApagar, RunnerPalette::CobreOxidado(0.35f), RunnerPalette::Cobre(0.6f),
-                               RunnerPalette::Cobre(0.7f), 1.f);
-                BotaoApagar->AddChild(CriarTexto(WidgetTree, TEXT("Excluir"), 12.f, RunnerPalette::Cobre(0.95f)));
-
-                URunnerOptionButton* BindingApagar = NewObject<URunnerOptionButton>(this);
-                BindingApagar->OptionId = Id;
-                BindingApagar->Owner = this;
-                BindingApagar->Action = ERunnerOptionAction::Excluir;
-                BindingApagar->CharacterId = CharacterId;
-                OptionBindings.Add(BindingApagar);
-                BotaoApagar->OnClicked.AddDynamic(BindingApagar, &URunnerOptionButton::HandleClicked);
-
-                // Largura fixa: sem isto o texto do Runner empurrava o botao para fora da linha.
-                USizeBox* LarguraDoApagar = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-                LarguraDoApagar->SetWidthOverride(86.f);
-                LarguraDoApagar->AddChild(BotaoApagar);
-                if (UHorizontalBoxSlot* SlotDoApagar = Cast<UHorizontalBoxSlot>(LinhaDaOpcao->AddChild(LarguraDoApagar)))
-                {
-                    SlotDoApagar->SetPadding(FMargin(8.f, 0.f, 0.f, 0.f));
-                    SlotDoApagar->SetVerticalAlignment(VAlign_Fill);
-                }
-                AlvosDoVeu.Add(BotaoApagar);
-            }
-
-            List->AddChild(LinhaDaOpcao);
-        };
-
-        if (CurrentStep == ERunnerMenuStep::CharacterSelect)
-        {
-            // Personagens que ja existem nesta conta: clicar entra, o botao ao lado apaga.
-            if (Session)
-            {
-                for (const FRunnerSavedCharacter& Salvo : Session->GetSavedCharacters())
-                {
-                    // O rotulo e o nome do Runner: chassi e classe ficam na ficha, ao lado.
-                    AdicionarOpcao(Salvo.GetDisplayName() + TEXT("   [") + Salvo.CharacterId + TEXT("]"),
-                                   FName(*Salvo.CharacterId), ERunnerOptionAction::Jogar, Salvo.CharacterId);
-                }
-            }
-        }
-        else
-        {
-            const TArray<FName> Ids = (CurrentStep == ERunnerMenuStep::Chassis)
-                ? (Session ? Session->GetChassisIds(false) : TArray<FName>())
-                : (Session ? Session->GetClassIds() : TArray<FName>());
-
-            for (const FName& Id : Ids)
-            {
-                const FString Label = (CurrentStep == ERunnerMenuStep::Chassis)
-                    ? Id.ToString() + ((Id == PendingChassis) ? TEXT("  [escolhido]") : TEXT(""))
-                    : Id.ToString() + ((Id == PendingClass) ? TEXT("  [escolhido]") : TEXT(""));
-                AdicionarOpcao(Label, Id, ERunnerOptionAction::Jogar, FString());
-            }
-        }
-    }
-
-    // Nome do personagem: e por ele que o jogador reconhece o Runner na lista depois.
-    if (CurrentStep == ERunnerMenuStep::Class)
-    {
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("NOME DO RUNNER"), 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 4.f);
-
-        NameBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        NameBox->SetHintText(FText::FromString(TEXT("nome do personagem (3 a 16 caracteres)")));
-        NameBox->SetText(FText::FromString(Session ? Session->GetPendingCharacterName() : FString()));
-        EstilizarCampo(NameBox);
-        Adicionar(RootBox, NameBox, 12.f);
-        AlvosDoVeu.Add(NameBox);
-    }
 
     StatusText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
     StatusText->SetColorAndOpacity(FSlateColor(RunnerPalette::Vapor(0.85f)));
@@ -580,8 +464,9 @@ void URunnerMenuWidget::RebuildLayout()
             PrimaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar com o EOS (Dev Auth Tool)") : TEXT("Entrar (local)")));
             break;
         case ERunnerMenuStep::CreateAccount:     PrimaryText->SetText(FText::FromString(TEXT("Criar conta"))); break;
-        case ERunnerMenuStep::CharacterSelect:   PrimaryText->SetText(FText::FromString(TEXT("Criar novo Runner"))); break;
+        case ERunnerMenuStep::CharacterSelect:   PrimaryText->SetText(FText::FromString(TEXT("Jogar"))); break;
         case ERunnerMenuStep::Class:             PrimaryText->SetText(FText::FromString(TEXT("Criar personagem"))); break;
+        case ERunnerMenuStep::Chassis:           PrimaryText->SetText(FText::FromString(TEXT("Criar personagem"))); break;
         case ERunnerMenuStep::Confirm:           PrimaryText->SetText(FText::FromString(TEXT("Confirmar"))); break;
         default:                                 PrimaryText->SetText(FText::FromString(TEXT("Escolha uma opcao acima"))); break;
     }
@@ -602,9 +487,9 @@ void URunnerMenuWidget::RebuildLayout()
             SecondaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar com a conta Epic (EOS)") : TEXT("Criar conta nova")));
             break;
         case ERunnerMenuStep::CreateAccount:   SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
-        case ERunnerMenuStep::CharacterSelect: SecondaryText->SetText(FText::FromString(TEXT("Sair da conta"))); break;
+        case ERunnerMenuStep::CharacterSelect: SecondaryText->SetText(FText::FromString(TEXT("Criar novo"))); break;
         case ERunnerMenuStep::Chassis:         SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
-        case ERunnerMenuStep::Class:           SecondaryText->SetText(FText::FromString(TEXT("Trocar chassi"))); break;
+        case ERunnerMenuStep::Class:           SecondaryText->SetText(FText::FromString(TEXT("Voltar ao chassi"))); break;
         case ERunnerMenuStep::Confirm:         SecondaryText->SetText(FText::FromString(TEXT("Cancelar"))); break;
     }
     Secondary->AddChild(SecondaryText);
@@ -626,14 +511,26 @@ void URunnerMenuWidget::RebuildLayout()
     }
     else if (CurrentStep == ERunnerMenuStep::CharacterSelect)
     {
-        TertiaryText->SetText(FText::FromString(TEXT("Atualizar lista")));
+        TertiaryText->SetText(FText::FromString(TEXT("Excluir")));
         bMostraTerceiro = true;
     }
     TertiaryButton->AddChild(TertiaryText);
     TertiaryButton->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnTertiaryClicked);
     TertiaryButton->SetVisibility(bMostraTerceiro ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-    Adicionar(RootBox, TertiaryButton, 4.f);
+    Adicionar(RootBox, TertiaryButton, 8.f);
     AlvosDoVeu.Add(TertiaryButton);
+
+    // Quarto botao: Voltar (sair da conta) na lista de Runners. A referencia pede os quatro:
+    // Jogar, Voltar, Criar e Excluir.
+    QuartoButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+    EstilizarBotao(QuartoButton, RunnerPalette::AcoEscuro(0.9f), RunnerPalette::FerroForjado(1.f),
+                   RunnerPalette::BordaCampo(), 1.f);
+    QuartoButton->AddChild(CriarTexto(WidgetTree, TEXT("Voltar"), 13.f, RunnerPalette::TextoCorpo()));
+    QuartoButton->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnQuartoClicked);
+    QuartoButton->SetVisibility(CurrentStep == ERunnerMenuStep::CharacterSelect
+        ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    Adicionar(RootBox, QuartoButton, 4.f);
+    AlvosDoVeu.Add(QuartoButton);
 
     // O veu passa a rondar o que existe neste passo (os alvos sao fracos: a tela se reconstroi).
     if (Veil)
@@ -808,8 +705,26 @@ void URunnerMenuWidget::OnPrimaryClicked()
         }
 
         case ERunnerMenuStep::CharacterSelect:
-            GoToStep(ERunnerMenuStep::Chassis);
-            break;
+        {
+            // "Jogar": entra com o Runner que esta marcado na lista.
+            if (IdPersonagemSelecionado.IsEmpty())
+            {
+                SetStatus(TEXT("Marque um Runner na lista para jogar."));
+                return;
+            }
+            SelecionarPersonagem(IdPersonagemSelecionado, true);
+            return;
+        }
+
+        case ERunnerMenuStep::Chassis:
+        {
+            // "Criar personagem" na aba do chassi: primeiro escolha a classe.
+            TrocarAba(ERunnerMenuStep::Class);
+            SetStatus(Session->GetSelectedChassis().IsNone()
+                ? TEXT("Escolha um chassi na grade.")
+                : TEXT("Chassi escolhido. Agora escolha a classe na grade."));
+            return;
+        }
 
         case ERunnerMenuStep::CreateAccount:
         {
@@ -910,9 +825,22 @@ void URunnerMenuWidget::OnSecondaryClicked()
         }
 
         case ERunnerMenuStep::CreateAccount:
-        case ERunnerMenuStep::Chassis:
             GoToStep(ERunnerMenuStep::Login);
             break;
+
+        case ERunnerMenuStep::Chassis:
+        {
+            // "Voltar" na criacao: quem ja tem Runner volta para a lista; quem nao tem, sai.
+            URunnerSession* Sessao = GetSession();
+            if (Sessao && Sessao->HasSavedCharacters())
+            {
+                IdPersonagemSelecionado.Reset();
+                GoToStep(ERunnerMenuStep::CharacterSelect);
+                break;
+            }
+            GoToStep(ERunnerMenuStep::Login);
+            break;
+        }
 
         case ERunnerMenuStep::Class:
             GoToStep(ERunnerMenuStep::Chassis);
@@ -943,9 +871,16 @@ void URunnerMenuWidget::OnTertiaryClicked()
             break;
 
         case ERunnerMenuStep::CharacterSelect:
-            RebuildLayout();
-            SetStatus(TEXT("Lista de Runners atualizada."));
+        {
+            // Excluir age no Runner marcado e passa pela confirmacao.
+            if (IdPersonagemSelecionado.IsEmpty())
+            {
+                SetStatus(TEXT("Marque um Runner na lista para excluir."));
+                break;
+            }
+            AbrirConfirmacao(ERunnerConfirmAction::ExcluirPersonagem, FString(), IdPersonagemSelecionado);
             break;
+        }
 
         default:
             break;
@@ -1092,7 +1027,7 @@ UWidget* URunnerMenuWidget::CriarLinhaDeAtributo(ERunnerAttribute Atributo, int3
     return Linha;
 }
 
-void URunnerMenuWidget::PreencherInfo(UVerticalBox* Caixa, FName ChassiId, FName ClasseId)
+void URunnerMenuWidget::PreencherInfo(UVerticalBox* Caixa, FName ChassiId, FName ClasseId, const FString& TituloDoRunner)
 {
     URunnerSession* Session = GetSession();
     if (!Caixa || !Session)
@@ -1105,9 +1040,35 @@ void URunnerMenuWidget::PreencherInfo(UVerticalBox* Caixa, FName ChassiId, FName
     FRunnerChassisData Chassi;
     if (ChassiId.IsNone() || !Session->GetChassisData(ChassiId, Chassi))
     {
-        Adicionar(Caixa, CriarTexto(WidgetTree, TEXT("Passe o mouse numa opcao da lista para ver o corpo, os atributos e as vantagens."),
+        Adicionar(Caixa, CriarTexto(WidgetTree, TEXT("Escolha um chassi e uma classe: aqui aparecem os atributos, as vantagens e a conta de HP e CA."),
             12.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 0.f);
         return;
+    }
+
+    // Nome do Runner primeiro (quando e um personagem que ja existe), com o nivel.
+    if (!TituloDoRunner.IsEmpty())
+    {
+        Adicionar(Caixa, CriarTexto(WidgetTree, TituloDoRunner, 19.f, RunnerPalette::Ambar()), 1.f);
+        Adicionar(Caixa, CriarTexto(WidgetTree, TEXT("Nivel 1"), 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 8.f);
+    }
+
+    // O icone do que foi escolhido, como na referencia de interface.
+    if (UTexture2D* Icone = IconeDoChassi(ChassiId))
+    {
+        UImage* Imagem = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+        FSlateBrush Pincel;
+        Pincel.SetResourceObject(Icone);
+        Pincel.ImageSize = FVector2D(46.f, 46.f);
+        Pincel.DrawAs = ESlateBrushDrawType::Image;
+        Imagem->SetBrush(Pincel);
+
+        USizeBox* CaixaDoIcone = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+        CaixaDoIcone->SetWidthOverride(46.f);
+        CaixaDoIcone->SetHeightOverride(46.f);
+        CaixaDoIcone->AddChild(Imagem);
+        UHorizontalBox* Centro = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+        Centro->AddChild(CaixaDoIcone);
+        Adicionar(Caixa, Centro, 6.f);
     }
 
     Adicionar(Caixa, CriarTexto(WidgetTree, Chassi.DisplayName.ToString().ToUpper(), 17.f, RunnerPalette::LataoPolido()), 2.f);
@@ -1209,7 +1170,7 @@ void URunnerMenuWidget::PrevisualizarOpcao(const FName& OptionId, ERunnerOptionA
             if (Salvo.CharacterId == CharacterId)
             {
                 MostrarNaVitrine(Salvo.ChassisId);
-                PreencherInfo(InfoBox, Salvo.ChassisId, Salvo.ClassId);
+                PreencherInfo(DetalhesBox, Salvo.ChassisId, Salvo.ClassId, Salvo.GetDisplayName());
                 return;
             }
         }
@@ -1220,13 +1181,68 @@ void URunnerMenuWidget::PrevisualizarOpcao(const FName& OptionId, ERunnerOptionA
     if (CurrentStep == ERunnerMenuStep::Class)
     {
         MostrarNaVitrine(Session->GetSelectedChassis());
-        PreencherInfo(InfoBox, Session->GetSelectedChassis(), OptionId);
+        PreencherInfo(DetalhesBox, Session->GetSelectedChassis(), OptionId);
         return;
     }
 
-    // Passo do chassi: corpo e ficha do que esta sob o mouse.
+    // Aba do chassi: corpo e detalhes do que esta sob o mouse.
     MostrarNaVitrine(OptionId);
-    PreencherInfo(InfoBox, OptionId, Session->GetSelectedClass());
+    PreencherInfo(DetalhesBox, OptionId, Session->GetSelectedClass());
+}
+
+void URunnerMenuWidget::TrocarAba(const ERunnerMenuStep Aba)
+{
+    URunnerSession* Session = GetSession();
+    if (Aba == ERunnerMenuStep::Class && (!Session || Session->GetSelectedChassis().IsNone()))
+    {
+        SetStatus(TEXT("Escolha um chassi primeiro: e ele que decide a sua vocacao."));
+        return;
+    }
+    GoToStep(Aba);
+}
+
+void URunnerMenuWidget::SelecionarPersonagem(const FString& CharacterId, const bool bEntrarNoJogo)
+{
+    URunnerSession* Session = GetSession();
+    if (!Session)
+    {
+        return;
+    }
+
+    IdPersonagemSelecionado = CharacterId;
+
+    // Marcar so mostra: o jogador ve nivel, nome, chassi e classe antes de entrar.
+    if (!bEntrarNoJogo)
+    {
+        GoToStep(ERunnerMenuStep::CharacterSelect);
+        return;
+    }
+
+    FString Erro;
+    if (!Session->SelectSavedCharacter(CharacterId, Erro))
+    {
+        SetStatus(Erro);
+        return;
+    }
+
+    FRunnerCharacterProfile Perfil;
+    Session->GetActiveProfile(Perfil);
+    SetStatus(FString::Printf(TEXT("Entrando com %s..."), *Perfil.CharacterName));
+    OpenGameLevel();
+}
+
+void URunnerMenuWidget::OnQuartoClicked()
+{
+    // O quarto botao so existe na lista de Runners: Voltar = sair da conta.
+    if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+    {
+        if (URunnerSession* Session = GetSession())
+        {
+            Session->Logout();
+        }
+        IdPersonagemSelecionado.Reset();
+        GoToStep(ERunnerMenuStep::Login);
+    }
 }
 
 void URunnerMenuWidget::AbrirConfirmacao(ERunnerConfirmAction Acao, const FString& Mensagem, const FString& CharacterId)
@@ -1309,3 +1325,381 @@ void URunnerMenuWidget::ExecutarConfirmacao()
     GoToStep(ERunnerMenuStep::CharacterSelect);
 }
 
+
+// ---------------------------------------------------------------------------
+// Telas: criacao (abas, grade de icones, vitrine, detalhes) e Runners existentes
+// ---------------------------------------------------------------------------
+
+UTexture2D* URunnerMenuWidget::IconeDoChassi(FName ChassiId)
+{
+    if (ChassiId.IsNone())
+    {
+        return nullptr;
+    }
+    if (const TObjectPtr<UTexture2D>* Achado = IconesDeChassi.Find(ChassiId))
+    {
+        return *Achado;
+    }
+
+    URunnerSession* Session = GetSession();
+    FRunnerChassisData Dados;
+    if (!Session || !Session->GetChassisData(ChassiId, Dados))
+    {
+        return nullptr;
+    }
+
+    // O icone e desenhado por codigo (RunnerIconFactory): placa + glifo na cor do chassi.
+    UTexture2D* Icone = RunnerIcons::CriarIcone(this, RunnerIcons::GlifoDoCorpo(Dados.Body), Dados.AccentColor, 64);
+    IconesDeChassi.Add(ChassiId, Icone);
+    return Icone;
+}
+
+UTexture2D* URunnerMenuWidget::IconeDaClasse(FName ClassId)
+{
+    if (ClassId.IsNone())
+    {
+        return nullptr;
+    }
+    if (const TObjectPtr<UTexture2D>* Achado = IconesDeClasse.Find(ClassId))
+    {
+        return *Achado;
+    }
+
+    URunnerSession* Session = GetSession();
+    FRunnerClassData Dados;
+    if (!Session || !Session->GetClassData(ClassId, Dados))
+    {
+        return nullptr;
+    }
+
+    UTexture2D* Icone = RunnerIcons::CriarIcone(this, RunnerIcons::GlifoDoPapel(Dados.Role),
+                                                CorDoPapel(Dados.Role), 64);
+    IconesDeClasse.Add(ClassId, Icone);
+    return Icone;
+}
+
+UWidget* URunnerMenuWidget::CriarAbas()
+{
+    UHorizontalBox* Abas = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+
+    auto AdicionarAba = [this, Abas](const FString& Rotulo, const ERunnerMenuStep Destino)
+    {
+        const bool bAtiva = CurrentStep == Destino;
+
+        UButton* Botao = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+        // A aba ativa e latao cheio; as outras sao aco, para o olho saber onde esta.
+        EstilizarBotao(Botao,
+                       bAtiva ? RunnerPalette::LataoEscovado(0.9f) : RunnerPalette::AcoEscuro(0.85f),
+                       bAtiva ? RunnerPalette::LataoPolido(1.f) : RunnerPalette::FerroForjado(1.f),
+                       bAtiva ? RunnerPalette::Ambar() : RunnerPalette::BordaCampo(), bAtiva ? 2.f : 1.f);
+        Botao->AddChild(CriarTexto(WidgetTree, Rotulo, 13.f,
+            bAtiva ? RunnerPalette::Silhueta() : RunnerPalette::TextoCorpo()));
+
+        URunnerTabButton* Binding = NewObject<URunnerTabButton>(this);
+        Binding->Owner = this;
+        Binding->Destino = Destino;
+        TabBindings.Add(Binding); // mantem vivo junto com os outros
+        Botao->OnClicked.AddDynamic(Binding, &URunnerTabButton::HandleClicked);
+
+        if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Abas->AddChild(Botao)))
+        {
+            Slot->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
+        }
+    };
+
+    AdicionarAba(TEXT("1 · CHASSI"), ERunnerMenuStep::Chassis);
+    AdicionarAba(TEXT("2 · CLASSE"), ERunnerMenuStep::Class);
+    return Abas;
+}
+
+UWidget* URunnerMenuWidget::CriarGradeDeIcones(TArray<UWidget*>& AlvosDoVeu)
+{
+    URunnerSession* Session = GetSession();
+    const bool bChassi = CurrentStep != ERunnerMenuStep::Class;
+
+    UScrollBox* Rolagem = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+    UUniformGridPanel* Grade = WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass());
+    Grade->SetSlotPadding(FMargin(5.f));
+    Rolagem->AddChild(Grade);
+
+    if (!Session)
+    {
+        return Rolagem;
+    }
+
+    const FName Escolhido = bChassi ? Session->GetSelectedChassis() : Session->GetSelectedClass();
+
+    auto AdicionarCelula = [this, Grade, &AlvosDoVeu, Escolhido](const int32 Coluna, const int32 Linha,
+                                                                 const FName Id, const FString& Rotulo,
+                                                                 UTexture2D* Icone)
+    {
+        const bool bSelecionado = (Id == Escolhido);
+
+        UButton* Celula = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+        EstilizarBotao(Celula,
+                       bSelecionado ? RunnerPalette::FerroForjado(1.f) : RunnerPalette::AcoEscuro(0.9f),
+                       RunnerPalette::FerroForjado(1.1f),
+                       bSelecionado ? RunnerPalette::Ambar() : RunnerPalette::BordaCampo(),
+                       bSelecionado ? 2.f : 1.f);
+        AlvosDoVeu.Add(Celula);
+
+        UVerticalBox* Conteudo = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+
+        UImage* Imagem = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+        if (Icone)
+        {
+            FSlateBrush Pincel;
+            Pincel.SetResourceObject(Icone);
+            Pincel.ImageSize = FVector2D(38.f, 38.f);
+            Pincel.DrawAs = ESlateBrushDrawType::Image;
+            Imagem->SetBrush(Pincel);
+        }
+        USizeBox* CaixaDoIcone = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+        CaixaDoIcone->SetWidthOverride(38.f);
+        CaixaDoIcone->SetHeightOverride(38.f);
+        CaixaDoIcone->AddChild(Imagem);
+        UHorizontalBox* CentroDoIcone = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+        CentroDoIcone->AddChild(CaixaDoIcone);
+        Adicionar(Conteudo, CentroDoIcone, 3.f);
+
+        UTextBlock* Texto = CriarTexto(WidgetTree, Rotulo, 11.f,
+            bSelecionado ? RunnerPalette::Ambar() : RunnerPalette::TextoCorpo(), TEXT("Regular"));
+        Texto->SetJustification(ETextJustify::Center);
+        Texto->SetAutoWrapText(false);
+        Conteudo->AddChild(Texto);
+
+        Celula->AddChild(Conteudo);
+
+        URunnerOptionButton* Binding = NewObject<URunnerOptionButton>(this);
+        Binding->OptionId = Id;
+        Binding->Owner = this;
+        Binding->Action = ERunnerOptionAction::Jogar;
+        OptionBindings.Add(Binding);
+        Celula->OnClicked.AddDynamic(Binding, &URunnerOptionButton::HandleClicked);
+        Celula->OnHovered.AddDynamic(Binding, &URunnerOptionButton::HandleHovered);
+
+        Grade->AddChildToUniformGrid(Celula, Linha, Coluna);
+    };
+
+    if (bChassi)
+    {
+        const TArray<FName> Ids = Session->GetChassisIds(false);
+        for (int32 Indice = 0; Indice < Ids.Num(); ++Indice)
+        {
+            const FName Id = Ids[Indice];
+            FRunnerChassisData Dados;
+            const FString Rotulo = Session->GetChassisData(Id, Dados) ? Dados.DisplayName.ToString() : Id.ToString();
+            AdicionarCelula(Indice % ColunasDaGrade, Indice / ColunasDaGrade, Id, Rotulo, IconeDoChassi(Id));
+        }
+    }
+    else
+    {
+        const TArray<FName> Ids = Session->GetClassIds();
+        for (int32 Indice = 0; Indice < Ids.Num(); ++Indice)
+        {
+            const FName Id = Ids[Indice];
+            FRunnerClassData Dados;
+            const FString Rotulo = Session->GetClassData(Id, Dados) ? Dados.DisplayName.ToString() : Id.ToString();
+            AdicionarCelula(Indice % ColunasDaGrade, Indice / ColunasDaGrade, Id, Rotulo, IconeDaClasse(Id));
+        }
+    }
+
+    return Rolagem;
+}
+
+UWidget* URunnerMenuWidget::CriarColunaDeDetalhes()
+{
+    UBorder* Painel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+    Painel->SetBrush(Caixa(RunnerPalette::AcoEscuro(0.85f), 8.f, RunnerPalette::BordaCampo(), 1.f));
+    Painel->SetPadding(FMargin(16.f, 14.f));
+
+    UScrollBox* Rolagem = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+    DetalhesBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+    Rolagem->AddChild(DetalhesBox);
+    Painel->SetContent(Rolagem);
+    return Painel;
+}
+
+void URunnerMenuWidget::ConstruirTelaDeCriacao(TArray<UWidget*>& AlvosDoVeu)
+{
+    Adicionar(RootBox, CriarAbas(), 10.f);
+
+    UHorizontalBox* Colunas = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+
+    // Esquerda: a grade de icones — o que se escolhe.
+    USizeBox* LarguraDaGrade = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    LarguraDaGrade->SetWidthOverride(330.f);
+    LarguraDaGrade->AddChild(CriarGradeDeIcones(AlvosDoVeu));
+    if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Colunas->AddChild(LarguraDaGrade)))
+    {
+        Slot->SetPadding(FMargin(0.f, 0.f, 14.f, 0.f));
+    }
+
+    // Meio: a vitrine 3D.
+    if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Colunas->AddChild(CriarBlocoDaVitrine())))
+    {
+        Slot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        Slot->SetHorizontalAlignment(HAlign_Center);
+        Slot->SetVerticalAlignment(VAlign_Center);
+    }
+
+    // Direita: ficha e detalhes do que esta escolhido (com o icone).
+    USizeBox* LarguraDosDetalhes = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    LarguraDosDetalhes->SetWidthOverride(320.f);
+    LarguraDosDetalhes->AddChild(CriarColunaDeDetalhes());
+    if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Colunas->AddChild(LarguraDosDetalhes)))
+    {
+        Slot->SetPadding(FMargin(14.f, 0.f, 0.f, 0.f));
+    }
+
+    USizeBox* AlturaDasColunas = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    AlturaDasColunas->SetHeightOverride(AlturaDaVitrine);
+    AlturaDasColunas->AddChild(Colunas);
+    Adicionar(RootBox, AlturaDasColunas, 10.f);
+
+    // Nome do Runner: e por ele que o jogador reconhece o personagem na lista.
+    Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("NOME DO RUNNER"), 10.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 4.f);
+    NameBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+    NameBox->SetHintText(FText::FromString(TEXT("nome do personagem (3 a 16 caracteres)")));
+    NameBox->SetText(FText::FromString(GetSession() ? GetSession()->GetPendingCharacterName() : FString()));
+    EstilizarCampo(NameBox);
+    Adicionar(RootBox, NameBox, 8.f);
+    AlvosDoVeu.Add(NameBox);
+
+    AtualizarSelecao();
+}
+
+void URunnerMenuWidget::ConstruirTelaDeRunners(TArray<UWidget*>& AlvosDoVeu)
+{
+    URunnerSession* Session = GetSession();
+    if (!Session)
+    {
+        return;
+    }
+
+    // Sem nada marcado ainda, o primeiro da conta e o escolhido.
+    const TArray<FRunnerSavedCharacter> Meus = Session->GetSavedCharacters();
+    if (IdPersonagemSelecionado.IsEmpty() && Meus.Num() > 0)
+    {
+        IdPersonagemSelecionado = Meus[0].CharacterId;
+    }
+
+    UHorizontalBox* Colunas = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+
+    // Esquerda: a lista dos Runners da conta (clicar marca, nao entra no jogo).
+    USizeBox* LarguraDaLista = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    LarguraDaLista->SetWidthOverride(330.f);
+    UScrollBox* Lista = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+    LarguraDaLista->AddChild(Lista);
+
+    for (const FRunnerSavedCharacter& Salvo : Meus)
+    {
+        const bool bMarcado = Salvo.CharacterId == IdPersonagemSelecionado;
+
+        UButton* Linha = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+        EstilizarBotao(Linha,
+                       bMarcado ? RunnerPalette::FerroForjado(1.f) : RunnerPalette::AcoEscuro(0.9f),
+                       RunnerPalette::FerroForjado(1.1f),
+                       bMarcado ? RunnerPalette::Ambar() : RunnerPalette::BordaCampo(), bMarcado ? 2.f : 1.f);
+        AlvosDoVeu.Add(Linha);
+
+        UHorizontalBox* Conteudo = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+
+        // Retrato: o icone do chassi daquele Runner.
+        UImage* Retrato = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+        if (UTexture2D* Icone = IconeDoChassi(Salvo.ChassisId))
+        {
+            FSlateBrush Pincel;
+            Pincel.SetResourceObject(Icone);
+            Pincel.ImageSize = FVector2D(30.f, 30.f);
+            Pincel.DrawAs = ESlateBrushDrawType::Image;
+            Retrato->SetBrush(Pincel);
+        }
+        USizeBox* CaixaDoRetrato = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+        CaixaDoRetrato->SetWidthOverride(30.f);
+        CaixaDoRetrato->SetHeightOverride(30.f);
+        CaixaDoRetrato->AddChild(Retrato);
+        Conteudo->AddChild(CaixaDoRetrato);
+
+        UVerticalBox* Textos = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+        Adicionar(Textos, CriarTexto(WidgetTree, Salvo.GetDisplayName(), 13.f,
+            bMarcado ? RunnerPalette::Ambar() : RunnerPalette::TextoCorpo()), 1.f);
+        Adicionar(Textos, CriarTexto(WidgetTree,
+            FString::Printf(TEXT("Nivel 1 · %s · %s"), *Salvo.ChassisId.ToString(), *Salvo.ClassId.ToString()),
+            11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 0.f);
+
+        if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Conteudo->AddChild(Textos)))
+        {
+            Slot->SetPadding(FMargin(10.f, 0.f, 0.f, 0.f));
+        }
+        Linha->AddChild(Conteudo);
+
+        URunnerOptionButton* Binding = NewObject<URunnerOptionButton>(this);
+        Binding->OptionId = FName(*Salvo.CharacterId);
+        Binding->Owner = this;
+        Binding->Action = ERunnerOptionAction::Selecionar;
+        Binding->CharacterId = Salvo.CharacterId;
+        OptionBindings.Add(Binding);
+        Linha->OnClicked.AddDynamic(Binding, &URunnerOptionButton::HandleClicked);
+        Linha->OnHovered.AddDynamic(Binding, &URunnerOptionButton::HandleHovered);
+
+        Lista->AddChild(Linha);
+    }
+
+    if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Colunas->AddChild(LarguraDaLista)))
+    {
+        Slot->SetPadding(FMargin(0.f, 0.f, 14.f, 0.f));
+    }
+
+    if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Colunas->AddChild(CriarBlocoDaVitrine())))
+    {
+        Slot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        Slot->SetHorizontalAlignment(HAlign_Center);
+        Slot->SetVerticalAlignment(VAlign_Center);
+    }
+
+    USizeBox* LarguraDosDetalhes = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    LarguraDosDetalhes->SetWidthOverride(320.f);
+    LarguraDosDetalhes->AddChild(CriarColunaDeDetalhes());
+    if (UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Colunas->AddChild(LarguraDosDetalhes)))
+    {
+        Slot->SetPadding(FMargin(14.f, 0.f, 0.f, 0.f));
+    }
+
+    USizeBox* AlturaDasColunas = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    AlturaDasColunas->SetHeightOverride(AlturaDaVitrine);
+    AlturaDasColunas->AddChild(Colunas);
+    Adicionar(RootBox, AlturaDasColunas, 10.f);
+
+    AtualizarSelecao();
+}
+
+void URunnerMenuWidget::AtualizarSelecao()
+{
+    URunnerSession* Session = GetSession();
+    if (!Session)
+    {
+        return;
+    }
+
+    FName ChassiId = Session->GetSelectedChassis();
+    FName ClasseId = Session->GetSelectedClass();
+    FString TituloDoRunner;
+
+    if (CurrentStep == ERunnerMenuStep::CharacterSelect)
+    {
+        for (const FRunnerSavedCharacter& Salvo : Session->GetSavedCharacters())
+        {
+            if (Salvo.CharacterId == IdPersonagemSelecionado)
+            {
+                ChassiId = Salvo.ChassisId;
+                ClasseId = Salvo.ClassId;
+                TituloDoRunner = Salvo.GetDisplayName();
+                break;
+            }
+        }
+    }
+
+    MostrarNaVitrine(ChassiId);
+    PreencherInfo(DetalhesBox, ChassiId, ClasseId, TituloDoRunner);
+}
