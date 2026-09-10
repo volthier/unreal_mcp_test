@@ -232,7 +232,70 @@ quando o destino for virar malha.
 > (ex.: metal escuro + latão da paleta como matéria e neon ciano como energia) — é pré-requisito de qualquer
 > lote de arte.
 
-## 9b. **Núcleo de identidade** — a ideia do autor, testada antes de virar regra
+## 9b. **Cor: o núcleo é do chassi, o corpo é do jogador** (modelo do autor)
+
+**O modelo (autor):** o jogador escolhe as cores do **corpo**, sempre em **três partes** — **70%**, **20%** e
+**10%** — e o **núcleo tem cor fixa**, ligada ao **chassi e às habilidades dele**: quem causa frio tem núcleo
+azul como frio; o tanque, marrom escuro como pedra; quem explode, outra coisa; e assim por diante.
+
+Isso separa duas coisas que eu tinha juntado na primeira proposta:
+
+| | Quem decide | Papel |
+|---|---|---|
+| **Cor do núcleo** | **o chassi** (dado fixo) | identidade e leitura em combate: diz **o que aquele chassi faz** |
+| **Cores do corpo** (70/20/10) | **o jogador** | expressão: quem é aquele **personagem** |
+
+### O núcleo, por habilidade (a regra do autor aplicada aos 10)
+
+| Chassi | Habilidade (DT_Chassis) | Núcleo | Por quê |
+|---|---|---|---|
+| **Charger** | Investida Sísmica (derruba e causa dano em área) | **laranja magmático** `#ff6a00` | impacto e calor |
+| **Vitaspark** | Crítico Ampliado | **amarelo elétrico** `#ffd91a` | faísca, precisão |
+| **Aetheric** | Restauração de Éter | **verde-aether** `#40ffc0` | é o **Aether da paleta**: Éter é verde no projeto |
+| **Techno** | Protocolo de Deflexão (defesa reativa por análise) | **azul de dado** `#2673ff` | leitura, cálculo |
+| **Droneframe** | Drone de Apoio | **verde-sensor** `#9ad94c` | sensor e apoio |
+| **Forgekin** | Armadura Forjada (reduz dano, +HP) | **bronze de forja** `#b35c1e` | o tanque: pedra e metal fundido |
+| **Ghostnet** | Camuflagem Ativa | **violeta fantasma** `#994ce6` | o que se esconde |
+| **Vox** | Voz Nula (silencia e drena Éter) | **magenta de voz** `#ff4cb2` | som, presença |
+| **Overcore** | Superaquecimento (pulso a 25% de vida) | **branco-incandescente** `#fff0c4` | sobrecarregado: o único quase branco, lê por **valor** |
+| **Cryonix** | Lentidão Criogênica | **azul de frio** `#5ec8ff` | frio, exatamente como o autor pediu |
+| *Clyffen (extinto)* | — | âmbar pálido, morto | memória do 11º modelo |
+
+**Efeito colateral bom:** a colisão que eu tinha encontrado (§ abaixo) some por **semântica**, não por gosto —
+Charger (magma), Forgekin (bronze) e Overcore (branco) deixam de ser três vermelhos e passam a ser três ideias
+diferentes.
+
+### As três partes do corpo (70/20/10)
+
+| Parte | Onde pega | Papel | Padrão sugerido |
+|---|---|---|---|
+| **70% — massa** | placas grandes: peito, costas, coxas, braços | é o que faz o personagem ser visto de longe | aço claro / branco neutro |
+| **20% — secundária** | ombreiras, canelas, capacete | dá o desenho e separa de longe o aliado do inimigo | latão escovado da paleta |
+| **10% — acento** | juntas, filetes, painéis pequenos | detalhe fino; **nunca** é o núcleo | cobre oxidado |
+
+**Regra dura:** o núcleo **não entra** no 10%. Se o núcleo pudesse ser repintado, ele deixaria de informar — e a
+única diferença entre herói e Apagado (§9d) é a **luz**, firme num e falhando no outro.
+
+### O que isso exige de dado e código
+
+| Onde | O quê |
+|---|---|
+| `FRunnerChassisData` | **`CoreColor`** (fixo, identidade) — e a `AccentColor` atual deixa de ser \"a cor do chassi\" e vira **sugestão de paleta de corpo** para o jogador |
+| `FRunnerCharacterProfile` | **`ColorPrimary`, `ColorSecondary`, `ColorAccent`** — escolha do jogador, salva com o personagem |
+| Material | o overlay `M_RunnerAccent` passa a receber as três cores do corpo; o núcleo usa um **material próprio emissivo** com `CoreColor` |
+| UI | seletor de **três cores** na criação (com a prévia ao lado do núcleo fixo), não um picker único |
+
+### Nota de método: o teste que já foi feito
+
+Antes deste modelo, eu testei a ideia do "núcleo colorido" desenhando cada núcleo em 128, 56 e **24 px**
+(`Tools/art/core_color_test.py`, o tamanho em que ele aparece com a câmera do jogo) e **as cores antigas
+colidiam**: Charger `#d94026`, Overcore `#ff2626` e Forgekin `#d98026` eram o mesmo ponto a 24 px, e quatro
+frios ficavam na mesma faixa. A tabela acima resolve isso, e o teste é o que valida: **rodar de novo depois de
+aplicar, e conferir que os dez se distinguem a 24 px**.
+
+### Título antigo desta seção (mantido para rastreio)
+
+**Núcleo de identidade** — a ideia do autor, testada antes de virar regra
 
 **A ideia (autor):** o núcleo que eu desenhei em âmbar fixo passa a ser **o indicador do chassi** — cada chassi
 com o núcleo na cor dele. Faz sentido: com câmera alta e distante, um **ponto emissivo colorido no peito** é o
