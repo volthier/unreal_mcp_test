@@ -535,6 +535,25 @@ o ComfyUI, enfileira, espera e baixa o resultado. Parâmetro principal: **`--den
 **Cuidado observado:** aos 0,70 o modelo ainda **arrasta props da referência** (no teste 3 apareceu um hidrante do
 desenho vizinho). Solução: recortar mais apertado e acrescentar `no props, no background objects` ao pedido.
 
+## 9f. **Os corpos das classes** — o que a img2img exigiu (medido, não suposto)
+
+Os seis corpos de classe (Breaker, Blade, Support, Engineer, Sentinel, Blaster) foram gerados por img2img a
+partir de recortes do material de referência. No caminho, quatro regras que **só aparecem na prática**:
+
+| # | Regra | O que acontece se ignorar |
+|---|---|---|
+| 1 | **Uma referência por classe** | os seis saem **o mesmo personagem** com detalhes diferentes — o mesmo defeito que reprovou os chassis na v001 |
+| 2 | **Nunca escrever palavras-título no prompt** (`ART DIRECTION`, `Breaker`, `SENTINEL`) | o modelo **desenha as palavras** dentro da imagem: saiu `STYLE ANCHOR`, `ART DIRECTION` e `Sential` queimados na arte |
+| 3 | **Sempre incluir** `no text, no letters, no words, no titles, no captions` | mesmo sem palavras-título, ele tenta legendar |
+| 4 | **Ampliar o recorte de referência** antes do img2img | a **resolução da saída segue a da referência** (recorte de 240 px gerou arte de 240 px) |
+
+**Receita que fechou:** recorte **com cabeça** do material de referência → **ampliar 3×** (LANCZOS) → img2img
+com **`--denoise 0.78`** → prompt com a direção de arte em **frase descritiva** (não em título), a classe
+descrita em minúsculas, a **apresentação por proporção** e o **cristal no lugar daquela classe** (§9b.2).
+
+> **Resultado:** seis personagens distintos, com rosto legível, no estilo artesanal da referência e **sem
+> texto** — em `Art/generated/corpos/corpo_<classe>_v00N.png`.
+
 ## 10. Gramática visual (o que se aprende com o mood board — e o que NÃO se copia)
 
 O mood board interno é `Art/reference/`: folhas de personagem de robô assinadas por artistas
