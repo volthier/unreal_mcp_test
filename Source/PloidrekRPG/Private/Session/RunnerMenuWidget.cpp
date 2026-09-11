@@ -26,6 +26,7 @@
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "NiagaraSystem.h"
 #include "Engine/World.h"
 #include "UI/RunnerPreviewActor.h"
 #include "Styling/CoreStyle.h"
@@ -1166,9 +1167,63 @@ void URunnerMenuWidget::MostrarNaVitrine(FName ChassiId)
         return;
     }
 
-    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
-    Vitrine->SetPreview(Dados.Mesh, Dados.AccentColor, Ajustes ? Ajustes->IdleAnim.LoadSynchronous() : nullptr);
     ChassiNaVitrine = ChassiId;
+
+    // Quem decide cristal ou corpo e a aba atual (o chassi E o cristal; o corpo e da classe).
+    AtualizarVitrine();
+}
+
+UMaterialInterface* URunnerMenuWidget::MaterialDoNucleo(const FName& ChassiId)
+{
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    if (!Ajustes || ChassiId.IsNone())
+    {
+        return nullptr;
+    }
+
+    // Convencao de nome: <pasta>/MI_Nucleo_<Chassi>.MI_Nucleo_<Chassi> (a cor e dado, nao codigo).
+    const FString Nome = ChassiId.ToString();
+    const FString NomeDoMaterial = FString::Printf(TEXT("MI_Nucleo_%s"), *Nome);
+    const FString Caminho = FString::Printf(TEXT("%s/%s.%s"), *Ajustes->PastaDosMateriaisDoNucleo, *NomeDoMaterial, *NomeDoMaterial);
+    UMaterialInterface* Material = LoadObject<UMaterialInterface>(nullptr, *Caminho);
+    if (!Material)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("URunnerMenuWidget: material do nucleo nao encontrado em %s"), *Caminho);
+    }
+    return Material;
+}
+
+void URunnerMenuWidget::AtualizarVitrine()
+{
+    URunnerSession* Session = GetSession();
+    if (!Vitrine || !Session)
+    {
+        return;
+    }
+
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    const FName ChassiDaVez = Session->GetSelectedChassis().IsNone() ? ChassiNaVitrine : Session->GetSelectedChassis();
+
+    // Aba CHASSI: o cristal girando com a aura em volta.
+    if (CurrentStep == ERunnerMenuStep::Chassis && Ajustes && !Ajustes->NucleoMesh.IsNull())
+    {
+        FLinearColor CorDoNucleo = FLinearColor(0.4f, 0.75f, 1.f);
+        FRunnerChassisData DadosDoChassi;
+        if (Session->GetChassisData(ChassiDaVez, DadosDoChassi))
+        {
+            CorDoNucleo = DadosDoChassi.CoreColor;
+        }
+        Vitrine->SetNucleo(Ajustes->NucleoMesh, MaterialDoNucleo(ChassiDaVez),
+                           Ajustes->AuraDoNucleo.LoadSynchronous(), CorDoNucleo);
+        return;
+    }
+
+    // Aba CLASSE e lista de Runners: o corpo.
+    FRunnerChassisData Dados;
+    if (Session->GetChassisData(ChassiDaVez, Dados))
+    {
+        Vitrine->SetPreview(Dados.Mesh, Dados.AccentColor, Ajustes ? Ajustes->IdleAnim.LoadSynchronous() : nullptr);
+    }
 }
 
 void URunnerMenuWidget::DestruirVitrine()
@@ -1227,6 +1282,9 @@ void URunnerMenuWidget::TrocarAba(const ERunnerMenuStep Aba)
         return;
     }
     GoToStep(Aba);
+
+    // Trocar de aba troca o que a vitrine mostra: cristal (chassi) x corpo (classe).
+    AtualizarVitrine();
 }
 
 void URunnerMenuWidget::SelecionarPersonagem(const FString& CharacterId, const bool bEntrarNoJogo)

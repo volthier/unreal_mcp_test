@@ -36,6 +36,12 @@ public:
     /** Monta a vitrine com o corpo do chassi, a tinta dele e a animacao de espera. */
     void SetPreview(const TSoftObjectPtr<USkeletalMesh>& InMesh, const FLinearColor& Accent, UAnimSequenceBase* IdleAnim);
 
+    /**
+     * Mostra o CRISTAL do chassi girando (a aba CHASSI), com a aura em volta.
+     * O corpo sai de cena: chassi e cristal, corpo e classe - sao eixos diferentes.
+     */
+    void SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, class UMaterialInterface* Material, class UNiagaraSystem* Aura, const FLinearColor& CorDoNucleo);
+
     /** Textura que o widget mostra (o "monitor"). */
     UTextureRenderTarget2D* GetRenderTarget() const { return RenderTarget; }
 
@@ -57,6 +63,18 @@ protected:
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<USkeletalMeshComponent> Corpo;
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<USceneCaptureComponent2D> Captura;
 
+    /** O cristal do chassi (a aba CHASSI mostra ele, nao o corpo). */
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UStaticMeshComponent> Nucleo;
+
+    /** A aura em volta do cristal: a nuvem de gelo que gira junto (casca aditiva com textura de geada). */
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UStaticMeshComponent> CascaDaAura;
+
+    /** Efeito Niagara opcional, por cima da casca. */
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UNiagaraComponent> Aura;
+
+    /** Luz do nucleo: acende o cristal com a cor dele (canal 1). */
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UPointLightComponent> LuzDoNucleo;
+
     /** Luz principal da vitrine (canal 1: so o corpo da vitrine responde). */
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<UDirectionalLightComponent> LuzPrincipal;
 
@@ -65,4 +83,7 @@ protected:
 
     UPROPERTY(Transient) TObjectPtr<UTextureRenderTarget2D> RenderTarget;
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> OverlayDinamico;
+
+    /** Instancia dinamica da aura: recebe a COR do chassi para tingir a nevoa de gelo. */
+    UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> AuraDinamica;
 };

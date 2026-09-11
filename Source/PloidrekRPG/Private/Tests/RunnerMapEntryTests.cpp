@@ -21,7 +21,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerMapEntryTest, "Runner.Entrada.MapaAponta
 bool FRunnerMapEntryTest::RunTest(const FString& Parameters)
 {
     FString CaminhoConfigurado;
-    const bool bAchou = GConfig && GConfig->GetString(TEXT("/Script/Engine.Settings"), TEXT("GameDefaultMap"),
+    const bool bAchou = GConfig && GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"),
                                                      CaminhoConfigurado, GEngineIni);
     if (!TestTrue(TEXT("a config define GameDefaultMap"), bAchou && !CaminhoConfigurado.IsEmpty()))
     {

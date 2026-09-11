@@ -9,7 +9,12 @@
 #include "Data/RunnerCharacterFactory.h"
 #include "Data/RunnerCharacterProfile.h"
 #include "Data/RunnerRules.h"
+#include "Data/RunnerChassisData.h"
+#include "Data/RunnerGameSettings.h"
 #include "Engine/DataTable.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "NiagaraSystem.h"
 
 /** Matematica do GDD v3: modificador, proficiencia, cap de capitulo, HP, CA, ataques. */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerRulesMathTest, "Runner.Regras.Matematica",
@@ -251,6 +256,91 @@ bool FRunnerMenuRoutingTest::RunTest(const FString& Parameters)
     // Excluir na lista abre a confirmacao: nao navega sozinho.
     TestTrue(TEXT("Excluir nao navega sozinho"),
         RunnerDestinoDoBotao(ERunnerMenuButton::Terceiro, ERunnerMenuStep::CharacterSelect, true) == ERunnerMenuStep::CharacterSelect);
+    return true;
+}
+
+
+/**
+ * O nucleo: o chassi E o cristal, e cada chassi tem a SUA cor (Docs/Prompts_Arte_Ploidrek.md 9b).
+ * Este teste amarra os tres elos: dado (CoreColor na DataTable) -> material (MI_Nucleo_<Chassi>) ->
+ * configuracao (malha e efeito do nucleo). Se alguem trocar a cor no CSV e esquecer de gerar a instancia,
+ * o teste acusa - que foi exatamente o risco quando as cores passaram a ser semanticas.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerNucleoTest, "Runner.Nucleo.CoresEInstancias",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerNucleoTest::RunTest(const FString& Parameters)
+{
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    if (!TestNotNull(TEXT("configuracao do Runner"), Ajustes))
+    {
+        return false;
+    }
+
+    // 1. a malha do cristal existe e carrega
+    UStaticMesh* Malha = Ajustes->NucleoMesh.LoadSynchronous();
+    TestNotNull(TEXT("malha do nucleo configurada"), Malha);
+
+    // 2. o efeito da aura existe (a nuvem de gelo em volta do cristal)
+    // A aura e uma casca de material aditivo com a textura de geada (tingida com a cor do chassi). O Niagara
+    // e opcional: se estiver configurado, tem de carregar; se nao estiver, o teste nao reclama.
+    if (!Ajustes->MaterialDaAura.IsNull())
+    {
+        TestNotNull(TEXT("material da aura carrega"), Ajustes->MaterialDaAura.LoadSynchronous());
+    }
+    if (!Ajustes->AuraDoNucleo.IsNull())
+    {
+        TestNotNull(TEXT("efeito Niagara da aura carrega"), Ajustes->AuraDoNucleo.LoadSynchronous());
+    }
+
+    // 3. cada chassi da tabela tem cor propria E a instancia de material correspondente
+    const UDataTable* Tabela = Ajustes->ChassisTable.LoadSynchronous();
+    if (!TestNotNull(TEXT("DT_Chassis"), Tabela))
+    {
+        return false;
+    }
+
+    TArray<FName> Ids = URunnerCharacterFactory::GetChassisIds(Tabela, /*bIncludeExtinct=*/true);
+    TestTrue(TEXT("a tabela tem chassis"), Ids.Num() > 0);
+
+    int32 ComCorPropria = 0;
+    for (const FName& Id : Ids)
+    {
+        const FRunnerChassisData* Linha = Tabela->FindRow<FRunnerChassisData>(Id, TEXT("RunnerNucleoTest"), false);
+        if (!Linha)
+        {
+            AddError(FString::Printf(TEXT("linha ausente para %s"), *Id.ToString()));
+            continue;
+        }
+
+        // A cor do nucleo nao pode ser o branco padrao: ela diz o que o chassi FAZ.
+        const FLinearColor Cor = Linha->CoreColor;
+        const bool bTemCor = !(FMath::IsNearlyEqual(Cor.R, 1.f) && FMath::IsNearlyEqual(Cor.G, 1.f) && FMath::IsNearlyEqual(Cor.B, 1.f));
+        TestTrue(FString::Printf(TEXT("%s tem cor de nucleo propria"), *Id.ToString()), bTemCor);
+        if (bTemCor)
+        {
+            ++ComCorPropria;
+        }
+
+        // A instancia do material existe e bate com a cor do dado (dado -> material, sem divergencia).
+        const FString NomeDoMaterial = FString::Printf(TEXT("MI_Nucleo_%s"), *Id.ToString());
+        const FString Caminho = FString::Printf(TEXT("%s/%s.%s"), *Ajustes->PastaDosMateriaisDoNucleo, *NomeDoMaterial, *NomeDoMaterial);
+        UMaterialInstanceConstant* Instancia = LoadObject<UMaterialInstanceConstant>(nullptr, *Caminho);
+        if (!TestNotNull(*FString::Printf(TEXT("instancia de material de %s"), *Id.ToString()), Instancia))
+        {
+            continue;
+        }
+
+        FLinearColor CorDoMaterial;
+        TestTrue(*FString::Printf(TEXT("instancia de %s tem CorDoNucleo"), *Id.ToString()),
+            Instancia->GetVectorParameterValue(FMaterialParameterInfo(TEXT("CorDoNucleo")), CorDoMaterial));
+        TestTrue(*FString::Printf(TEXT("material de %s bate com a DataTable"), *Id.ToString()),
+            FMath::IsNearlyEqual(CorDoMaterial.R, Cor.R, 0.02f)
+                && FMath::IsNearlyEqual(CorDoMaterial.G, Cor.G, 0.02f)
+                && FMath::IsNearlyEqual(CorDoMaterial.B, Cor.B, 0.02f));
+    }
+
+    TestTrue(TEXT("todos os chassis tem cor de nucleo propria"), ComCorPropria == Ids.Num());
     return true;
 }
 

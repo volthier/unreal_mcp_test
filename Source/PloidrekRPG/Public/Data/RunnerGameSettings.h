@@ -43,6 +43,35 @@ public:
      */
     UPROPERTY(config, EditAnywhere, Category = "EOS") FString EOSDevAuthHost;
 
+    // --- Nucleo (o cristal do chassi) ---
+    /**
+     * Malha do cristal - o chassi E o cristal, nao o corpo. Aparece girando na vitrine enquanto o jogador
+     * escolhe o CHASSI; o corpo (da CLASSE) entra depois, na aba da classe.
+     */
+    UPROPERTY(config, EditAnywhere, Category = "Nucleo") TSoftObjectPtr<UStaticMesh> NucleoMesh;
+
+    /**
+     * Caminho do material da cor do nucleo, com dois %s (o id do chassi). Ex.:
+     * /Game/AI_Assets/materials/MI_Nucleo_%s.MI_Nucleo_%s
+     * Assim a cor de cada chassi e dado, nao codigo - ver Docs/Prompts_Arte_Ploidrek.md secao 9b.
+     */
+    UPROPERTY(config, EditAnywhere, Category = "Nucleo") FString PastaDosMateriaisDoNucleo = TEXT("/Game/AI_Assets/materials");
+
+    /**
+     * Material da casca da aura: a nuvem de gelo que gira em volta do cristal (aditivo, com textura de
+     * geada). Ela e tingida com a cor do nucleo do chassi, entao a mesma casca serve para os dez.
+     */
+    UPROPERTY(config, EditAnywhere, Category = "Nucleo") TSoftObjectPtr<class UMaterialInterface> MaterialDaAura;
+
+    /** Escala da casca da aura em relacao ao cristal (1.0 = colada nele). */
+    UPROPERTY(config, EditAnywhere, Category = "Nucleo") float EscalaDaAura = 2.6f;
+
+    /** Efeito Niagara por cima da casca (opcional; a casca sozinha ja entrega a nevoa). */
+    UPROPERTY(config, EditAnywhere, Category = "Nucleo") TSoftObjectPtr<class UNiagaraSystem> AuraDoNucleo;
+
+    /** Escala do cristal na vitrine (a malha vem em tamanho de mundo). */
+    UPROPERTY(config, EditAnywhere, Category = "Nucleo") float EscalaDoNucleo = 0.35f;
+
     // --- Vitrine 3D do menu (o corpo que aparece girando enquanto voce escolhe) ---
     /** Giro do corpo na vitrine, em graus por segundo (0 deixa parado de frente). */
     UPROPERTY(config, EditAnywhere, Category = "Vitrine") float GiroDaVitrine = 16.f;

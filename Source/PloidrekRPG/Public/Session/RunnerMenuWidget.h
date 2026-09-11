@@ -172,6 +172,15 @@ protected:
     void PreencherInfo(UVerticalBox* Caixa, FName ChassisId, FName ClassId, const FString& TituloDoRunner = FString());
     /** A vitrine mostra o corpo deste chassi. */
     void MostrarNaVitrine(FName ChassiId);
+
+    /**
+     * Decide o que a vitrine mostra agora: o CRISTAL do chassi (aba CHASSI, com a aura em volta) ou o
+     * CORPO da classe (aba CLASSE e lista de Runners). Chassi e cristal; corpo e classe.
+     */
+    void AtualizarVitrine();
+
+    /** Material da cor do nucleo deste chassi (caminho vem das settings: nada de caminho fixo aqui). */
+    class UMaterialInterface* MaterialDoNucleo(const FName& ChassiId);
     /** Termina o ator da vitrine (ao sair do menu). */
     void DestruirVitrine();
 

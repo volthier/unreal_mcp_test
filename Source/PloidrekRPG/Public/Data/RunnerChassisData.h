@@ -35,6 +35,13 @@ struct PLOIDREKRPG_API FRunnerChassisData : public FTableRowBase
     /** Tinta de placeholder para diferenciar chassi sem arte. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Corpo") FLinearColor AccentColor = FLinearColor::White;
 
+    /**
+     * Cor do NUCLEO deste chassi: identidade fixa, ligada a habilidade (frio = azul, sobrecarga = branco
+     * incandescente, forja = bronze). O jogador NAO repinta o nucleo - e ele que diz o que o chassi faz.
+     * Ver Docs/Prompts_Arte_Ploidrek.md secao 9b.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Corpo") FLinearColor CoreColor = FLinearColor::White;
+
     /** Slot dos Clyffen: aparece na criacao marcado EXTINTO e nunca pode ser selecionado. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Slot") bool bExtinct = false;
 
