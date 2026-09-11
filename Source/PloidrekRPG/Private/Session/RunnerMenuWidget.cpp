@@ -70,14 +70,34 @@ namespace
         return FSlateRoundedBoxBrush(Preenchimento, Raio, Contorno, Espessura);
     }
 
+    /**
+     * A FONTE DO GUIA (Art/Tela_login): Orbitron nos titulos e Exo 2 na interface.
+     *
+     * Os TTF vivem em Content/Slate/Fonts, que e o caminho que o Slate resolve SOZINHO, sem asset de fonte.
+     * Isso nao e preguica: o import de fonte exige a aplicacao Slate, e em commandlet (-nullrhi) ele aborta com
+     * "Assertion failed: CurrentApplication.IsValid()" - testado e visto no log. Pelo caminho do Slate a fonte
+     * funciona sem depender de import.
+     *
+     * Titulo e tudo de 20 pt para cima; abaixo disso e interface. As duas fontes sao variaveis, entao o peso e a
+     * instancia padrao (Regular) - para peso especifico o caminho seria asset de fonte, que nao esta disponivel.
+     */
+    FSlateFontInfo FonteDoGuia(const float Tamanho)
+    {
+        const TCHAR* NomeDaFonte = (Tamanho >= 20.f) ? TEXT("Orbitron") : TEXT("Exo2");
+        return FSlateFontInfo(FString(NomeDaFonte), Tamanho);
+    }
+
     UTextBlock* CriarTexto(UWidgetTree* Arvore, const FString& Conteudo, const float Tamanho,
                            const FLinearColor& Cor, const FName Tipo = TEXT("Bold"))
     {
+        // O Tipo (Regular/Bold) veio da fonte do engine e nao existe no caminho de TTF do Slate: a fonte do
+        // guia tem um peso so. Fica marcado como nao usado de proposito, para o -Werror nao acusar.
+        (void)Tipo;
         UTextBlock* Texto = Arvore->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
         Texto->SetText(FText::FromString(Conteudo));
         Texto->SetColorAndOpacity(FSlateColor(Cor));
         Texto->SetAutoWrapText(true);
-        Texto->SetFont(FCoreStyle::GetDefaultFontStyle(Tipo, Tamanho));
+        Texto->SetFont(FonteDoGuia(Tamanho));
         return Texto;
     }
 
@@ -107,8 +127,10 @@ namespace
         Estilo.SetHovered(Caixa(Hover, RaioDoBotao, Contorno, Espessura));
         Estilo.SetPressed(Caixa(Normal * 0.75f, RaioDoBotao, Contorno, Espessura));
         Estilo.SetDisabled(Caixa(Normal * 0.35f, RaioDoBotao));
-        Estilo.SetNormalPadding(FMargin(12.f, 9.f));
-        Estilo.SetPressedPadding(FMargin(12.f, 10.f, 12.f, 8.f));
+        // Padding do alvo (Art/Tela_login): os botoes de la sao ALTOS e folgados, nao fitas finas. 15 px de
+        // folga vertical com a fonte de 16 pt da ~46 px de altura, que e a proporcao do guia.
+        Estilo.SetNormalPadding(FMargin(16.f, 15.f));
+        Estilo.SetPressedPadding(FMargin(16.f, 16.f, 16.f, 14.f));
         Botao->SetStyle(Estilo);
         Botao->SetBackgroundColor(FLinearColor::White);
     }
@@ -408,8 +430,10 @@ void URunnerMenuWidget::RebuildLayout()
     // por uma faixa enorme e deixava um vazio embaixo - era isso que o autor viu como "longe do guia".
     // Nas telas de escolha (chassi/classe/runners) o painel continua largo, porque ali ha tres colunas.
     const bool bTelaDeEntrada = (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount);
+    // Na entrada, o painel acompanha o CONTEUDO: com 86 por cento da tela sobrava um terco vazio embaixo, e o
+    // painel parecia maior que a tela. 74 por cento deixa o painel justo, com a cidade aparecendo mais.
     const float AlturaDoPainel = bTelaDeEntrada
-        ? FMath::Clamp(Tela.Y * 0.86f, 520.f, 900.f)
+        ? FMath::Clamp(Tela.Y * 0.74f, 520.f, 820.f)
         : FMath::Clamp(Tela.Y * 0.92f, 560.f, 1040.f);
     if (PanelSlotDoPainel)
     {
@@ -447,7 +471,10 @@ void URunnerMenuWidget::RebuildLayout()
         {
             // Largura E altura fixadas num SizeBox, com a PROPORCAO da textura: com so a largura, a caixa
             // vertical esticava a imagem e o PROTOCOL ZERO subia por cima do titulo (foi o que o autor viu).
-            const float LarguraDoLogo = 400.f;
+            // 300 px de largura: o painel da entrada mede 32 por cento da tela, e numa tela de 1200 px ele fica
+            // com ~383 px de largura util (~330 livres depois do padding). Com 400 o logotipo ESTOURAVA o painel
+            // - foi o que o autor viu na foto, com o conteudo caindo para fora.
+            const float LarguraDoLogo = 300.f;
             const float ProporcaoDoLogo = (float)Logotipo->GetSizeY() / FMath::Max(1.f, (float)Logotipo->GetSizeX());
             UImage* ImagemDoTitulo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("LogoDoJogo"));
             ImagemDoTitulo->SetBrushFromTexture(Logotipo, false);
@@ -629,8 +656,8 @@ void URunnerMenuWidget::RebuildLayout()
     // Botao principal: ambar cheio, texto escuro — e a acao que o passo pede.
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
-                   RunnerPalette::AzulNeon(0.95f), 1.5f);
-    UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 15.f, RunnerPalette::TextoDoBotao());
+                   RunnerPalette::AzulNeon(1.f), 2.f);
+    UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 18.f, RunnerPalette::TextoDoBotao());
     PrimaryText->SetAutoWrapText(false);
     switch (CurrentStep)
     {
@@ -653,7 +680,7 @@ void URunnerMenuWidget::RebuildLayout()
     UButton* Secondary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
                    RunnerPalette::Violeta(0.80f), 1.5f);
-    UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 14.f, RunnerPalette::TextoCorpo());
+    UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 16.f, RunnerPalette::TextoCorpo());
     SecondaryText->SetAutoWrapText(false);
     switch (CurrentStep)
     {
@@ -689,11 +716,11 @@ void URunnerMenuWidget::RebuildLayout()
                 Adicionar(RootBox, Fileira, 6.f);
             }
             UButton* Social = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-            EstilizarBotao(Social, RunnerPalette::BotaoTerciario(), RunnerPalette::BotaoTerciario(),
-                           RunnerPalette::Violeta(0.35f), 1.f);
+            EstilizarBotao(Social, RunnerPalette::BotaoTerciario(), RunnerPalette::BotaoTerciarioHover(),
+                           RunnerPalette::AzulNeon(0.45f), 1.f);
             Social->SetIsEnabled(false);
             Social->SetToolTipText(FText::FromString(TEXT("Integracao nao conectada neste projeto.")));
-            Social->AddChild(CriarTexto(WidgetTree, Provedores[Indice], 11.f, RunnerPalette::TextoFraco()));
+            Social->AddChild(CriarTexto(WidgetTree, Provedores[Indice], 13.f, RunnerPalette::TextoCorpo()));
             UHorizontalBoxSlot* Espaco = Fileira->AddChildToHorizontalBox(Social);
             Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
             Espaco->SetPadding(FMargin(3.f, 0.f));

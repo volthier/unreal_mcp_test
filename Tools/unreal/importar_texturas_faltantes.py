@@ -26,7 +26,7 @@ ENTRADAS = [
     # lugar da moldura de latao com interior branco. Mesmo nome de asset, entao a config nao muda.
     (RAIZ + '/ui/painel_hud_v001.png', 'ui_moldura_latao'),
     # Kit do login: o logotipo com o X em degrade e os icones dos campos.
-    (RAIZ + '/ui/logo_aether.png', 'ui_logo_aether'),
+    (RAIZ + '/ui/logo_aether.png', 'ui_logo_aether'),   # refeito na Orbitron do guia
     (RAIZ + '/ui/icone_pessoa.png', 'ui_icone_pessoa'),
     (RAIZ + '/ui/icone_cadeado.png', 'ui_icone_cadeado'),
     (RAIZ + '/ui/icone_olho.png', 'ui_icone_olho'),
