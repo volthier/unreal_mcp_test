@@ -50,7 +50,7 @@ latao = unreal.EditorAssetLibrary.load_asset(PASTA_MAT + '/M_LataoPolido.M_Latao
 registrar('malhas/materiais: cristal=%s esfera=%s aura=%s' % (cristal is not None, esfera is not None, base_aura is not None))
 
 chassis = cores_do_csv()
-largura = 700.0
+largura = 900.0
 inicio = -(len(chassis) - 1) * largura / 2.0
 
 for indice, (nome, cor) in enumerate(chassis):
@@ -64,10 +64,10 @@ for indice, (nome, cor) in enumerate(chassis):
         pedestal.static_mesh_component.set_material(0, latao)
 
     # 2. o cristal com a cor DAQUELE chassi
-    ator = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, 0.0, 190.0), unreal.Rotator(0, 0, 0))
+    ator = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, 0.0, 260.0), unreal.Rotator(0, 0, 0))
     ator.set_actor_label('VITRINE_%s_Cristal' % nome)
     ator.static_mesh_component.set_static_mesh(cristal)
-    ator.set_actor_scale3d(unreal.Vector(0.5, 0.5, 0.5))
+    ator.set_actor_scale3d(unreal.Vector(1.0, 1.0, 1.0))   # cristal em tamanho de leitura (era 0.5: ficava um ponto)
     material = unreal.EditorAssetLibrary.load_asset('%s/MI_Nucleo_%s.MI_Nucleo_%s' % (PASTA_MAT, nome, nome))
     if material:
         ator.static_mesh_component.set_material(0, material)
@@ -75,10 +75,10 @@ for indice, (nome, cor) in enumerate(chassis):
         registrar('  sem material para ' + nome)
 
     # 3. a casca da aura: esfera aditiva de geada, tingida com a cor do chassi
-    casca = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, 0.0, 190.0), unreal.Rotator(0, 0, 0))
+    casca = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, 0.0, 260.0), unreal.Rotator(0, 0, 0))
     casca.set_actor_label('VITRINE_%s_Aura' % nome)
     casca.static_mesh_component.set_static_mesh(esfera)
-    casca.set_actor_scale3d(unreal.Vector(1.3, 1.3, 1.3))
+    casca.set_actor_scale3d(unreal.Vector(2.6, 2.6, 2.6))   # a nuvem de gelo tem de envolver o cristal, nao colar nele
     # A aura usa uma INSTANCIA DE MATERIAL por chassi (MI_Aura_<Chassi>): o padrao que ja funciona para o
     # nucleo. Instancia dinamica em runtime nao existe nesta versao da API de Python, e a instancia salva
     # ainda tem a vantagem de ser dado versionado, nao estado de memoria.
@@ -103,8 +103,8 @@ for indice, (nome, cor) in enumerate(chassis):
     try:
         componente = luz.get_component_by_class(unreal.PointLightComponent)
         componente.set_light_color(cor)
-        componente.set_intensity(650.0)
-        componente.set_attenuation_radius(700.0)
+        componente.set_intensity(320.0)
+        componente.set_attenuation_radius(450.0)
         componente.set_cast_shadows(False)
     except Exception as erro:
         registrar('  luz de %s: %s' % (nome, str(erro)[:80]))
