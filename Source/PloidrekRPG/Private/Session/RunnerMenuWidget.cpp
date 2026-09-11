@@ -1205,8 +1205,27 @@ UMaterialInterface* URunnerMenuWidget::MaterialDoNucleo(const FName& ChassiId)
     return Material;
 }
 
+void URunnerMenuWidget::LigarMonitorNaVitrine()
+{
+    if (!PreviewImage || !Vitrine)
+    {
+        return;
+    }
+    if (UTextureRenderTarget2D* Alvo = Vitrine->GetRenderTarget())
+    {
+        FSlateBrush Pincel;
+        Pincel.SetResourceObject(Alvo);
+        Pincel.ImageSize = FVector2D(Vitrine->LadoDaCaptura, Vitrine->LadoDaCaptura);
+        Pincel.DrawAs = ESlateBrushDrawType::Image;
+        PreviewImage->SetBrush(Pincel);
+    }
+}
+
 void URunnerMenuWidget::AtualizarVitrine()
 {
+    // O monitor sempre aponta para a vitrine DESTE passo: sem isso ele mostra a captura da aba anterior.
+    LigarMonitorNaVitrine();
+
     URunnerSession* Session = GetSession();
     if (!Vitrine || !Session)
     {

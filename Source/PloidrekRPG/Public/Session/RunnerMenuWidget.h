@@ -179,6 +179,15 @@ protected:
      */
     void AtualizarVitrine();
 
+    /**
+     * Religa o monitor a vitrine ATUAL.
+     *
+     * Por que existe: a vitrine e destruida e recriada a cada troca de aba (cada passo tem a sua), e o
+     * monitor guardava a textura da vitrine antiga. O sintoma era exatamente o que o autor viu: a aba
+     * CLASSE continuava mostrando o CRISTAL da aba anterior (e a aba CHASSI, o corpo).
+     */
+    void LigarMonitorNaVitrine();
+
     /** Material da cor do nucleo deste chassi (caminho vem das settings: nada de caminho fixo aqui). */
     class UMaterialInterface* MaterialDoNucleo(const FName& ChassiId);
     /** Termina o ator da vitrine (ao sair do menu). */
