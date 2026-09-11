@@ -3,13 +3,19 @@
 #include "CoreMinimal.h"
 
 /**
- * Cores da interface, tiradas do documento canonico Docs/SteampunkPalette.md.
+ * Cores da interface — paleta CYBERPUNK NEON, definida nos guias de conceito do autor:
+ * Art/Tela_login/TL_guia_conceitual_part1.png e part2.png.
  *
  * Regra: nenhum hexadecimal solto no codigo dos widgets — se a cor nao existe aqui e porque
  * nao esta na paleta do jogo, e ai a discussao e de arte, nao de codigo.
  *
- * Estilo: forja industrial x sci-fi de acao — latao, cobre e ferro forjado, ceu dusk, luzes
- * quentes (ambar) e frias (ciano).
+ * Os NOMES das funcoes ficaram os mesmos de proposito: a interface inteira muda de uma vez, e nenhum
+ * widget precisou ser tocado. Os hexadecimais sao exatamente os do guia:
+ *   #00E5FF azul neon · #FF2E88 rosa neon · #A855F7 violeta · #1A1A2E fundo escuro
+ *   #0F172A fundo de UI · #94A3B8 texto secundario · #FF6B00 perigo · #FFFFFF branco
+ *
+ * Estilo: interface de ficcao cientifica inspirada em Mega Man X8 — vidro escuro, neon violeta e ciano,
+ * cidade em ruinas ao fundo, nuvem de nano-robos, hologramas.
  */
 namespace RunnerPalette
 {
@@ -24,43 +30,53 @@ namespace RunnerPalette
         return Linear;
     }
 
-    // --- Paleta central (metais) ---
-    inline FLinearColor LataoPolido(const float A = 1.f)    { return Hex(0xc9a227, A); }
-    inline FLinearColor LataoEscovado(const float A = 1.f)  { return Hex(0xa8842c, A); }
-    inline FLinearColor Cobre(const float A = 1.f)          { return Hex(0xb87333, A); }
-    inline FLinearColor CobreOxidado(const float A = 1.f)   { return Hex(0x8a4a2a, A); }
-    inline FLinearColor FerroForjado(const float A = 1.f)   { return Hex(0x3a3a42, A); }
-    inline FLinearColor AcoEscuro(const float A = 1.f)      { return Hex(0x2a2a30, A); }
-    inline FLinearColor Rebites(const float A = 1.f)        { return Hex(0xd8c890, A); }
-    inline FLinearColor Ambar(const float A = 1.f)          { return Hex(0xffb040, A); }
-    inline FLinearColor Vapor(const float A = 1.f)          { return Hex(0xc8c0a8, A); }
+    // --- Paleta central do guia (os nomes antigos ficam como apelido, para nao quebrar nenhum widget) ---
+    inline FLinearColor AzulNeon(const float A = 1.f)       { return Hex(0x00e5ff, A); }   // #00E5FF
+    inline FLinearColor RosaNeon(const float A = 1.f)       { return Hex(0xff2e88, A); }   // #FF2E88
+    inline FLinearColor Violeta(const float A = 1.f)        { return Hex(0xa855f7, A); }   // #A855F7
+    inline FLinearColor FundoEscuro(const float A = 1.f)    { return Hex(0x1a1a2e, A); }   // #1A1A2E
+    inline FLinearColor FundoUI(const float A = 1.f)        { return Hex(0x0f172a, A); }   // #0F172A
+    inline FLinearColor CinzaTexto(const float A = 1.f)     { return Hex(0x94a3b8, A); }   // #94A3B8
+    inline FLinearColor Perigo(const float A = 1.f)         { return Hex(0xff6b00, A); }   // #FF6B00
+    inline FLinearColor Branco(const float A = 1.f)         { return Hex(0xffffff, A); }   // #FFFFFF
 
-    // --- Ceu dusk e cidade ---
-    inline FLinearColor CeuTopo(const float A = 1.f)        { return Hex(0x1a2a5e, A); }
-    inline FLinearColor HorizonteForja(const float A = 1.f) { return Hex(0xc86a30, A); }
-    inline FLinearColor Brasa(const float A = 1.f)          { return Hex(0xff9040, A); }
-    inline FLinearColor LuzDeRua(const float A = 1.f)       { return Hex(0xffcf70, A); }
-    inline FLinearColor Silhueta(const float A = 1.f)       { return Hex(0x1a1a2e, A); }
+    // Metais do guia: o titulo e metalico claro, sem latao quente.
+    inline FLinearColor LataoPolido(const float A = 1.f)    { return Hex(0xe8f6ff, A); }   // titulo metalico frio
+    inline FLinearColor LataoEscovado(const float A = 1.f)  { return Hex(0x94a3b8, A); }
+    inline FLinearColor Cobre(const float A = 1.f)          { return Hex(0xa855f7, A); }
+    inline FLinearColor CobreOxidado(const float A = 1.f)   { return Hex(0x6d28d9, A); }
+    inline FLinearColor FerroForjado(const float A = 1.f)   { return Hex(0x1e293b, A); }
+    inline FLinearColor AcoEscuro(const float A = 1.f)      { return Hex(0x0f172a, A); }
+    inline FLinearColor Rebites(const float A = 1.f)        { return Hex(0x00e5ff, A); }
+    inline FLinearColor Ambar(const float A = 1.f)          { return Hex(0xff2e88, A); }   // o destaque agora e rosa neon
+    inline FLinearColor Vapor(const float A = 1.f)          { return Hex(0x94a3b8, A); }
+
+    // --- Ceu e cidade (a tempestade de nano-robos) ---
+    inline FLinearColor CeuTopo(const float A = 1.f)        { return Hex(0x1a1a2e, A); }
+    inline FLinearColor HorizonteForja(const float A = 1.f) { return Hex(0xa855f7, A); }
+    inline FLinearColor Brasa(const float A = 1.f)          { return Hex(0xff2e88, A); }
+    inline FLinearColor LuzDeRua(const float A = 1.f)       { return Hex(0x00e5ff, A); }
+    inline FLinearColor Silhueta(const float A = 1.f)       { return Hex(0x0f172a, A); }
 
     // --- Energia (Aether) e gelo ---
-    inline FLinearColor Ciano(const float A = 1.f)          { return Hex(0x40e0ff, A); }
+    inline FLinearColor Ciano(const float A = 1.f)          { return Hex(0x00e5ff, A); }
     inline FLinearColor Aether(const float A = 1.f)         { return Hex(0x40ffc0, A); }
 
     // --- Papeis na interface (quem usa o que) ---
-    inline FLinearColor FundoPainel()      { return Silhueta(0.94f); }
-    inline FLinearColor FundoCampo()       { return Silhueta(0.85f); }
-    inline FLinearColor BordaPainel()      { return LataoEscovado(0.95f); }
-    inline FLinearColor BordaCampo()       { return LataoEscovado(0.55f); }
-    inline FLinearColor TextoTitulo()      { return Ambar(); }
-    inline FLinearColor TextoCorpo()       { return Rebites(0.92f); }
-    inline FLinearColor TextoFraco()       { return Rebites(0.55f); }
-    inline FLinearColor TextoDoBotao()     { return Silhueta(); }
-    inline FLinearColor BotaoPrincipal()   { return Ambar(); }
-    inline FLinearColor BotaoPrincipalHover() { return LuzDeRua(); }
+    inline FLinearColor FundoPainel()      { return FundoUI(0.88f); }
+    inline FLinearColor FundoCampo()       { return Silhueta(0.72f); }
+    inline FLinearColor BordaPainel()      { return AzulNeon(0.85f); }
+    inline FLinearColor BordaCampo()       { return Violeta(0.55f); }
+    inline FLinearColor TextoTitulo()      { return Branco(); }
+    inline FLinearColor TextoCorpo()       { return CinzaTexto(0.95f); }
+    inline FLinearColor TextoFraco()       { return CinzaTexto(0.60f); }
+    inline FLinearColor TextoDoBotao()     { return Branco(); }
+    inline FLinearColor BotaoPrincipal()   { return RosaNeon(0.92f); }
+    inline FLinearColor BotaoPrincipalHover() { return RosaNeon(1.f); }
     inline FLinearColor BotaoSecundario()  { return FerroForjado(0.95f); }
-    inline FLinearColor BotaoSecundarioHover() { return AcoEscuro(1.f); }
-    inline FLinearColor BotaoTerciario()   { return CobreOxidado(0.35f); }
-    inline FLinearColor BotaoTerciarioHover() { return Cobre(0.55f); }
-    inline FLinearColor LinhaDeOpcao()     { return AcoEscuro(0.85f); }
-    inline FLinearColor LinhaDeOpcaoHover() { return FerroForjado(0.95f); }
+    inline FLinearColor BotaoSecundarioHover() { return Violeta(0.55f); }
+    inline FLinearColor BotaoTerciario()   { return Violeta(0.22f); }
+    inline FLinearColor BotaoTerciarioHover() { return Violeta(0.42f); }
+    inline FLinearColor LinhaDeOpcao()     { return FerroForjado(0.85f); }
+    inline FLinearColor LinhaDeOpcaoHover() { return Violeta(0.35f); }
 }

@@ -18,7 +18,7 @@ ENTRADAS = [
     # nova passa a valer sem mexer no material. A POCA e textura nova, para a nevoa que se acumula na base.
     (RAIZ + '/fx/fumaca_seca_v001.png', 'fx_nevoa_aura'),
     (RAIZ + '/fx/fumaca_seca_poca_v001.png', 'fx_nevoa_poca'),
-    (RAIZ + '/cenario/login_cidade_escolhido.png', 'ui_nuvens_ocre'),   # a cidade de Kardys ao crepusculo
+    (RAIZ + '/cenario/login_aether_escolhido.png', 'ui_nuvens_ocre'),   # AETHER FORGE: tempestade de nano-robos
     (RAIZ + '/cenario/login_kardys_v001.png', 'ui_login_kardys'),
     (RAIZ + '/cenario/pods_v002.png', 'ui_pods_selecao'),
     # Kit visual AAA do menu (EXC-005): o TextureTools.import_file do MCP recusa estes PNGs
