@@ -1,0 +1,107 @@
+# Capacidades do MCP — formato para bot (mesma verdade de CAPACIDADES.md)
+#
+# Fonte: list_toolsets + describe_toolset contra 127.0.0.1:8000/mcp (editor aberto). 59 toolsets.
+# REGRA: use `mcp` primeiro; `mcp_script` (código dentro do MCP) em segundo; `excecao` só com ID em EXCECOES.md.
+
+versao: 1
+servidores:
+  unreal:
+    transporte: streamable-http
+    url: http://127.0.0.1:8000/mcp
+    requisito: editor aberto
+    toolsets: 59
+  blender:
+    transporte: stdio
+    comando: blender-mcp
+    env: { BLENDER_HOST: 127.0.0.1, BLENDER_PORT: '9876' }
+    requisito: addon BLENDERMCP ligado no Blender
+  comfy:
+    transporte: stdio
+    comando: comfy-mcp
+    env: { COMFY_BIN: ~/.venvs/comfy-mcp/bin/comfy }
+
+prioridade:
+  1: mcp            # ferramenta dedicada do servidor
+  2: mcp_script     # ProgrammaticToolset.execute_tool_script (Unreal) / execute_blender_code (Blender)
+  3: excecao        # script fora do MCP, com ID registrado
+
+capacidades:
+  - id: asset.import_mesh
+    toolset: editor_toolset.toolsets.static_mesh.StaticMeshTools
+    ferramenta: import_file
+    usar_quando: trazer malha do Blender para o projeto
+    evidencia: assets + get_bounds
+  - id: asset.import_texture
+    toolset: editor_toolset.toolsets.texture.TextureTools
+    ferramenta: import_file
+    evidencia: get_size
+  - id: asset.save
+    toolset: editor_toolset.toolsets.asset.AssetTools
+    ferramenta: save_assets
+    usar_quando: SEMPRE depois de criar ou alterar asset (autoria pela MCP vive na memoria)
+    evidencia: is_dirty = falso
+  - id: asset.find_move_delete
+    toolset: editor_toolset.toolsets.asset.AssetTools
+    ferramenta: [find_assets, move, duplicate, delete, exists, get_referencers, get_dependencies]
+    usar_quando: inventario e higiene (inclusive tirar IP do Content)
+  - id: material.create
+    toolset: editor_toolset.toolsets.material.MaterialTools
+    ferramenta: [create_material, add_expression, connect_expressions, connect_to_output, recompile, get_expressions]
+    evidencia: get_expressions
+  - id: material.instance
+    toolset: editor_toolset.toolsets.material_instance.MaterialInstanceTools
+    ferramenta: [create, set_parent, set_vector_parameter, set_scalar_parameter, set_texture_parameter, list_parameters]
+    usar_quando: cor do chassi (CoreColor), brilho do cristal, nevoa da aura
+    evidencia: get_vector_parameter
+  - id: cena.montar
+    toolset: editor_toolset.toolsets.scene.SceneTools
+    ferramenta: [load_level, add_to_scene_from_asset, add_to_scene_from_class, find_actors, save_actor]
+    usar_quando: montar cidade, mostradores de cristal, atores
+  - id: ator.transformar_medir
+    toolset: editor_toolset.toolsets.actor.ActorTools
+    ferramenta: [set_actor_transform, get_actor_transform, get_actor_bounds, add_component, set_label, look_at]
+    evidencia: bounds em unidades
+  - id: objeto.propriedades
+    toolset: editor_toolset.toolsets.object.ObjectTools
+    ferramenta: [set_properties, get_properties, list_properties]
+  - id: dados.datatable
+    toolset: editor_toolset.toolsets.data_table.DataTableTools
+    ferramenta: [create, import_file, get_rows, set_rows, list_rows, get_schema]
+    nota: Data/*.csv e a fonte; a DataTable e o destino importado
+  - id: teste.automacao
+    toolset: AutomationTestToolset.AutomationTestToolset
+    ferramenta: [RunTests, RunTestsByFilter, GetTestResults, ListTests]
+    usar_quando: a DoD exige teste verde
+  - id: cpp.compilar_no_editor
+    toolset: LiveCodingToolset.LiveCodingToolset
+    ferramenta: CompileLiveCoding
+    usar_quando: mudou C++ e nao se quer fechar o editor
+  - id: ver.cena
+    toolset: EditorToolset.EditorAppToolset
+    ferramenta: [CaptureViewport, CaptureEditorImage, CaptureAssetImage, StartPIE, StopPIE, SetCameraTransform, FocusOnActors, SelectActors]
+    aviso: asset ALTERADO nao recarrega no viewport; asset NOVO aparece
+  - id: log.editor
+    toolset: EditorToolset.LogsToolset
+  - id: lote.orquestrar
+    toolset: editor_toolset.toolsets.programmatic.ProgrammaticToolset
+    ferramenta: [get_execution_environment, execute_tool_script]
+    usar_quando: muitas chamadas em sequencia (montar 20 atores, 11 instancias)
+    nota: chamar get_execution_environment ANTES, para ler as instrucoes do ambiente
+  - id: ui.umg
+    toolset: UMGToolSet.UMGToolSet
+    ferramenta: [CreateWidgetBlueprint, AddWidget, CompileWidgetBlueprint, BindToEventProperty, ListWidgetBlueprints]
+  - id: ui.mvvm
+    toolset: MVVMToolset.MVVMToolset
+  - id: mundo.pcg
+    toolset: PCGToolset.PCGToolset
+    nota: usar para ruas, rio, floresta, relevo; PCGSpatialToolset para espacial
+  - id: fx.niagara
+    toolset: NiagaraToolsets.NiagaraToolset_System
+    nota: emissor, modulo, topologia; _Component para runtime
+  - id: combate.gas
+    toolset: GASToolsets.AbilitySystemInspectorToolset
+    nota: junto com GameplayCueToolset e AttributeSetToolset
+
+proibido:
+  - escrever cliente MCP proprio (http/jsonrpc na mao)
+  - manter script sem ID de excecao registrado

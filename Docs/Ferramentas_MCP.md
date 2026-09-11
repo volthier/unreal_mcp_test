@@ -1,5 +1,18 @@
 # Ferramentas MCP — o que temos, o que existe, o que vale trocar
 
+> **ATENÇÃO — este documento virou histórico.** A fonte de verdade sobre MCP neste projeto passou a ser a pasta
+> `Docs/mcp/`:
+>
+> - **`Docs/mcp/CAPACIDADES.md`** e **`CAPACIDADES.yml`** — o que o servidor oferece hoje (levantado do servidor:
+>   **59 toolsets**), com quando usar cada ferramenta e a evidência que ela produz.
+> - **`Docs/mcp/REGISTRO.md`** — como declarar cada MCP por agente (label + host/porta ou comando). Sem código.
+> - **`Docs/mcp/ARMADILHAS.md`** — os erros medidos, com sintoma → causa → conserto.
+> - **`Docs/mcp/EXCECOES.md`** — o que ainda é script, e por quê.
+> - **`AGENTS.md`** (raiz) — o contrato: **MCP primeiro; script só com exceção registrada.**
+>
+> As seções abaixo ficam como **registro da investigação** que levou até aqui (inclusive a lista de pegadinhas,
+> que continua válida e está consolidada em `ARMADILHAS.md`).
+
 > Pesquisa feita em 10/09, depois de o `comfy-mcp` instalado quebrar (`ComfyCliError`) e de o trabalho no
 > Unreal ser feito por **commandlet headless** — que é lento, cego para World Partition e exige permissão
 > fora do workspace. Documento de decisão: o que a comunidade usa e o que eu recomendo.
