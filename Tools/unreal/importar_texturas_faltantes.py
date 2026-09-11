@@ -13,7 +13,11 @@ RAIZ = '/Users/volthier/Documents/Unreal Projects/AI_MEGA_MAN_TEST/Art/generated
 PASTA = '/Game/AI_Assets/ui'
 ENTRADAS = [
     (RAIZ + '/fx/geada_v001.png', 'fx_geada'),
-    (RAIZ + '/fx/nevoa_aura_v002.png', 'fx_nevoa_aura'),
+    # NEVOA DE GELO SECO (referencia do autor, foto de gelo seco): a PLUMA com volutas entra no lugar da
+    # textura antiga, com o MESMO nome - e o mesmo parametro TexturaDaAura do material da aura, entao a arte
+    # nova passa a valer sem mexer no material. A POCA e textura nova, para a nevoa que se acumula na base.
+    (RAIZ + '/fx/fumaca_seca_v001.png', 'fx_nevoa_aura'),
+    (RAIZ + '/fx/fumaca_seca_poca_v001.png', 'fx_nevoa_poca'),
     (RAIZ + '/cenario/login_cidade_escolhido.png', 'ui_nuvens_ocre'),   # a cidade de Kardys ao crepusculo
     (RAIZ + '/cenario/login_kardys_v001.png', 'ui_login_kardys'),
     (RAIZ + '/cenario/pods_v002.png', 'ui_pods_selecao'),

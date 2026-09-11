@@ -60,12 +60,13 @@ ARunnerPreviewActor::ARunnerPreviewActor()
 
     // A CASCA DA AURA: a nuvem de gelo em volta do cristal. Esfera aditiva com textura de geada - e ela que
     // da o volume da nevoa sem depender de particula, e ela que recebe a COR do chassi.
-    // DUAS cascas de nevoa, e a leitura vem da FORMA de cada uma (referencia do autor: nevoa de gelo seco):
-    //   [0] a POCA - bem larga e baixa, colada ao chao: e a nevoa que escorre e se acumula na base;
-    //   [1] o MANTO - menor e mais alta, envolvendo o cristal.
-    // Sao esferas ACHATADAS: nada de planos em pe, que liam como painel em vez de nevoa.
-    CascasDaNevoa.Reserve(2);
-    for (int32 Indice = 0; Indice < 2; ++Indice)
+    // QUATRO cartoes de nevoa (referencia do autor: fumaca de gelo seco numa foto):
+    //   [0] a POCA   - um cartao DEITADO no chao, largo: a nevoa que escorre e se acumula na base;
+    //   [1..3] as PLUMAS - tres cartoes EM PE, cruzados a 60 graus, com a textura de VOLUTAS.
+    // O que faz ler como fumaca e a TEXTURA (volutas densas com fios soltos), nao a geometria - foi a licao
+    // das esferas lisas, que liam como blobo, e dos planos com puff macio, que liam como painel.
+    CascasDaNevoa.Reserve(4);
+    for (int32 Indice = 0; Indice < 4; ++Indice)
     {
         UStaticMeshComponent* Casca = CreateDefaultSubobject<UStaticMeshComponent>(
             *FString::Printf(TEXT("CascaDaNevoa%d"), Indice));
@@ -187,7 +188,12 @@ void ARunnerPreviewActor::SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, U
     // Cryonix e branco incandescente no Overcore).
     if (Ajustes && CascasDaNevoa.Num() > 0)
     {
-        UStaticMesh* EsferaBase = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+        UStaticMesh* CartaoBase = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane"));
+
+        // A POCA usa material proprio (a textura de nevoa baixa e larga). O caminho e configurado aqui porque e
+        // um material do kit, nao um dado de balanceamento.
+        UMaterialInterface* MaterialDaPoca = LoadObject<UMaterialInterface>(nullptr,
+            TEXT("/Game/AI_Assets/materials/M_AuraPoca.M_AuraPoca"));
         if (!AuraDinamica)
         {
             if (UMaterialInterface* Base = Ajustes->MaterialDaAura.LoadSynchronous())
@@ -202,27 +208,41 @@ void ARunnerPreviewActor::SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, U
             AuraDinamica->SetScalarParameterValue(TEXT("BrilhoDaAura"), 0.22f);
         }
 
-        // A esfera do engine tem 100 cm de diametro. A POCA e larga e baixa (a nevoa acumulada); o MANTO e
-        // menor e mais alto (o que sobe em volta do cristal). As proporcoes vieram da referencia de gelo seco.
+        // O cartao do engine tem 100 cm. A POCA fica DEITADA (sem rotacao: o plano nasce deitado) e bem larga;
+        // as PLUMAS ficam EM PE (pitch 90) e cruzadas a 60 graus, para a fumaca existir de qualquer angulo.
         const float Base = Ajustes->EscalaDaAura * Escala;
         EscalaBaseDaAura = Base;
         for (int32 Indice = 0; Indice < CascasDaNevoa.Num(); ++Indice)
         {
             if (UStaticMeshComponent* Casca = CascasDaNevoa[Indice])
             {
-                if (EsferaBase)
+                if (CartaoBase)
                 {
-                    Casca->SetStaticMesh(EsferaBase);
+                    Casca->SetStaticMesh(CartaoBase);
                 }
-                if (AuraDinamica)
+                if (Indice == 0)
                 {
-                    Casca->SetMaterial(0, AuraDinamica);
+                    // a POCA: deitada no chao, larga e rasa, um pouco abaixo do cristal
+                    if (MaterialDaPoca)
+                    {
+                        Casca->SetMaterial(0, MaterialDaPoca);
+                    }
+                    Casca->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
+                    Casca->SetRelativeScale3D(FVector(Base * 2.2f, Base * 1.5f, 1.f));
+                    Casca->SetRelativeLocation(FVector(0.f, 0.f, -75.f));
                 }
-                const FVector EscalaDaCasca = (Indice == 0)
-                    ? FVector(Base * 2.4f, Base * 2.4f, Base * 0.42f)   // a poca: 2,4x mais larga que alta
-                    : FVector(Base * 0.95f, Base * 0.95f, Base * 0.70f); // o manto em volta do cristal
-                Casca->SetRelativeScale3D(EscalaDaCasca);
-                Casca->SetRelativeLocation(FVector(0.f, 0.f, (Indice == 0) ? -35.f : 0.f));
+                else
+                {
+                    // as PLUMAS: em pe, cruzadas, de alturas levemente diferentes para nao parecer um objeto
+                    if (AuraDinamica)
+                    {
+                        Casca->SetMaterial(0, AuraDinamica);
+                    }
+                    const float Altura = 1.f + 0.12f * (Indice - 2);
+                    Casca->SetRelativeRotation(FRotator(90.f, 60.f * (Indice - 1), 0.f));
+                    Casca->SetRelativeScale3D(FVector(Base * 1.1f, Base * 1.35f * Altura, 1.f));
+                    Casca->SetRelativeLocation(FVector(0.f, 0.f, 10.f * (Indice - 2)));
+                }
                 Casca->SetVisibility(true);
             }
         }
