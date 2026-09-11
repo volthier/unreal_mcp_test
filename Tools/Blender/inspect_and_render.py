@@ -21,7 +21,10 @@ def main():
     glb, prefixo = argumentos[0], argumentos[1]
 
     limpar_cena()
-    bpy.ops.import_scene.gltf(filepath=glb)
+    if glb.lower().endswith('.fbx'):
+        bpy.ops.import_scene.fbx(filepath=glb)
+    else:
+        bpy.ops.import_scene.gltf(filepath=glb)
 
     malhas = [o for o in bpy.data.objects if o.type == 'MESH']
     vertices = sum(len(o.data.vertices) for o in malhas)

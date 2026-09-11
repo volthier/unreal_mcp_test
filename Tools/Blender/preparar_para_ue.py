@@ -45,6 +45,31 @@ def principal():
     print('faces antes:', sum(len(o.data.polygons) for o in malhas))
 
     for objeto in malhas:
+        # 0. CORTA A LAJE DO CHAO, se ela vier junto. O Hunyuan3D reconstroi a CENA, e a imagem de
+        #    referencia tinha o objeto sobre um piso: a malha sai com o piso colado (1,9 x 1,9 x 1,96
+        #    num predio que e uma torre esguia). Sem cortar, no Unreal o predio vira uma laje gigante
+        #    com a torre em cima.
+        malha_limpeza = bmesh.new()
+        malha_limpeza.from_mesh(objeto.data)
+        alturas = [v.co.z for v in malha_limpeza.verts]
+        if alturas:
+            baixo, alto = min(alturas), max(alturas)
+            corte = baixo + (alto - baixo) * 0.10
+            descartar = [f for f in malha_limpeza.faces if all(v.co.z < corte for v in f.verts)]
+            if descartar:
+                bmesh.ops.delete(malha_limpeza, geom=descartar, context='FACES')
+                print('   laje cortada:', len(descartar), 'faces')
+            # e o pivo vai para a BASE: o predio assenta no chao sem conta de meia altura
+            sobrou = [v.co.z for v in malha_limpeza.verts]
+            if sobrou:
+                deslocamento = min(sobrou)
+                for v in malha_limpeza.verts:
+                    v.co.z -= deslocamento
+                print('   pivo movido para a base:', round(deslocamento, 3))
+        malha_limpeza.to_mesh(objeto.data)
+        malha_limpeza.free()
+        objeto.data.update()
+
         # 1. solda vertices duplicados e corrige normais (bmesh: sem contexto de UI)
         malha = bmesh.new()
         malha.from_mesh(objeto.data)
@@ -53,6 +78,16 @@ def principal():
         malha.to_mesh(objeto.data)
         malha.free()
         objeto.data.update()
+
+        # 1b. ASSA O TRANSFORM NA MALHA. O glTF guarda a orientacao no NO do objeto e os dois
+        #     exportadores (glTF x FBX) interpretam isso de formas diferentes: a torre saia DEITADA no
+        #     Unreal (caixa 62 x 14 x 18 m, com o eixo longo em X, medido no proprio editor). Assando a
+        #     matriz na malha e zerando o transform, os dois formatos concordam.
+        if objeto.matrix_world != objeto.matrix_world.Identity(4):
+            objeto.data.transform(objeto.matrix_world)
+            objeto.matrix_world = objeto.matrix_world.Identity(4)
+            objeto.data.update()
+            print('   transform assado na malha')
 
         # 2. decima pelo depsgraph
         print('  ', objeto.name, '->', aplicar_decimacao(objeto, alvo), 'faces')
