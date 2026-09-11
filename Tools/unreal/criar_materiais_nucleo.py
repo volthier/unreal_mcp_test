@@ -31,7 +31,7 @@ if base is None:
     # emissivo: a cor multiplicada por um brilho parametrizado, para o nucleo parecer aceso
     brilho = unreal.MaterialEditingLibrary.create_material_expression(base, unreal.MaterialExpressionScalarParameter, -700, 200)
     brilho.set_editor_property('parameter_name', 'Brilho')
-    brilho.set_editor_property('default_value', 2.2)
+    brilho.set_editor_property('default_value', 0.55)
     multiplica = unreal.MaterialEditingLibrary.create_material_expression(base, unreal.MaterialExpressionMultiply, -450, 100)
     unreal.MaterialEditingLibrary.connect_material_expressions(cor, '', multiplica, 'A')
     unreal.MaterialEditingLibrary.connect_material_expressions(brilho, '', multiplica, 'B')
@@ -69,8 +69,10 @@ for linha in chassis:
         saida.append('FALHOU a instancia de ' + nome)
         continue
     unreal.MaterialEditingLibrary.set_material_instance_parent(instancia, base)
+    # SEMPRE escreve os parametros, inclusive em instancia que ja existia: senao um ajuste de brilho nunca
+    # chega nas instancias antigas (foi o que deixou o cristal estourado depois de eu baixar o valor).
     unreal.MaterialEditingLibrary.set_material_instance_vector_parameter_value(instancia, 'CorDoNucleo', cor)
-    unreal.MaterialEditingLibrary.set_material_instance_scalar_parameter_value(instancia, 'Brilho', 2.2)
+    unreal.MaterialEditingLibrary.set_material_instance_scalar_parameter_value(instancia, 'Brilho', 0.55)
     unreal.EditorAssetLibrary.save_asset(caminho)
     saida.append('instancia: ' + nome_instancia + ' cor (' + str(round(cor.r, 2)) + ', ' + str(round(cor.g, 2)) + ', ' + str(round(cor.b, 2)) + ')')
 
