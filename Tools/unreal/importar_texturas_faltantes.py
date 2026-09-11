@@ -14,7 +14,7 @@ PASTA = '/Game/AI_Assets/ui'
 ENTRADAS = [
     (RAIZ + '/fx/geada_v001.png', 'fx_geada'),
     (RAIZ + '/fx/nevoa_aura_v002.png', 'fx_nevoa_aura'),
-    (RAIZ + '/cenario/nuvens_ocre_v002.png', 'ui_nuvens_ocre'),   # v002: nuvens com raios reforcados
+    (RAIZ + '/cenario/login_cidade_escolhido.png', 'ui_nuvens_ocre'),   # a cidade de Kardys ao crepusculo
     (RAIZ + '/cenario/login_kardys_v001.png', 'ui_login_kardys'),
     (RAIZ + '/cenario/pods_v002.png', 'ui_pods_selecao'),
     # Kit visual AAA do menu (EXC-005): o TextureTools.import_file do MCP recusa estes PNGs
