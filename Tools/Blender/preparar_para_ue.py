@@ -45,6 +45,25 @@ def principal():
     print('faces antes:', sum(len(o.data.polygons) for o in malhas))
 
     for objeto in malhas:
+        # 0a. DESCARTA FACES GIGANTES. O Hunyuan3D reconstroi a CENA, e o fundo branco da imagem vira
+        #     folha chapada em pe no telhado; o piso tambem vem como uma face enorme. Face grande demais
+        #     e sempre artefato, nunca superficie do objeto - entao sai antes de tudo.
+        malha_gigante = bmesh.new()
+        malha_gigante.from_mesh(objeto.data)
+        if malha_gigante.faces:
+            xs = [v.co.x for v in malha_gigante.verts]
+            ys = [v.co.y for v in malha_gigante.verts]
+            zs = [v.co.z for v in malha_gigante.verts]
+            diagonal = ((max(xs) - min(xs)) ** 2 + (max(ys) - min(ys)) ** 2 + (max(zs) - min(zs)) ** 2) ** 0.5
+            limite = 0.05 * diagonal * diagonal
+            gigantes = [f for f in malha_gigante.faces if f.calc_area() > limite]
+            if gigantes:
+                bmesh.ops.delete(malha_gigante, geom=gigantes, context='FACES')
+                print('   faces gigantes descartadas:', len(gigantes))
+            malha_gigante.to_mesh(objeto.data)
+            objeto.data.update()
+        malha_gigante.free()
+
         # 0. CORTA A LAJE DO CHAO, se ela vier junto. O Hunyuan3D reconstroi a CENA, e a imagem de
         #    referencia tinha o objeto sobre um piso: a malha sai com o piso colado (1,9 x 1,9 x 1,96
         #    num predio que e uma torre esguia). Sem cortar, no Unreal o predio vira uma laje gigante
@@ -78,6 +97,28 @@ def principal():
         malha.to_mesh(objeto.data)
         malha.free()
         objeto.data.update()
+
+        # 1a. SEPARA AS PARTES SOLTAS E FICA COM A MAIOR. O fundo branco da imagem vira uma folha em pe no
+        #     telhado e o piso vira tiras soltas - tudo isso e GEOMETRIA DESCONECTADA do objeto. Separa e
+        #     mantem a parte com mais faces (o predio). Filtro por tamanho de face nao resolve: essas
+        #     folhas vem subdivididas em milhares de faces pequenas.
+        bpy.context.view_layer.objects.active = objeto
+        bpy.ops.object.select_all(action='DESELECT')
+        objeto.select_set(True)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.separate(type='LOOSE')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        partes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
+        if len(partes) > 1:
+            partes.sort(key=lambda o: len(o.data.polygons), reverse=True)
+            principal, resto = partes[0], partes[1:]
+            print('   partes soltas:', len(partes), '- ficando com', principal.name, 'e descartando', len(resto))
+            for extra in resto:
+                bpy.data.objects.remove(extra, do_unlink=True)
+            objeto = principal
+            bpy.context.view_layer.objects.active = objeto
+            objeto.select_set(True)
 
         # 1b. ASSA O TRANSFORM NA MALHA. O glTF guarda a orientacao no NO do objeto e os dois
         #     exportadores (glTF x FBX) interpretam isso de formas diferentes: a torre saia DEITADA no

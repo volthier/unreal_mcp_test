@@ -41,7 +41,7 @@ material_chao = carregar('/Game/AI_Assets/materials/M_ChaoDaCidade.M_ChaoDaCidad
 cubo = carregar('/Engine/BasicShapes/Cube.Cube')
 # A torre gerada (texto -> 3D) e o bloco de engine: a malha do predio baixo ainda sai em laminas e
 # entra na cidade quando o tratamento dela fechar (o bloco de engine da leitura de quarteirao agora).
-malhas = [m for m in (malha_predio, cubo) if m]
+malhas = [m for m in (malha_predio, malha_predio_baixo, cubo) if m]
 
 # o piso da praca recebe a textura de chao industrial da cidade
 for ator in unreal.EditorLevelLibrary.get_all_level_actors():
