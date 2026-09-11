@@ -36,7 +36,18 @@ for ator in unreal.EditorLevelLibrary.get_all_level_actors():
 
 malha_predio = carregar('/Game/AI_Assets/prop/predio_alto.predio_alto')
 malha_casulo = carregar('/Game/AI_Assets/prop/casulo.casulo')
-malhas = [m for m in (malha_predio,) if m]   # so a torre: o casulo e um domo, nao e predio
+malha_predio_baixo = carregar('/Game/AI_Assets/prop/predio_baixo.predio_baixo')
+material_chao = carregar('/Game/AI_Assets/materials/M_ChaoDaCidade.M_ChaoDaCidade')
+cubo = carregar('/Engine/BasicShapes/Cube.Cube')
+# A torre gerada (texto -> 3D) e o bloco de engine: a malha do predio baixo ainda sai em laminas e
+# entra na cidade quando o tratamento dela fechar (o bloco de engine da leitura de quarteirao agora).
+malhas = [m for m in (malha_predio, cubo) if m]
+
+# o piso da praca recebe a textura de chao industrial da cidade
+for ator in unreal.EditorLevelLibrary.get_all_level_actors():
+    if ator.get_actor_label() == 'MUNDO_Piso' and material_chao:
+        ator.static_mesh_component.set_material(0, material_chao)
+        saida.append('piso da praca com a textura da cidade')
 materiais = [m for m in (carregar('/Game/AI_Assets/materials/M_LataoPolido.M_LataoPolido'),
                          carregar('/Game/AI_Assets/materials/M_AcoEscuro.M_AcoEscuro'),
                          carregar('/Game/AI_Assets/materials/M_PedraRestaurada.M_PedraRestaurada')) if m]
@@ -64,7 +75,11 @@ for ix in range(LADO):
         comp = ator.static_mesh_component
         comp.set_static_mesh(malha)
         comp.set_mobility(unreal.ComponentMobility.MOVABLE)
-                ator.set_actor_scale3d(unreal.Vector(altura * 0.55, altura * 0.55, altura))
+        # A torre e esguia (XY menor que Z); o bloco de engine e largo e baixo - dois tipos de volume.
+        if malha == cubo:
+            ator.set_actor_scale3d(unreal.Vector(altura * 0.9, altura * 0.75, altura * 0.45))
+        else:
+            ator.set_actor_scale3d(unreal.Vector(altura * 0.55, altura * 0.55, altura))
         if materiais:
             comp.set_material(0, random.choice(materiais))
         ator.set_actor_label('CIDADE_%02d%02d' % (ix, iy))
@@ -72,6 +87,17 @@ for ix in range(LADO):
 
 saida.append('predios criados: ' + str(criados))
 saida.append('mapa salvo: ' + str(unreal.EditorLoadingAndSavingUtils.save_current_level()))
+
+# medicao imediata, no MESMO processo: elimina duvida de persistencia entre processos
+for ator in unreal.EditorLevelLibrary.get_all_level_actors():
+    if ator.get_actor_label().startswith('CIDADE_'):
+        origem, extensao = ator.get_actor_bounds(False)
+        escala = ator.get_actor_scale3d()
+        saida.append('MEDIDO %s escala (%.1f, %.1f, %.1f) caixa %.0f x %.0f x %.0f m' % (
+            ator.get_actor_label(), escala.x, escala.y, escala.z,
+            extensao.x * 2 / 100, extensao.y * 2 / 100, extensao.z * 2 / 100))
+        if len([s for s in saida if s.startswith('MEDIDO')]) >= 4:
+            break
 
 with open(unreal.Paths.project_saved_dir() + 'Cidade.txt', 'w') as arquivo:
     arquivo.write(chr(10).join(saida) + chr(10))
