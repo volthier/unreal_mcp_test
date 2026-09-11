@@ -155,6 +155,13 @@ protected:
     /** Resultado do login (o EOS responde assincrono; o local responde na hora). */
     UFUNCTION() void HandleLoginComplete(bool bSuccess, const FString& Error);
 
+    /**
+     * "Lembrar-me" da tela de entrada (guia do autor, TL_guia_conceitual_part1): marcado, o e-mail digitado e
+     * lembrado e volta preenchido na proxima vez que a tela abre. Hoje a memoria e da sessao; quando o EOS
+     * estiver conectado ela passa a vir da conta.
+     */
+    UFUNCTION() void HandleLembrarMe(bool bMarcado);
+
     /** Depois de entrar: lista os personagens da conta, ou vai direto criar o primeiro. */
     void AfterLogin();
 
@@ -242,6 +249,12 @@ protected:
     UPROPERTY() TObjectPtr<UEditableTextBox> PasswordBox;
     UPROPERTY() TObjectPtr<UEditableTextBox> UserNameBox;
     UPROPERTY() TObjectPtr<UEditableTextBox> ConfirmBox;
+
+    /** Caixa "Lembrar-me" (tela de entrada) e o estado dela. */
+    UPROPERTY() TObjectPtr<class UCheckBox> LembrarMeBox;
+    bool bLembrarMe = true;
+    /** E-mail lembrado: volta preenchido quando "Lembrar-me" esta marcado. */
+    FString EmailLembrado;
 
     /** Nome do personagem (so no passo de escolher a classe, onde a ficha e criada). */
     UPROPERTY() TObjectPtr<UEditableTextBox> NameBox;

@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/CheckBox.h"
 #include "Components/EditableTextBox.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
@@ -338,6 +339,23 @@ void URunnerMenuWidget::NativeOnInitialized()
     RebuildLayout();
 }
 
+void URunnerMenuWidget::HandleLembrarMe(bool bMarcado)
+{
+    bLembrarMe = bMarcado;
+    // Guarda (ou esquece) o que esta digitado AGORA: e o que o autor espera de "lembrar de mim".
+    if (bMarcado && AccountBox)
+    {
+        EmailLembrado = AccountBox->GetText().ToString();
+    }
+    else if (!bMarcado)
+    {
+        EmailLembrado.Reset();
+    }
+    SetStatus(bMarcado
+        ? TEXT("Lembrar de mim: marcado - o e-mail volta preenchido na proxima vez.")
+        : TEXT("Lembrar de mim: desmarcado - o e-mail nao sera lembrado."));
+}
+
 void URunnerMenuWidget::SetStatus(const FString& Message)
 {
     if (StatusText)
@@ -412,13 +430,30 @@ void URunnerMenuWidget::RebuildLayout()
             }
         }
     }
-    Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("PLOIDREKRPG"), 26.f, RunnerPalette::LataoPolido()), 2.f);
+    // BLOCO DO TITULO, conforme o guia (Art/Tela_login/TL_Tela_Login_art_final.png):
+    //   AETHER FORGE  - titulo grande, metalico frio;
+    //   P R O T O C O L   Z E R O - subtitulo espacado em violeta;
+    //   mais que jogo, um novo amanha - a frase do guia, discreta.
+    // O espacamento entre letras do subtitulo vem de espacos no proprio texto: a fonte do engine nao tem
+    // eixo de tracking, e inventar um asset de fonte aqui seria excecao sem necessidade (ver EXCECOES.md).
+    if (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount)
+    {
+        UTextBlock* TituloDoJogo = CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 34.f, RunnerPalette::Branco());
+        TituloDoJogo->SetRenderScale(FVector2D(1.f, 1.18f));
+        Adicionar(RootBox, TituloDoJogo, 0.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 13.f, RunnerPalette::Violeta()), 4.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("mais que jogo, um novo amanha"), 10.f, RunnerPalette::TextoFraco()), 8.f);
+    }
+    else
+    {
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 26.f, RunnerPalette::LataoPolido()), 2.f);
+    }
 
     FString Passo;
     switch (CurrentStep)
     {
-        case ERunnerMenuStep::Login:           Passo = TEXT("NEXUS-7 · ACESSO"); break;
-        case ERunnerMenuStep::CreateAccount:   Passo = TEXT("NEXUS-7 · NOVA CONTA"); break;
+        case ERunnerMenuStep::Login:           Passo = TEXT("LOGIN     |     CADASTRO"); break;
+        case ERunnerMenuStep::CreateAccount:   Passo = TEXT("LOGIN     |     CADASTRO"); break;
         case ERunnerMenuStep::CharacterSelect: Passo = TEXT("SEUS RUNNERS"); break;
         case ERunnerMenuStep::Chassis:         Passo = TEXT("ESCOLHA O CHASSI"); break;
         case ERunnerMenuStep::Class:           Passo = TEXT("ESCOLHA A CLASSE"); break;
@@ -481,7 +516,13 @@ void URunnerMenuWidget::RebuildLayout()
 
         // Campo 1: o host do Dev Auth (pre-preenchido) ou o e-mail da conta.
         AccountBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:8081") : TEXT("e-mail")));
+        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:8081") : TEXT("E-mail ou Usuario")));
+        // "Lembrar de mim": o e-mail guardado volta preenchido (so quando nao e o host do Dev Auth, que ja
+        // vem da configuracao e nao e do usuario).
+        if (!bCamposDoDevAuth && bLembrarMe && !EmailLembrado.IsEmpty())
+        {
+            AccountBox->SetText(FText::FromString(EmailLembrado));
+        }
         EstilizarCampo(AccountBox);
         Adicionar(RootBox, AccountBox, 10.f);
         AlvosDoVeu.Add(AccountBox);
@@ -500,11 +541,39 @@ void URunnerMenuWidget::RebuildLayout()
         PasswordBox->SetHintText(FText::FromString(
             bCamposDoDevAuth ? TEXT("nome da credencial")
             : (CurrentStep == ERunnerMenuStep::CreateAccount
-                ? TEXT("senha (8+, maiuscula, minuscula, especial)") : TEXT("senha"))));
+                ? TEXT("Senha (8+, maiuscula, minuscula, especial)") : TEXT("Senha"))));
         PasswordBox->SetIsPassword(!bCamposDoDevAuth);
         EstilizarCampo(PasswordBox);
         Adicionar(RootBox, PasswordBox, 10.f);
         AlvosDoVeu.Add(PasswordBox);
+
+        // A linha do guia: "Lembrar de mim" a esquerda e "Esqueci a senha?" a direita.
+        if (CurrentStep == ERunnerMenuStep::Login)
+        {
+            UHorizontalBox* LinhaDeAjuda = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+
+            LembrarMeBox = WidgetTree->ConstructWidget<UCheckBox>(UCheckBox::StaticClass());
+            LembrarMeBox->SetIsChecked(bLembrarMe);
+            LembrarMeBox->OnCheckStateChanged.AddDynamic(this, &URunnerMenuWidget::HandleLembrarMe);
+            UHorizontalBoxSlot* EspacoDaCaixa = LinhaDeAjuda->AddChildToHorizontalBox(LembrarMeBox);
+            EspacoDaCaixa->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+            EspacoDaCaixa->SetVerticalAlignment(VAlign_Center);
+
+            UTextBlock* RotuloLembrar = CriarTexto(WidgetTree, TEXT("  Lembrar de mim"), 11.f, RunnerPalette::TextoCorpo());
+            UHorizontalBoxSlot* EspacoDoRotulo = LinhaDeAjuda->AddChildToHorizontalBox(RotuloLembrar);
+            EspacoDoRotulo->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+            EspacoDoRotulo->SetVerticalAlignment(VAlign_Center);
+
+            // Honestidade antes de simetria: o guia pede o atalho, e o atalho diz o estado real - a
+            // recuperacao de senha chega junto com a conta EOS, entao o texto diz isso em vez de fingir.
+            UTextBlock* Esqueci = CriarTexto(WidgetTree, TEXT("Esqueci a senha?  (chega com a conta EOS)"), 10.f,
+                                             RunnerPalette::AzulNeon(0.75f));
+            UHorizontalBoxSlot* EspacoDoEsqueci = LinhaDeAjuda->AddChildToHorizontalBox(Esqueci);
+            EspacoDoEsqueci->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+            EspacoDoEsqueci->SetVerticalAlignment(VAlign_Center);
+
+            Adicionar(RootBox, LinhaDeAjuda, 10.f);
+        }
 
         if (CurrentStep == ERunnerMenuStep::CreateAccount)
         {
@@ -542,7 +611,7 @@ void URunnerMenuWidget::RebuildLayout()
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
-            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar com o EOS (Dev Auth Tool)") : TEXT("Entrar (local)")));
+            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("LOGIN  (conta EOS)") : TEXT("LOGIN")));
             break;
         case ERunnerMenuStep::CreateAccount:     PrimaryText->SetText(FText::FromString(TEXT("Criar conta"))); break;
         case ERunnerMenuStep::CharacterSelect:   PrimaryText->SetText(FText::FromString(TEXT("Jogar"))); break;
@@ -565,7 +634,7 @@ void URunnerMenuWidget::RebuildLayout()
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
-            SecondaryText->SetText(FText::FromString(bEOS ? TEXT("Entrar com a conta Epic (EOS)") : TEXT("Criar conta nova")));
+            SecondaryText->SetText(FText::FromString(bEOS ? TEXT("LOGIN  (conta Epic)") : TEXT("CADASTRO")));
             break;
         case ERunnerMenuStep::CreateAccount:   SecondaryText->SetText(FText::FromString(TEXT("Voltar"))); break;
         case ERunnerMenuStep::CharacterSelect: SecondaryText->SetText(FText::FromString(TEXT("Criar novo"))); break;
@@ -577,6 +646,35 @@ void URunnerMenuWidget::RebuildLayout()
     Secondary->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnSecondaryClicked);
     Adicionar(RootBox, Secondary, 8.f);
     AlvosDoVeu.Add(Secondary);
+
+    // A FILEIRA SOCIAL DO GUIA ("Entrar com"): Facebook, Instagram, Apple, Xbox, Google, Epic, Steam.
+    // Elas nascem DESLIGADAS de proposito: o projeto nao tem SDK nenhum dessas plataformas, e botao que
+    // promete login e nao faz e pior que botao apagado. O desenho do guia fica, a mentira nao.
+    if (CurrentStep == ERunnerMenuStep::Login)
+    {
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("—  entrar com  —"), 10.f, RunnerPalette::TextoFraco()), 14.f);
+
+        const TCHAR* Provedores[] = { TEXT("Facebook"), TEXT("Instagram"), TEXT("Apple"),
+                                      TEXT("Xbox"), TEXT("Google"), TEXT("Epic Games"), TEXT("Steam") };
+        UHorizontalBox* Fileira = nullptr;
+        for (int32 Indice = 0; Indice < UE_ARRAY_COUNT(Provedores); ++Indice)
+        {
+            if (Indice % 3 == 0)
+            {
+                Fileira = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+                Adicionar(RootBox, Fileira, 6.f);
+            }
+            UButton* Social = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+            EstilizarBotao(Social, RunnerPalette::BotaoTerciario(), RunnerPalette::BotaoTerciario(),
+                           RunnerPalette::Violeta(0.35f), 1.f);
+            Social->SetIsEnabled(false);
+            Social->SetToolTipText(FText::FromString(TEXT("Integracao nao conectada neste projeto.")));
+            Social->AddChild(CriarTexto(WidgetTree, Provedores[Indice], 11.f, RunnerPalette::TextoFraco()));
+            UHorizontalBoxSlot* Espaco = Fileira->AddChildToHorizontalBox(Social);
+            Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+            Espaco->SetPadding(FMargin(3.f, 0.f));
+        }
+    }
 
     // Terceiro botao: so aparece onde ha uma terceira acao util.
     TertiaryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -1704,6 +1802,30 @@ UWidget* URunnerMenuWidget::CriarColunaDeDetalhes()
     return Painel;
 }
 
+namespace
+{
+    /**
+     * Texto de canto do guia (Art/Tela_login): a moldura de frases que da clima a tela de entrada sem
+     * competir com o painel. Entra no canvas do fundo, com ancoragem propria em cada canto.
+     */
+    void PorTextoDeCanto(UWidgetTree* Arvore, UCanvasPanel* Canvas, const FString& Texto, const float Tamanho,
+                         const FLinearColor& Cor, const FAnchors& Ancora, const FVector2D& Deslocamento,
+                         const FVector2D& Alinhamento)
+    {
+        UTextBlock* Bloco = Arvore->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+        Bloco->SetText(FText::FromString(Texto));
+        Bloco->SetColorAndOpacity(FSlateColor(Cor));
+        Bloco->SetFont(FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), Tamanho));
+        if (UCanvasPanelSlot* Espaco = Canvas->AddChildToCanvas(Bloco))
+        {
+            Espaco->SetAnchors(Ancora);
+            Espaco->SetAlignment(Alinhamento);
+            Espaco->SetAutoSize(true);
+            Espaco->SetPosition(Deslocamento);
+        }
+    }
+}
+
 void URunnerMenuWidget::CriarFundo(UCanvasPanel* Canvas)
 {
     const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
@@ -1741,6 +1863,23 @@ void URunnerMenuWidget::CriarFundo(UCanvasPanel* Canvas)
             SombraSlot->SetOffsets(FMargin(0.f));
         }
     }
+
+    // A MOLDURA DE FRASES DO GUIA: quatro cantos e um rodape, exatamente como no guia do autor. Elas entram
+    // depois do veu, entao ficam ACIMA dele e legiveis, e ficam nas bordas para nao competir com o painel.
+    const FAnchors CantoEsquerdo(0.f, 0.f);
+    const FAnchors CantoDireito(1.f, 0.f);
+    const FAnchors PeEsquerdo(0.f, 1.f);
+    const FAnchors PeDireito(1.f, 1.f);
+    PorTextoDeCanto(WidgetTree, Canvas, TEXT("A NOVO MUNDO\nSERA REFORJADO"), 10.f, RunnerPalette::TextoFraco(),
+                    CantoEsquerdo, FVector2D(34.f, 34.f), FVector2D(0.f, 0.f));
+    PorTextoDeCanto(WidgetTree, Canvas, TEXT("NANOS\nNUNCA ESQUECEM"), 10.f, RunnerPalette::TextoFraco(),
+                    CantoDireito, FVector2D(-34.f, 34.f), FVector2D(1.f, 0.f));
+    PorTextoDeCanto(WidgetTree, Canvas, TEXT("PROTOCOL ZERO\nINICIA AGORA"), 10.f, RunnerPalette::AzulNeon(0.8f),
+                    PeEsquerdo, FVector2D(34.f, -34.f), FVector2D(0.f, 1.f));
+    PorTextoDeCanto(WidgetTree, Canvas, TEXT("HUMANIDADE // VERSAO 2.0"), 10.f, RunnerPalette::Violeta(0.85f),
+                    PeDireito, FVector2D(-34.f, -34.f), FVector2D(1.f, 1.f));
+    PorTextoDeCanto(WidgetTree, Canvas, TEXT("CONEXAO COM UM MUNDO MAIOR"), 10.f, RunnerPalette::TextoFraco(),
+                    FAnchors(0.5f, 1.f), FVector2D(0.f, -20.f), FVector2D(0.5f, 1.f));
 }
 
 void URunnerMenuWidget::ConstruirTelaDeCriacao(TArray<UWidget*>& AlvosDoVeu)
