@@ -66,6 +66,38 @@
   isso **não foi medido**. Se um humano clicar com o mouse e o jogo responder, o problema é do caminho sintético;
   se também não responder, é ambiente. Essa pergunta está aberta.
 
+## 7c. Niagara: as formas exatas da API (todas descobertas na prática)
+
+Trabalhar o FX pelo Niagara MCP funciona, mas cada ferramenta tem uma forma de referência própria — e todas
+foram descobertas **pelas mensagens de erro**, uma a uma. Fica registrado para não repetir:
+
+| Ferramenta | Argumento de referência | Extra obrigatório |
+|---|---|---|
+| `GetSystemSummary` / `AddEmitter` / `AddRenderer` | `system` | `AddEmitter`: + `templateEmitter` e `emitterName` |
+| `GetEmitterTopology` | `emitterRef` | — |
+| `GetRendererData` | `rendererRef` | — |
+| `SetRendererData` | `renderer` (não `rendererRef`!) | + `rendererData` e `propertyValues` |
+| `ActorTools.add_component` | `owner` | + `name` e `component_type` |
+| `NiagaraToolset_Component.SetSystem` | `niagaraComponent` | + `system` e `bResetExistingOverrideParameters` |
+
+**E a descoberta que mais importa:** *duplicar um **sistema** da engine (`AssetTools.duplicate` de um
+`FountainLightweight`) traz o sistema **vazio** — `scriptName: NONE` nos quatro estágios, `modules: []`,
+`renderers: []`. Já **adicionar um emissor** de template (`AddEmitter` com
+`/Niagara/DefaultAssets/Templates/Emitters/SingleLoopingParticle`) traz o emissor **completo**, com
+`NiagaraSpriteRendererProperties` e `EmitterSpawnScript`.*
+
+Onde estão os templates da engine (acessíveis pelo MCP): `/Niagara/DefaultAssets/Templates` — 47 assets, com
+**7 sistemas** (`FountainLightweight`, `MinimalLightweight`, `DirectionalBurst`, `SimpleExplosion`…) e
+**14 emissores** (`SingleLoopingParticle`, `HangingParticulates`, `RecycleParticlesInView`…).
+
+**Pendência conhecida:** trocar o material do renderer por `SetRendererData` falha com *"could not convert
+incoming function input params Json to a UStruct"* — o campo `rendererData` espera um struct específico, e
+ainda não encontrei a forma certa. O material do sprite continua o padrão do template.
+
+**E o aviso de verificação:** Niagara **não aparece** no viewport do editor parado. Para conferir FX, capturar
+**em PIE**. Foi por isso (e por ler a imagem em vez da topologia) que eu afirmei duas vezes que partículas
+estavam desenhando quando não estavam.
+
 ## 8. Sessão MCP expirada parece "ferramenta que não existe"
 
 - **Sintoma:** `Unknown session id '...' for 'tools/call'` em toda chamada.
