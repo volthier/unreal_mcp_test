@@ -43,11 +43,11 @@ for ator in unreal.EditorLevelLibrary.get_all_level_actors():
         unreal.EditorLevelLibrary.destroy_actor(ator)
 
 cristal = unreal.EditorAssetLibrary.load_asset('/Game/AI_Assets/prop/cristal_cryonix.cristal_cryonix')
-esfera = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Sphere.Sphere')
+plano = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Plane.Plane')
 cilindro = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Cylinder.Cylinder')
 base_aura = unreal.EditorAssetLibrary.load_asset(PASTA_MAT + '/M_AuraGeada.M_AuraGeada')
 latao = unreal.EditorAssetLibrary.load_asset(PASTA_MAT + '/M_LataoPolido.M_LataoPolido')
-registrar('malhas/materiais: cristal=%s esfera=%s aura=%s' % (cristal is not None, esfera is not None, base_aura is not None))
+registrar('malhas/materiais: cristal=%s plano=%s aura=%s' % (cristal is not None, plano is not None, base_aura is not None))
 
 chassis = cores_do_csv()
 largura = 900.0
@@ -74,11 +74,15 @@ for indice, (nome, cor) in enumerate(chassis):
     else:
         registrar('  sem material para ' + nome)
 
-    # 3. a casca da aura: esfera aditiva de geada, tingida com a cor do chassi
-    casca = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, 0.0, 260.0), unreal.Rotator(0, 0, 0))
-    casca.set_actor_label('VITRINE_%s_Aura' % nome)
-    casca.static_mesh_component.set_static_mesh(esfera)
-    casca.set_actor_scale3d(unreal.Vector(2.6, 2.6, 2.6))   # a nuvem de gelo tem de envolver o cristal, nao colar nele
+    # 3. a aura: TRES PLANOS CRUZADOS, nao uma esfera. Casca esferica sempre le como orbe (foi o que a captura
+    #    mostrou); planos com material aditivo e textura de geada leem como nevoa, que e o pedido do autor.
+    for indice_plano, giro in enumerate((0.0, 60.0, 120.0)):
+        # O plano do engine nasce DEITADO (normal para cima): visto de lado ele fica de perfil e some. O pitch
+        # de 90 graus poe ele EM PE, e o giro de 60 graus entre os tres faz a nevoa existir de qualquer angulo.
+        casca = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, 0.0, 260.0), unreal.Rotator(roll=0.0, pitch=90.0, yaw=giro))
+        casca.set_actor_label('VITRINE_%s_Aura%d' % (nome, indice_plano))
+        casca.static_mesh_component.set_static_mesh(plano)
+        casca.set_actor_scale3d(unreal.Vector(2.8, 2.8, 2.8))   # a nuvem de gelo tem de envolver o cristal, nao colar nele
     # A aura usa uma INSTANCIA DE MATERIAL por chassi (MI_Aura_<Chassi>): o padrao que ja funciona para o
     # nucleo. Instancia dinamica em runtime nao existe nesta versao da API de Python, e a instancia salva
     # ainda tem a vantagem de ser dado versionado, nao estado de memoria.

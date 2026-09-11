@@ -13,6 +13,7 @@ RAIZ = '/Users/volthier/Documents/Unreal Projects/AI_MEGA_MAN_TEST/Art/generated
 PASTA = '/Game/AI_Assets/ui'
 ENTRADAS = [
     (RAIZ + '/fx/geada_v001.png', 'fx_geada'),
+    (RAIZ + '/fx/nevoa_aura_v002.png', 'fx_nevoa_aura'),
     (RAIZ + '/cenario/nuvens_ocre_v001.png', 'ui_nuvens_ocre'),
     (RAIZ + '/cenario/login_kardys_v001.png', 'ui_login_kardys'),
     (RAIZ + '/cenario/pods_v002.png', 'ui_pods_selecao'),

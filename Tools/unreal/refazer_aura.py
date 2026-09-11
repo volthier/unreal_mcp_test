@@ -11,7 +11,7 @@ import unreal
 
 PASTA = '/Game/AI_Assets/materials'
 NOME = 'M_AuraGeada'
-TEXTURA = '/Game/AI_Assets/ui/fx_geada.fx_geada'
+TEXTURA = '/Game/AI_Assets/ui/fx_nevoa_aura.fx_nevoa_aura'
 saida = []
 
 caminho = PASTA + '/' + NOME + '.' + NOME
