@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Misc/PackageName.h"
 
 #include "Session/RunnerMenuWidget.h"
 
@@ -401,6 +402,47 @@ bool FRunnerMundoTest::RunTest(const FString& Parameters)
     // A cidade e procedimental: o grafo de PCG precisa existir para a area inicial ser gerada.
     UObject* Grafo = LoadObject<UObject>(nullptr, TEXT("/Game/AI_Assets/pcg/PCG_CidadeKardys.PCG_CidadeKardys"));
     TestNotNull(TEXT("o grafo de PCG da cidade existe"), Grafo);
+    return true;
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// KIT VISUAL do menu (fase AAA).
+//
+// Por que este teste existe: na rodada 13 descobrimos que a configuracao do fundo apontava para uma textura
+// que NUNCA tinha sido importada - a tela estava configurada para um asset inexistente e ninguem percebeu,
+// porque configuracao errada nao quebra build. Aqui ela quebra teste.
+// ---------------------------------------------------------------------------------------------------------
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerKitVisualTest, "Runner.UI.KitVisual",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerKitVisualTest::RunTest(const FString& Parameters)
+{
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    if (!TestNotNull(TEXT("RunnerGameSettings existe"), Ajustes))
+    {
+        return false;
+    }
+
+    // A checagem e de PACOTE, nao de carregamento: existe em qualquer modo (inclusive commandlet sem RHI) e e
+    // exatamente o defeito que aconteceu de verdade - a config apontando para um asset que nunca foi importado.
+    auto PacoteExiste = [this](const TCHAR* Rotulo, const TSoftObjectPtr<UTexture2D>& Alvo) -> bool
+    {
+        if (!TestFalse(FString::Printf(TEXT("a config aponta %s"), Rotulo), Alvo.IsNull()))
+        {
+            return false;
+        }
+        const FString Pacote = Alvo.ToSoftObjectPath().GetLongPackageName();
+        return TestTrue(FString::Printf(TEXT("%s existe no disco (%s)"), Rotulo, *Pacote),
+            FPackageName::DoesPackageExist(Pacote));
+    };
+
+    PacoteExiste(TEXT("o fundo do login"), Ajustes->TexturaDoFundo);
+    PacoteExiste(TEXT("a moldura do painel"), Ajustes->TexturaDaMoldura);
+    PacoteExiste(TEXT("o emblema do titulo"), Ajustes->EmblemaDoTitulo);
+
+    // O escurecimento sobre a arte tem de ficar na faixa legivel: sem isso a UI some sobre a arte clara.
+    TestTrue(FString::Printf(TEXT("escurecimento do fundo em faixa util (%.2f)"), Ajustes->EscurecimentoDoFundo),
+        Ajustes->EscurecimentoDoFundo >= 0.f && Ajustes->EscurecimentoDoFundo <= 0.9f);
     return true;
 }
 
