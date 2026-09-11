@@ -25,6 +25,9 @@ URunnerGameSettings::URunnerGameSettings()
     // configuracao, nao codigo - trocar a arte nao exige recompilar.
     TexturaDaMoldura = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/AI_Assets/ui/ui_moldura_latao.ui_moldura_latao")));
     EmblemaDoTitulo = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/AI_Assets/ui/ui_emblema.ui_emblema")));
+    LogoDoTitulo = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/AI_Assets/ui/ui_logo_aether.ui_logo_aether")));
+    IconeDoUsuario = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/AI_Assets/ui/ui_icone_pessoa.ui_icone_pessoa")));
+    IconeDaSenha = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/AI_Assets/ui/ui_icone_cadeado.ui_icone_cadeado")));
     EscalaDoNucleo = 1.0f;   // o cristal limpo tem 1,61 m: em 1.0 ele preenche a caixa da vitrine
     // A aura: casca aditiva com a textura de geada, tingida com a cor do nucleo de cada chassi.
     MaterialDaAura = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/AI_Assets/materials/M_AuraGeada.M_AuraGeada")));

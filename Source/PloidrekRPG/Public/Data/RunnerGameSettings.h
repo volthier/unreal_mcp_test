@@ -44,6 +44,17 @@ public:
     /** Emblema do titulo: o cristal em anel de latao. Vazio = so o texto. */
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> EmblemaDoTitulo;
 
+    /**
+     * Logotipo da tela de entrada (AETHER FORGE com o X em degrade), do alvo do autor em Art/Tela_login.
+     * Quando existe, ele SUBSTITUI o titulo em texto - e o que da o acabamento do guia. Sem ele, a tela cai no
+     * texto, entao o menu nunca fica sem titulo.
+     */
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> LogoDoTitulo;
+
+    /** Icones dos campos de entrada (usuario e senha), do mesmo kit. */
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoUsuario;
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDaSenha;
+
     /** Escurecimento aplicado sobre a arte do fundo, para a UI continuar legivel (0 a 1). */
     UPROPERTY(config, EditAnywhere, Category = "Fundo", meta = (ClampMin = "0.0", ClampMax = "0.95"))
     float EscurecimentoDoFundo = 0.35f;

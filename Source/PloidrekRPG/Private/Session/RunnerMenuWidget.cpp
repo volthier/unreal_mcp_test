@@ -1,5 +1,16 @@
 #include "Session/RunnerMenuWidget.h"
 
+namespace
+{
+    /**
+     * Linha de campo com o icone do kit a esquerda (usuario, senha), como no alvo do autor.
+     *
+     * Declarada aqui em cima porque o corpo dela vive la embaixo, junto do fundo - e o RebuildLayout, que e
+     * quem a usa, vem antes no arquivo. Sem esta declaracao o compilador nao a enxerga.
+     */
+    UWidget* LinhaDeCampoComIcone(UWidget* Campo, UTexture2D* Icone);
+}
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
@@ -451,9 +462,26 @@ void URunnerMenuWidget::RebuildLayout()
         // SEM SetRenderScale aqui: o UMG mede o texto pelo tamanho da fonte e ignora a escala de render,
         // entao um titulo escalado TRANSBORDA em cima do que vem depois. Foi o que aconteceu na primeira
         // versao - o AETHER FORGE caia por cima das abas. O peso vem da fonte, nao de escala.
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 32.f, RunnerPalette::Branco()), 0.f);
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 13.f, RunnerPalette::Violeta()), 6.f);
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("mais que jogo, um novo amanha"), 10.f, RunnerPalette::TextoFraco()), 10.f);
+        // O TITULO e o LOGOTIPO do kit (AETHER FORGE com o X em degrade e PROTOCOL ZERO espacado), como no alvo
+        // do autor. Se a textura nao estiver no projeto, cai no texto - a tela nunca fica sem titulo.
+        // Ajustes locais: o Ajustes do resto da funcao e declarado mais abaixo, e aqui em cima ainda nao existe.
+        const URunnerGameSettings* AjustesDoTitulo = GetDefault<URunnerGameSettings>();
+        UTexture2D* Logotipo = AjustesDoTitulo ? AjustesDoTitulo->LogoDoTitulo.LoadSynchronous() : nullptr;
+        if (Logotipo)
+        {
+            UImage* ImagemDoTitulo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("LogoDoJogo"));
+            ImagemDoTitulo->SetBrushFromTexture(Logotipo, false);
+            const float LarguraDoLogo = 380.f;
+            ImagemDoTitulo->SetDesiredSizeOverride(FVector2D(LarguraDoLogo,
+                LarguraDoLogo * (float)Logotipo->GetSizeY() / FMath::Max(1.f, (float)Logotipo->GetSizeX())));
+            Adicionar(RootBox, ImagemDoTitulo, 0.f);
+        }
+        else
+        {
+            Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 32.f, RunnerPalette::Branco()), 0.f);
+            Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 13.f, RunnerPalette::Violeta()), 6.f);
+        }
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("mais que jogo, um novo amanha"), 10.f, RunnerPalette::TextoFraco()), 8.f);
     }
     else
     {
@@ -537,7 +565,8 @@ void URunnerMenuWidget::RebuildLayout()
             AccountBox->SetText(FText::FromString(EmailLembrado));
         }
         EstilizarCampo(AccountBox);
-        Adicionar(RootBox, AccountBox, 10.f);
+        Adicionar(RootBox, LinhaDeCampoComIcone(AccountBox,
+            Ajustes ? Ajustes->IconeDoUsuario.LoadSynchronous() : nullptr), 10.f);
         AlvosDoVeu.Add(AccountBox);
 
         // Nome de usuario existe so na criacao da conta local.
@@ -557,7 +586,8 @@ void URunnerMenuWidget::RebuildLayout()
                 ? TEXT("Senha (8+, maiuscula, minuscula, especial)") : TEXT("Senha"))));
         PasswordBox->SetIsPassword(!bCamposDoDevAuth);
         EstilizarCampo(PasswordBox);
-        Adicionar(RootBox, PasswordBox, 10.f);
+        Adicionar(RootBox, LinhaDeCampoComIcone(PasswordBox,
+            Ajustes ? Ajustes->IconeDaSenha.LoadSynchronous() : nullptr), 10.f);
         AlvosDoVeu.Add(PasswordBox);
 
         // A linha do guia: "Lembrar de mim" a esquerda e "Esqueci a senha?" a direita.
@@ -624,7 +654,7 @@ void URunnerMenuWidget::RebuildLayout()
     switch (CurrentStep)
     {
         case ERunnerMenuStep::Login:
-            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("LOGIN  (conta EOS)") : TEXT("LOGIN")));
+            PrimaryText->SetText(FText::FromString(bEOS ? TEXT("ENTRAR  (conta EOS)") : TEXT("ENTRAR")));
             break;
         case ERunnerMenuStep::CreateAccount:     PrimaryText->SetText(FText::FromString(TEXT("Criar conta"))); break;
         case ERunnerMenuStep::CharacterSelect:   PrimaryText->SetText(FText::FromString(TEXT("Jogar"))); break;
@@ -665,7 +695,7 @@ void URunnerMenuWidget::RebuildLayout()
     // promete login e nao faz e pior que botao apagado. O desenho do guia fica, a mentira nao.
     if (CurrentStep == ERunnerMenuStep::Login)
     {
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("—  entrar com  —"), 10.f, RunnerPalette::TextoFraco()), 14.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("—  ou continue com  —"), 10.f, RunnerPalette::TextoFraco()), 14.f);
 
         const TCHAR* Provedores[] = { TEXT("Facebook"), TEXT("Instagram"), TEXT("Apple"),
                                       TEXT("Xbox"), TEXT("Google"), TEXT("Epic Games"), TEXT("Steam") };
@@ -1823,6 +1853,34 @@ UWidget* URunnerMenuWidget::CriarColunaDeDetalhes()
 
 namespace
 {
+    /**
+     * Linha de campo com o icone do kit a esquerda (usuario, senha), como no alvo do autor. O icone e
+     * opcional: sem textura a linha e so o campo - campo sem icone le melhor que campo com quadrado vazio.
+     */
+    UWidget* LinhaDeCampoComIcone(UWidget* Campo, UTexture2D* Icone)
+    {
+        if (!Campo || !Icone)
+        {
+            return Campo;
+        }
+        UHorizontalBox* Linha = NewObject<UHorizontalBox>(Campo->GetOuter());
+        UImage* Marca = NewObject<UImage>(Campo->GetOuter());
+        Marca->SetBrushFromTexture(Icone, false);
+        Marca->SetDesiredSizeOverride(FVector2D(20.f, 20.f));
+        Marca->SetColorAndOpacity(FLinearColor(0.f, 0.9f, 1.f, 0.95f));
+        if (UHorizontalBoxSlot* EspacoDoIcone = Linha->AddChildToHorizontalBox(Marca))
+        {
+            EspacoDoIcone->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+            EspacoDoIcone->SetPadding(FMargin(0.f, 0.f, 10.f, 0.f));
+            EspacoDoIcone->SetVerticalAlignment(VAlign_Center);
+        }
+        if (UHorizontalBoxSlot* EspacoDoCampo = Linha->AddChildToHorizontalBox(Campo))
+        {
+            EspacoDoCampo->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        }
+        return Linha;
+    }
+
     /**
      * Texto de canto do guia (Art/Tela_login): a moldura de frases que da clima a tela de entrada sem
      * competir com o painel. Entra no canvas do fundo, com ancoragem propria em cada canto.
