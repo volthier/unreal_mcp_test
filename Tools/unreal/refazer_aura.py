@@ -26,11 +26,12 @@ mat.set_editor_property('blend_mode', unreal.BlendMode.BLEND_ADDITIVE)
 mat.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
 mat.set_editor_property('two_sided', True)
 
-# UV pequeno: a geada repete varias vezes pela casca, entao ela vira textura de nevoa e nao mancha esticada
+# UV 1: UM puff por placa. Repetir o puff (7x) enche a placa de pontos, satura e ela vira quadrado - foi
+# o que a captura mostrou. Com 1x, a propria queda do sprite apaga as bordas da placa e ela le como nevoa.
 coordenadas = unreal.MaterialEditingLibrary.create_material_expression(mat, unreal.MaterialExpressionTextureCoordinate, -1400, 0)
 escala = unreal.MaterialEditingLibrary.create_material_expression(mat, unreal.MaterialExpressionConstant2Vector, -1400, 220)
-escala.set_editor_property('r', 7.0)
-escala.set_editor_property('g', 7.0)
+escala.set_editor_property('r', 1.0)
+escala.set_editor_property('g', 1.0)
 multiplica_uv = unreal.MaterialEditingLibrary.create_material_expression(mat, unreal.MaterialExpressionMultiply, -1150, 100)
 unreal.MaterialEditingLibrary.connect_material_expressions(coordenadas, '', multiplica_uv, 'A')
 unreal.MaterialEditingLibrary.connect_material_expressions(escala, '', multiplica_uv, 'B')
