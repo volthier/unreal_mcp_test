@@ -423,38 +423,10 @@ void URunnerMenuWidget::RebuildLayout()
     AlturaDaVitrine = FMath::Clamp(AlturaDoPainel * 0.40f, 168.f, 290.f);
     AlturaDaLista = FMath::Clamp(AlturaDoPainel * 0.24f, 96.f, 185.f);
 
-    // Cabecalho: o EMBLEMA (o cristal no anel de latao) ao lado da marca, em latao polido, o passo atual em
-    // letra miuda e um filete de metal. O emblema e TEXTURA de configuracao: trocar a arte nao exige codigo.
-    // Na TELA DE ENTRADA o emblema nao entra: o logotipo AETHER FORGE ja carrega a marca, e o selo do cristal
-    // ao lado dele virava ruido no canto - foi o que o autor apontou. Nas telas internas ele continua, porque
-    // la ele e a unica marca e funciona como ancora visual.
-    const bool bTelaDeEntradaAtual = (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount);
-    const URunnerGameSettings* AjustesDoKit = GetDefault<URunnerGameSettings>();
-    if (!bTelaDeEntradaAtual && AjustesDoKit && !AjustesDoKit->EmblemaDoTitulo.IsNull())
-    {
-        if (UTexture2D* Emblema = AjustesDoKit->EmblemaDoTitulo.LoadSynchronous())
-        {
-            UHorizontalBox* Marca = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-            UImage* Selo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-            Selo->SetBrushFromTexture(Emblema, false);
-            if (USizeBox* TamanhoDoSelo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass()))
-            {
-                TamanhoDoSelo->SetWidthOverride(46.f);
-                TamanhoDoSelo->SetHeightOverride(46.f);
-                TamanhoDoSelo->AddChild(Selo);
-                if (UHorizontalBoxSlot* Espaco = Marca->AddChildToHorizontalBox(TamanhoDoSelo))
-                {
-                    Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
-                    Espaco->SetPadding(FMargin(0.f, 0.f, 10.f, 0.f));
-                    Espaco->SetVerticalAlignment(VAlign_Center);
-                }
-            }
-            if (UVerticalBoxSlot* EspacoDaMarca = RootBox->AddChildToVerticalBox(Marca))
-            {
-                EspacoDaMarca->SetPadding(FMargin(0.f, 0.f, 0.f, 2.f));
-            }
-        }
-    }
+    // O EMBLEMA SAIU DE VEZ, e nao so da entrada. Era o selo do cristal dentro do anel de latao, do primeiro
+    // kit, e o autor foi direto: "e ridiculo esse asset la". Marca do jogo agora e SO o logotipo AETHER FORGE
+    // - uma marca, um lugar. A textura continua no projeto (ui_emblema) caso o autor queira reusa-la em outro
+    // contexto, mas nenhuma tela a desenha.
     // BLOCO DO TITULO, conforme o guia (Art/Tela_login/TL_Tela_Login_art_final.png):
     //   AETHER FORGE  - titulo grande, metalico frio;
     //   P R O T O C O L   Z E R O - subtitulo espacado em violeta;
