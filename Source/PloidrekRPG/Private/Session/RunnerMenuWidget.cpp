@@ -20,6 +20,7 @@
 #include "Components/Spacer.h"
 #include "Components/Widget.h"
 #include "Data/RunnerChassisData.h"
+#include "Data/RunnerCharacterFactory.h"
 #include "Data/RunnerClassData.h"
 #include "Data/RunnerGameSettings.h"
 #include "Data/RunnerRules.h"
@@ -1233,7 +1234,26 @@ void URunnerMenuWidget::AtualizarVitrine()
     }
 
     const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
-    const FName ChassiDaVez = Session->GetSelectedChassis().IsNone() ? ChassiNaVitrine : Session->GetSelectedChassis();
+
+    // NUNCA deixar a vitrine vazia. Sem escolha do jogador, ela mostra o PRIMEIRO chassi selecionavel:
+    // uma caixa escura e vazia nao e vitrine, e um defeito de apresentacao - e era exatamente o que a tela
+    // mostrava antes de o jogador escolher.
+    FName ChassiDaVez = Session->GetSelectedChassis();
+    if (ChassiDaVez.IsNone())
+    {
+        ChassiDaVez = ChassiNaVitrine;
+    }
+    if (ChassiDaVez.IsNone() && Ajustes)
+    {
+        if (const UDataTable* Tabela = Ajustes->ChassisTable.LoadSynchronous())
+        {
+            const TArray<FName> Ids = URunnerCharacterFactory::GetChassisIds(Tabela, false);
+            if (Ids.Num() > 0)
+            {
+                ChassiDaVez = Ids[0];
+            }
+        }
+    }
 
     // Aba CHASSI: o cristal girando com a aura em volta.
     if (CurrentStep == ERunnerMenuStep::Chassis && Ajustes && !Ajustes->NucleoMesh.IsNull())
