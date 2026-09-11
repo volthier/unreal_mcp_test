@@ -33,12 +33,19 @@ if unreal.EditorAssetLibrary.does_asset_exist(MAPA):
 else:
     saida.append('mapa criado: ' + str(unreal.EditorLevelLibrary.new_level(MAPA)))
 
+# IDEMPOTENTE: apaga o que ESTE script criou antes de refazer. Sem isso, rodar de novo duplicava o sol e
+# o engine passava a avisar 'multiple directional lights are competing' - dois sois no mesmo ceu.
+for ator in unreal.EditorLevelLibrary.get_all_level_actors():
+    if ator.get_actor_label().startswith('MUNDO_'):
+        unreal.EditorLevelLibrary.destroy_actor(ator)
+saida.append('atores MUNDO_* anteriores limpos')
+
 # ceu de crepusculo e luz
 for classe, onde, rot, nome in (
     (unreal.SkyAtmosphere, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0), 'MUNDO_Ceu'),
     (unreal.VolumetricCloud, unreal.Vector(0, 0, 5000), unreal.Rotator(0, 0, 0), 'MUNDO_Nuvens'),
     (unreal.SkyLight, unreal.Vector(0, 0, 900), unreal.Rotator(0, 0, 0), 'MUNDO_LuzCeu'),
-    (unreal.DirectionalLight, unreal.Vector(0, 0, 4000), unreal.Rotator(-10.0, 200.0, 0.0), 'MUNDO_Sol'),
+    (unreal.DirectionalLight, unreal.Vector(0, 0, 4000), unreal.Rotator(roll=0.0, pitch=-10.0, yaw=200.0), 'MUNDO_Sol'),
 ):
     ator = unreal.EditorLevelLibrary.spawn_actor_from_class(classe, onde, rot)
     ator.set_actor_label(nome)
@@ -55,13 +62,13 @@ aco = carregar('/Game/AI_Assets/materials/M_AcoEscuro.M_AcoEscuro')
 por_malha(plano, unreal.Vector(0, 0, 0), (120.0, 120.0, 1.0), unreal.Rotator(0, 0, 0), 'MUNDO_Piso', aco)
 
 # marcacao de setor no chao (o canonico: 'PROTOCOLO ZERO' como burocracia)
-texto = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(0, -1800, 60), unreal.Rotator(0, 90.0, 0))
+texto = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(0, -1800, 60), unreal.Rotator(roll=0.0, pitch=0.0, yaw=90.0))
 texto.text_render.set_text('PROTOCOLO ZERO  -  SETOR 04  -  KARDYSHEV')
 texto.text_render.set_world_size(90.0)
 texto.set_actor_label('MUNDO_Placa')
 
 # PlayerStart no meio da praca, olhando para o eixo onde a cidade vai crescer
-inicio = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(0, -600, 150), unreal.Rotator(0, 90.0, 0))
+inicio = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(0, -600, 150), unreal.Rotator(roll=0.0, pitch=0.0, yaw=90.0))
 inicio.set_actor_label('MUNDO_PlayerStart')
 
 # o mapa se declara: o jogo comeca em AFGameMode (o do mundo, nao o do menu)

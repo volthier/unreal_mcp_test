@@ -71,7 +71,9 @@ for ix in range(LADO):
         malha = random.choice(malhas)
 
         ator = unreal.EditorLevelLibrary.spawn_actor_from_class(
-            unreal.StaticMeshActor, unreal.Vector(px, py, 0.0), unreal.Rotator(0.0, giro, 0.0))
+            # ATENCAO: unreal.Rotator(a, b, c) e (roll, PITCH, YAW). Passar o yaw no segundo argumento
+            # deita o predio - foi esse o bug que deixou as torres deitadas por varias rodadas.
+            unreal.StaticMeshActor, unreal.Vector(px, py, 0.0), unreal.Rotator(0.0, 0.0, giro))
         comp = ator.static_mesh_component
         comp.set_static_mesh(malha)
         comp.set_mobility(unreal.ComponentMobility.MOVABLE)
