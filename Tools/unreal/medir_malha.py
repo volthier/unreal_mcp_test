@@ -7,7 +7,8 @@ saida = []
 for caminho in ('/Game/AI_Assets/prop/predio_alto.predio_alto',
                 '/Game/AI_Assets/prop/predio_baixo.predio_baixo',
                 '/Game/AI_Assets/prop/casulo.casulo',
-                '/Game/AI_Assets/prop/cristal_cryonix.cristal_cryonix'):
+                '/Game/AI_Assets/prop/cristal_cryonix.cristal_cryonix',
+                '/Game/AI_Assets/prop/cristal_nucleo.cristal_nucleo'):
     malha = unreal.EditorAssetLibrary.load_asset(caminho)
     if not malha:
         saida.append('nao carregou: ' + caminho)

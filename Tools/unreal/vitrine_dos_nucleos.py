@@ -42,7 +42,7 @@ for ator in unreal.EditorLevelLibrary.get_all_level_actors():
     if ator.get_actor_label().startswith('VITRINE_'):
         unreal.EditorLevelLibrary.destroy_actor(ator)
 
-cristal = unreal.EditorAssetLibrary.load_asset('/Game/AI_Assets/prop/cristal_cryonix.cristal_cryonix')
+cristal = unreal.EditorAssetLibrary.load_asset('/Game/AI_Assets/prop/cristal_nucleo.cristal_nucleo')
 plano = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Plane.Plane')
 cilindro = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Cylinder.Cylinder')
 base_aura = unreal.EditorAssetLibrary.load_asset(PASTA_MAT + '/M_AuraGeada.M_AuraGeada')

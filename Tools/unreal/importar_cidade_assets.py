@@ -23,6 +23,7 @@ def importar(caminho, pasta, nome):
     saida.append('importado: ' + nome)
 
 
+importar(RAIZ + '/3d/cristal_nucleo_game.fbx', '/Game/AI_Assets/prop', 'cristal_nucleo')
 importar(RAIZ + '/3d/predio_alto_game.fbx', '/Game/AI_Assets/prop', 'predio_alto')
 importar(RAIZ + '/3d/predio_baixo_game.fbx', '/Game/AI_Assets/prop', 'predio_baixo')
 importar(RAIZ + '/mundo/chao_plaza_v001.png', '/Game/AI_Assets/ui', 'tex_chao_plaza')
