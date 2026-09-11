@@ -83,8 +83,25 @@ namespace
      */
     FSlateFontInfo FonteDoGuia(const float Tamanho)
     {
-        const TCHAR* NomeDaFonte = (Tamanho >= 20.f) ? TEXT("Orbitron") : TEXT("Exo2");
-        return FSlateFontInfo(FString(NomeDaFonte), Tamanho);
+        // O construtor QUE PARECE OBVIO NAO FUNCIONA, e custou uma tela quebrada: FSlateFontInfo(FString, Tamanho)
+        // guarda o nome so em FontName_DEPRECATED e deixa FontObject NULO - o Slate entao nao acha fonte nenhuma
+        // e desenha glifo ausente (a tela cheia de quadradinhos, que o autor viu).
+        //
+        // O caminho que carrega TTF de VERDADE e o FStandaloneCompositeFont, com o arquivo em disco. Fica
+        // estatico para a fonte ser construida uma vez so, e o TSharedPtr mantem o FGCObject vivo.
+        const bool bTitulo = (Tamanho >= 20.f);
+        const TCHAR* Arquivo = bTitulo ? TEXT("Orbitron.ttf") : TEXT("Exo2.ttf");
+        static TSharedPtr<FStandaloneCompositeFont> CompostaDoTitulo;
+        static TSharedPtr<FStandaloneCompositeFont> CompostaDaUI;
+        TSharedPtr<FStandaloneCompositeFont>& Composta = bTitulo ? CompostaDoTitulo : CompostaDaUI;
+        if (!Composta.IsValid())
+        {
+            const FString Caminho = FPaths::ProjectContentDir() / TEXT("Slate/Fonts") / Arquivo;
+            Composta = MakeShared<FStandaloneCompositeFont>(FName(Arquivo), Caminho,
+                                                            EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
+            UE_LOG(LogTemp, Log, TEXT("URunnerMenuWidget: fonte do guia carregada de %s"), *Caminho);
+        }
+        return FSlateFontInfo(Composta, Tamanho);
     }
 
     UTextBlock* CriarTexto(UWidgetTree* Arvore, const FString& Conteudo, const float Tamanho,
@@ -343,7 +360,13 @@ void URunnerMenuWidget::NativeOnInitialized()
     PanelSlotDoPainel = PanelSlot;
 
     RootBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
-    Panel->SetContent(RootBox);
+
+    // O conteudo vive num ScrollBox DENTRO do painel: era isto que faltava quando o autor rodou em outra
+    // janela - o painel encolhia e o conteudo continuava do mesmo tamanho, caindo para fora dele. Com a
+    // rolagem, o conteudo ou cabe (caso normal) ou rola dentro do painel - nunca vaza.
+    UScrollBox* RolagemDoPainel = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("RolagemDoPainel"));
+    RolagemDoPainel->AddChild(RootBox);
+    Panel->SetContent(RolagemDoPainel);
 
     // O veu entra por ULTIMO no canvas: aqui quem entra depois desenha por cima, e e isso que faz
     // a neblina passar por cima dos botoes em vez de ficar so atras deles.
