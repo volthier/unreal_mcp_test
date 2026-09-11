@@ -425,8 +425,12 @@ void URunnerMenuWidget::RebuildLayout()
 
     // Cabecalho: o EMBLEMA (o cristal no anel de latao) ao lado da marca, em latao polido, o passo atual em
     // letra miuda e um filete de metal. O emblema e TEXTURA de configuracao: trocar a arte nao exige codigo.
+    // Na TELA DE ENTRADA o emblema nao entra: o logotipo AETHER FORGE ja carrega a marca, e o selo do cristal
+    // ao lado dele virava ruido no canto - foi o que o autor apontou. Nas telas internas ele continua, porque
+    // la ele e a unica marca e funciona como ancora visual.
+    const bool bTelaDeEntradaAtual = (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount);
     const URunnerGameSettings* AjustesDoKit = GetDefault<URunnerGameSettings>();
-    if (AjustesDoKit && !AjustesDoKit->EmblemaDoTitulo.IsNull())
+    if (!bTelaDeEntradaAtual && AjustesDoKit && !AjustesDoKit->EmblemaDoTitulo.IsNull())
     {
         if (UTexture2D* Emblema = AjustesDoKit->EmblemaDoTitulo.LoadSynchronous())
         {
@@ -469,12 +473,17 @@ void URunnerMenuWidget::RebuildLayout()
         UTexture2D* Logotipo = AjustesDoTitulo ? AjustesDoTitulo->LogoDoTitulo.LoadSynchronous() : nullptr;
         if (Logotipo)
         {
+            // Largura E altura fixadas num SizeBox, com a PROPORCAO da textura: com so a largura, a caixa
+            // vertical esticava a imagem e o PROTOCOL ZERO subia por cima do titulo (foi o que o autor viu).
+            const float LarguraDoLogo = 400.f;
+            const float ProporcaoDoLogo = (float)Logotipo->GetSizeY() / FMath::Max(1.f, (float)Logotipo->GetSizeX());
             UImage* ImagemDoTitulo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("LogoDoJogo"));
             ImagemDoTitulo->SetBrushFromTexture(Logotipo, false);
-            const float LarguraDoLogo = 380.f;
-            ImagemDoTitulo->SetDesiredSizeOverride(FVector2D(LarguraDoLogo,
-                LarguraDoLogo * (float)Logotipo->GetSizeY() / FMath::Max(1.f, (float)Logotipo->GetSizeX())));
-            Adicionar(RootBox, ImagemDoTitulo, 0.f);
+            USizeBox* CaixaDoLogo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+            CaixaDoLogo->SetWidthOverride(LarguraDoLogo);
+            CaixaDoLogo->SetHeightOverride(LarguraDoLogo * ProporcaoDoLogo);
+            CaixaDoLogo->AddChild(ImagemDoTitulo);
+            Adicionar(RootBox, CaixaDoLogo, 0.f);
         }
         else
         {
