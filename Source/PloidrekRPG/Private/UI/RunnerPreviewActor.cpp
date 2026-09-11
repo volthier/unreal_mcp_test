@@ -60,21 +60,22 @@ ARunnerPreviewActor::ARunnerPreviewActor()
 
     // A CASCA DA AURA: a nuvem de gelo em volta do cristal. Esfera aditiva com textura de geada - e ela que
     // da o volume da nevoa sem depender de particula, e ela que recebe a COR do chassi.
-    // Os tres planos da aura nascem aqui, em pe (pitch 90) e com giro de 60 graus entre eles: assim a
-    // nevoa existe de qualquer angulo da camera. Sem o giro, dois planos ficariam de perfil e sumiriam.
-    PlanosDaAura.Reserve(3);
-    for (int32 Indice = 0; Indice < 3; ++Indice)
+    // DUAS cascas de nevoa, e a leitura vem da FORMA de cada uma (referencia do autor: nevoa de gelo seco):
+    //   [0] a POCA - bem larga e baixa, colada ao chao: e a nevoa que escorre e se acumula na base;
+    //   [1] o MANTO - menor e mais alta, envolvendo o cristal.
+    // Sao esferas ACHATADAS: nada de planos em pe, que liam como painel em vez de nevoa.
+    CascasDaNevoa.Reserve(2);
+    for (int32 Indice = 0; Indice < 2; ++Indice)
     {
-        UStaticMeshComponent* Plano = CreateDefaultSubobject<UStaticMeshComponent>(
-            *FString::Printf(TEXT("PlanoDaAura%d"), Indice));
-        Plano->SetupAttachment(Raiz);
-        Plano->SetMobility(EComponentMobility::Movable);
-        Plano->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-        Plano->SetLightingChannels(false, true, false);
-        Plano->SetCastShadow(false);
-        Plano->SetVisibility(false);
-        Plano->SetRelativeRotation(FRotator(-90.f, Indice * 60.f, 0.f));
-        PlanosDaAura.Add(Plano);
+        UStaticMeshComponent* Casca = CreateDefaultSubobject<UStaticMeshComponent>(
+            *FString::Printf(TEXT("CascaDaNevoa%d"), Indice));
+        Casca->SetupAttachment(Raiz);
+        Casca->SetMobility(EComponentMobility::Movable);
+        Casca->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        Casca->SetLightingChannels(false, true, false);
+        Casca->SetCastShadow(false);
+        Casca->SetVisibility(false);
+        CascasDaNevoa.Add(Casca);
     }
 
     // A AURA: nuvem de gelo em Niagara, por cima da casca (ligada por configuracao, quando existir em disco).
@@ -184,9 +185,9 @@ void ARunnerPreviewActor::SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, U
 
     // A casca da aura: esfera aditiva de geada tingida com a COR deste chassi (o mesmo gelo fica azul no
     // Cryonix e branco incandescente no Overcore).
-    if (Ajustes && PlanosDaAura.Num() > 0)
+    if (Ajustes && CascasDaNevoa.Num() > 0)
     {
-        UStaticMesh* PlanoBase = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane"));
+        UStaticMesh* EsferaBase = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
         if (!AuraDinamica)
         {
             if (UMaterialInterface* Base = Ajustes->MaterialDaAura.LoadSynchronous())
@@ -201,22 +202,28 @@ void ARunnerPreviewActor::SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, U
             AuraDinamica->SetScalarParameterValue(TEXT("BrilhoDaAura"), 0.22f);
         }
 
-        for (int32 Indice = 0; Indice < PlanosDaAura.Num(); ++Indice)
+        // A esfera do engine tem 100 cm de diametro. A POCA e larga e baixa (a nevoa acumulada); o MANTO e
+        // menor e mais alto (o que sobe em volta do cristal). As proporcoes vieram da referencia de gelo seco.
+        const float Base = Ajustes->EscalaDaAura * Escala;
+        EscalaBaseDaAura = Base;
+        for (int32 Indice = 0; Indice < CascasDaNevoa.Num(); ++Indice)
         {
-            if (UStaticMeshComponent* Plano = PlanosDaAura[Indice])
+            if (UStaticMeshComponent* Casca = CascasDaNevoa[Indice])
             {
-                if (PlanoBase)
+                if (EsferaBase)
                 {
-                    Plano->SetStaticMesh(PlanoBase);
+                    Casca->SetStaticMesh(EsferaBase);
                 }
                 if (AuraDinamica)
                 {
-                    Plano->SetMaterial(0, AuraDinamica);
+                    Casca->SetMaterial(0, AuraDinamica);
                 }
-                // O plano do engine tem 100 cm: esta escala da uma nuvem de ~2,2 m em volta de um cristal de 1,6 m.
-                EscalaBaseDaAura = Ajustes->EscalaDaAura * Escala;
-                Plano->SetRelativeScale3D(FVector(EscalaBaseDaAura));
-                Plano->SetVisibility(true);
+                const FVector EscalaDaCasca = (Indice == 0)
+                    ? FVector(Base * 2.4f, Base * 2.4f, Base * 0.42f)   // a poca: 2,4x mais larga que alta
+                    : FVector(Base * 0.95f, Base * 0.95f, Base * 0.70f); // o manto em volta do cristal
+                Casca->SetRelativeScale3D(EscalaDaCasca);
+                Casca->SetRelativeLocation(FVector(0.f, 0.f, (Indice == 0) ? -35.f : 0.f));
+                Casca->SetVisibility(true);
             }
         }
     }
@@ -277,11 +284,11 @@ void ARunnerPreviewActor::SetPreview(const TSoftObjectPtr<USkeletalMesh>& InMesh
         Aura->Deactivate();
         Aura->SetVisibility(false);
     }
-    for (UStaticMeshComponent* Plano : PlanosDaAura)
+    for (UStaticMeshComponent* Casca : CascasDaNevoa)
     {
-        if (Plano)
+        if (Casca)
         {
-            Plano->SetVisibility(false);
+            Casca->SetVisibility(false);
         }
     }
     if (LuzDoNucleo)
@@ -340,27 +347,29 @@ void ARunnerPreviewActor::Tick(float DeltaSeconds)
     {
         Nucleo->AddLocalRotation(Passo);
     }
-    // A nevoa gira mais devagar que o cristal: da a leitura de nuvem circulando em volta.
-    // A nevoa gira em velocidade DIFERENTE da do cristal e cada plano no seu passo: e o que da a leitura de
-    // nuvem circulando em volta, e nao de um objeto preso ao cristal.
+    // A NEVOA DE GELO SECO tem dois movimentos, e nenhum deles e giro rapido:
+    //   - ROLAGEM lenta em torno do eixo Z (a nevoa se arrasta, nao orbita);
+    //   - RESPIRACAO assimetrica: a poca incha e espalha (e o que faz ler como vapor acumulando), enquanto o
+    //     manto sobe e desce de leve. O movimento para BAIXO em si vem do material (panner vertical negativo).
     TempoDaAura += DeltaSeconds;
-    for (int32 Indice = 0; Indice < PlanosDaAura.Num(); ++Indice)
+    for (int32 Indice = 0; Indice < CascasDaNevoa.Num(); ++Indice)
     {
-        UStaticMeshComponent* Plano = PlanosDaAura[Indice];
-        if (!Plano || !Plano->IsVisible())
+        UStaticMeshComponent* Casca = CascasDaNevoa[Indice];
+        if (!Casca || !Casca->IsVisible())
         {
             continue;
         }
 
-        const float PassoDaNevoa = GrausPorSegundo * DeltaSeconds * (0.32f + 0.13f * Indice);
-        Plano->AddLocalRotation(FRotator(0.f, PassoDaNevoa, 0.f));
+        const float PassoDaNevoa = GrausPorSegundo * DeltaSeconds * (Indice == 0 ? 0.18f : 0.30f);
+        Casca->AddLocalRotation(FRotator(0.f, PassoDaNevoa, 0.f));
 
-        // Respiracao: a nuvem cresce e encolhe, e a mudanca de densidade e que faz a nevoa parecer que se
-        // dissipa - em vez de ser uma placa fixa em volta do cristal.
-        const float Fase = TempoDaAura * 0.7f + Indice * 2.1f;
-        const float Respiro = 1.f + 0.10f * FMath::Sin(Fase);
-        // A escala-base e guardada, nao lida de volta do componente: ler de volta faria o pulso compor a
-        // cada quadro e a nuvem cresceria sem parar.
-        Plano->SetRelativeScale3D(FVector(EscalaBaseDaAura * Respiro));
+        const FVector Base = (Indice == 0)
+            ? FVector(EscalaBaseDaAura * 2.4f, EscalaBaseDaAura * 2.4f, EscalaBaseDaAura * 0.42f)
+            : FVector(EscalaBaseDaAura * 0.95f, EscalaBaseDaAura * 0.95f, EscalaBaseDaAura * 0.70f);
+
+        // A poca respira mais devagar e mais fundo que o manto: vapor acumulado se espalha, nao pulsa.
+        const float Fase = TempoDaAura * (Indice == 0 ? 0.45f : 0.8f) + Indice * 1.7f;
+        const float Respiro = 1.f + (Indice == 0 ? 0.14f : 0.08f) * FMath::Sin(Fase);
+        Casca->SetRelativeScale3D(FVector(Base.X * Respiro, Base.Y * Respiro, Base.Z));
     }
 }

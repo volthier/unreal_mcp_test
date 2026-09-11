@@ -67,12 +67,15 @@ protected:
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UStaticMeshComponent> Nucleo;
 
     /**
-     * A aura em volta do cristal: TRES PLANOS CRUZADOS de nevoa, nao uma casca esferica.
-     * Uma esfera aditiva sempre le como bola acesa (foi o que a primeira versao mostrou); planos com
-     * sprite de nevoa macia, girando em velocidades diferentes e respirando, leem como uma nuvem fraca
-     * que envolve o cristal e se dissipa - que e o pedido do autor.
+     * A aura em volta do cristal: NEVOA DE GELO SECO, nao uma nuvem alta nem planos em pe.
+     *
+     * Sao DUAS cascas esfericas ACHATADAS, e a leitura vem da forma de cada uma:
+     *   [0] a POCA - bem larga e baixa, colada ao chao: e a nevoa que escorre e se acumula na base;
+     *   [1] o MANTO - menor e mais alta, envolvendo o cristal.
+     * O material (M_AuraGeada) tem panner com velocidade vertical NEGATIVA: a nevoa se move para BAIXO,
+     * como o gelo seco. Foi assim depois de o autor mandar a referencia de nevoa de gelo seco em movimento.
      */
-    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TArray<TObjectPtr<class UStaticMeshComponent>> PlanosDaAura;
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TArray<TObjectPtr<class UStaticMeshComponent>> CascasDaNevoa;
 
     /** Efeito Niagara opcional, por cima da casca. */
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UNiagaraComponent> Aura;
