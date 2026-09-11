@@ -392,10 +392,20 @@ void URunnerMenuWidget::RebuildLayout()
     {
         GEngine->GameViewport->GetViewportSize(Tela);
     }
-    const float AlturaDoPainel = FMath::Clamp(Tela.Y * 0.92f, 560.f, 1040.f);
+    // PROPORCAO DO PAINEL, conforme o guia (Art/Tela_login): o painel do login e ESTREITO e vertical, com a
+    // cidade visivel de sobra dos dois lados. Antes ele era 68 por cento da largura, o que esticava os campos
+    // por uma faixa enorme e deixava um vazio embaixo - era isso que o autor viu como "longe do guia".
+    // Nas telas de escolha (chassi/classe/runners) o painel continua largo, porque ali ha tres colunas.
+    const bool bTelaDeEntrada = (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount);
+    const float AlturaDoPainel = bTelaDeEntrada
+        ? FMath::Clamp(Tela.Y * 0.86f, 520.f, 900.f)
+        : FMath::Clamp(Tela.Y * 0.92f, 560.f, 1040.f);
     if (PanelSlotDoPainel)
     {
-        PanelSlotDoPainel->SetSize(FVector2D(FMath::Clamp(Tela.X * 0.68f, 740.f, 1180.f), AlturaDoPainel));
+        PanelSlotDoPainel->SetSize(FVector2D(
+            bTelaDeEntrada ? FMath::Clamp(Tela.X * 0.32f, 480.f, 640.f)
+                           : FMath::Clamp(Tela.X * 0.68f, 740.f, 1180.f),
+            AlturaDoPainel));
     }
 
     // A vitrine e a lista dividem a altura do painel: em tela baixa tudo encolhe, nada some.
@@ -725,6 +735,12 @@ void URunnerMenuWidget::GoToStep(const ERunnerMenuStep NewStep)
 {
     CurrentStep = NewStep;
     RebuildLayout();
+
+    // A VITRINE PRECISA SER AVISADA DA ETAPA NOVA. Este era o defeito que o autor viu duas vezes: indo do
+    // CHASSI para a CLASSE, a vitrine e recriada pelo RebuildLayout e ficava no estado padrao - o CRISTAL -,
+    // porque AtualizarVitrine so era chamado ao trocar de chassi (e o chassi nao muda nesse caminho). Agora a
+    // troca de etapa sempre diz o que a vitrine mostra: cristal na aba CHASSI, corpo na aba CLASSE.
+    AtualizarVitrine();
 
     switch (CurrentStep)
     {
