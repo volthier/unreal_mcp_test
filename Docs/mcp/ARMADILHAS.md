@@ -49,6 +49,23 @@
 - **Conserto:** medir com `ActorTools.get_actor_bounds` (MCP) ou `StaticMeshTools.get_bounds`; foi o que separou
   problema de import de problema de posicionamento.
 
+## 7b. O clique sintético do Slate nem sempre chega ao jogo
+
+- **Sintoma:** `SlateInspectorToolset.Click` devolve `true`, o botão do jogo fica no estado **pressionado** e a tela
+  **não avança**. O mesmo vale para `PressKey` (testado com Enter, Tab e setas).
+- **Onde foi medido:** rodada 22 e 23, na tela de login do `MainMenuMap`. Na **rodada 18 o mesmo caminho
+  funcionou** (clique em "Criar conta nova (local)" levou à tela de conta, e o fluxo até o chassi foi percorrido).
+  Ou seja: não é um defeito do jogo, e sim do caminho de entrada sintética.
+- **O que já foi tentado, sem sucesso:** dois e três cliques no mesmo ref; `Hover` antes do clique; clique num
+  widget inerte antes (para soltar captura presa de mouse); sessão de PIE nova; `playMode: PlayMode_InEditorFloating`
+  (com a janela do jogo aparecendo como janela própria no inspetor, e refs novos).
+- **O que funciona como alternativa:** `EditorAppToolset.StartPIE` aceita **`startTransform`** - dá para colocar o
+  pawn do jogador em qualquer ponto do mapa e capturar **da câmera dele**. Foi assim que a entrada no mundo aberto
+  foi verificada (jogador na praça, com os mostradores de cristal em volta).
+- **Não declarar causa sem prova.** A hipótese mais provável é foco/roteamento de entrada do PIE no macOS, mas
+  isso **não foi medido**. Se um humano clicar com o mouse e o jogo responder, o problema é do caminho sintético;
+  se também não responder, é ambiente. Essa pergunta está aberta.
+
 ## 8. Sessão MCP expirada parece "ferramenta que não existe"
 
 - **Sintoma:** `Unknown session id '...' for 'tools/call'` em toda chamada.
