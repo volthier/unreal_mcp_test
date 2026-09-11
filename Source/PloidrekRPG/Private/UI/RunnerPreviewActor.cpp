@@ -60,13 +60,22 @@ ARunnerPreviewActor::ARunnerPreviewActor()
 
     // A CASCA DA AURA: a nuvem de gelo em volta do cristal. Esfera aditiva com textura de geada - e ela que
     // da o volume da nevoa sem depender de particula, e ela que recebe a COR do chassi.
-    CascaDaAura = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CascaDaAura"));
-    CascaDaAura->SetupAttachment(Raiz);
-    CascaDaAura->SetMobility(EComponentMobility::Movable);
-    CascaDaAura->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    CascaDaAura->SetLightingChannels(false, true, false);
-    CascaDaAura->SetCastShadow(false);
-    CascaDaAura->SetVisibility(false);
+    // Os tres planos da aura nascem aqui, em pe (pitch 90) e com giro de 60 graus entre eles: assim a
+    // nevoa existe de qualquer angulo da camera. Sem o giro, dois planos ficariam de perfil e sumiriam.
+    PlanosDaAura.Reserve(3);
+    for (int32 Indice = 0; Indice < 3; ++Indice)
+    {
+        UStaticMeshComponent* Plano = CreateDefaultSubobject<UStaticMeshComponent>(
+            *FString::Printf(TEXT("PlanoDaAura%d"), Indice));
+        Plano->SetupAttachment(Raiz);
+        Plano->SetMobility(EComponentMobility::Movable);
+        Plano->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        Plano->SetLightingChannels(false, true, false);
+        Plano->SetCastShadow(false);
+        Plano->SetVisibility(false);
+        Plano->SetRelativeRotation(FRotator(-90.f, Indice * 60.f, 0.f));
+        PlanosDaAura.Add(Plano);
+    }
 
     // A AURA: nuvem de gelo em Niagara, por cima da casca (ligada por configuracao, quando existir em disco).
     Aura = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Aura"));
@@ -175,25 +184,39 @@ void ARunnerPreviewActor::SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, U
 
     // A casca da aura: esfera aditiva de geada tingida com a COR deste chassi (o mesmo gelo fica azul no
     // Cryonix e branco incandescente no Overcore).
-    if (CascaDaAura && Ajustes)
+    if (Ajustes && PlanosDaAura.Num() > 0)
     {
-        if (UStaticMesh* Esfera = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere")))
+        UStaticMesh* PlanoBase = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane"));
+        if (!AuraDinamica)
         {
-            CascaDaAura->SetStaticMesh(Esfera);
-        }
-        CascaDaAura->SetRelativeScale3D(FVector(Ajustes->EscalaDaAura * Escala));
-        CascaDaAura->SetVisibility(true);
-
-        if (UMaterialInterface* Base = Ajustes->MaterialDaAura.LoadSynchronous())
-        {
-            if (!AuraDinamica)
+            if (UMaterialInterface* Base = Ajustes->MaterialDaAura.LoadSynchronous())
             {
                 AuraDinamica = UMaterialInstanceDynamic::Create(Base, this);
             }
-            if (AuraDinamica)
+        }
+        if (AuraDinamica)
+        {
+            AuraDinamica->SetVectorParameterValue(TEXT("CorDaAura"), CorDoNucleo);
+            // Fraca de proposito: a aura e nevoa, nao luz. Se subir, ela come o cristal.
+            AuraDinamica->SetScalarParameterValue(TEXT("BrilhoDaAura"), 0.22f);
+        }
+
+        for (int32 Indice = 0; Indice < PlanosDaAura.Num(); ++Indice)
+        {
+            if (UStaticMeshComponent* Plano = PlanosDaAura[Indice])
             {
-                AuraDinamica->SetVectorParameterValue(TEXT("CorDaAura"), CorDoNucleo);
-                CascaDaAura->SetMaterial(0, AuraDinamica);
+                if (PlanoBase)
+                {
+                    Plano->SetStaticMesh(PlanoBase);
+                }
+                if (AuraDinamica)
+                {
+                    Plano->SetMaterial(0, AuraDinamica);
+                }
+                // O plano do engine tem 100 cm: esta escala da uma nuvem de ~2,2 m em volta de um cristal de 1,6 m.
+                EscalaBaseDaAura = Ajustes->EscalaDaAura * Escala;
+                Plano->SetRelativeScale3D(FVector(EscalaBaseDaAura));
+                Plano->SetVisibility(true);
             }
         }
     }
@@ -214,20 +237,24 @@ void ARunnerPreviewActor::SetNucleo(const TSoftObjectPtr<UStaticMesh>& InMesh, U
         }
     }
 
-    // Luz do nucleo: se o material tem cor, ela ilumina junto (a cor vem do parametro do material).
+    // A luz do nucleo usa a COR QUE VEIO DO DADO (o CoreColor do chassi), nao uma leitura de volta do
+    // material: assim a vitrine e a tabela do jogo nao podem divergir.
     if (LuzDoNucleo)
     {
-        float R = 0.4f, G = 0.7f, B = 1.f;
-        if (const UMaterialInstance* Instancia = Cast<UMaterialInstance>(Material))
-        {
-            FLinearColor Cor;
-            if (Instancia->GetVectorParameterValue(FMaterialParameterInfo(TEXT("CorDoNucleo")), Cor))
-            {
-                R = Cor.R; G = Cor.G; B = Cor.B;
-            }
-        }
-        LuzDoNucleo->SetLightColor(FLinearColor(R, G, B));
+        LuzDoNucleo->SetLightColor(CorDoNucleo);
         LuzDoNucleo->SetIntensity(3200.f);
+    }
+
+    // A LUMINESCENCIA e do cristal, e o codigo e que manda nela: o cristal aceso por dentro com a cor do
+    // chassi, forte o bastante para ele ler como fonte de luz propria dentro da caixa da vitrine.
+    if (Material)
+    {
+        if (UMaterialInstanceDynamic* CristalDinamico = UMaterialInstanceDynamic::Create(Material, this))
+        {
+            CristalDinamico->SetVectorParameterValue(TEXT("CorDoNucleo"), CorDoNucleo);
+            CristalDinamico->SetScalarParameterValue(TEXT("Brilho"), 0.75f);
+            Nucleo->SetMaterial(0, CristalDinamico);
+        }
     }
 }
 
@@ -250,9 +277,12 @@ void ARunnerPreviewActor::SetPreview(const TSoftObjectPtr<USkeletalMesh>& InMesh
         Aura->Deactivate();
         Aura->SetVisibility(false);
     }
-    if (CascaDaAura)
+    for (UStaticMeshComponent* Plano : PlanosDaAura)
     {
-        CascaDaAura->SetVisibility(false);
+        if (Plano)
+        {
+            Plano->SetVisibility(false);
+        }
     }
     if (LuzDoNucleo)
     {
@@ -311,8 +341,26 @@ void ARunnerPreviewActor::Tick(float DeltaSeconds)
         Nucleo->AddLocalRotation(Passo);
     }
     // A nevoa gira mais devagar que o cristal: da a leitura de nuvem circulando em volta.
-    if (CascaDaAura && CascaDaAura->IsVisible())
+    // A nevoa gira em velocidade DIFERENTE da do cristal e cada plano no seu passo: e o que da a leitura de
+    // nuvem circulando em volta, e nao de um objeto preso ao cristal.
+    TempoDaAura += DeltaSeconds;
+    for (int32 Indice = 0; Indice < PlanosDaAura.Num(); ++Indice)
     {
-        CascaDaAura->AddLocalRotation(FRotator(0.f, GrausPorSegundo * DeltaSeconds * 0.45f, 0.f));
+        UStaticMeshComponent* Plano = PlanosDaAura[Indice];
+        if (!Plano || !Plano->IsVisible())
+        {
+            continue;
+        }
+
+        const float PassoDaNevoa = GrausPorSegundo * DeltaSeconds * (0.32f + 0.13f * Indice);
+        Plano->AddLocalRotation(FRotator(0.f, PassoDaNevoa, 0.f));
+
+        // Respiracao: a nuvem cresce e encolhe, e a mudanca de densidade e que faz a nevoa parecer que se
+        // dissipa - em vez de ser uma placa fixa em volta do cristal.
+        const float Fase = TempoDaAura * 0.7f + Indice * 2.1f;
+        const float Respiro = 1.f + 0.10f * FMath::Sin(Fase);
+        // A escala-base e guardada, nao lida de volta do componente: ler de volta faria o pulso compor a
+        // cada quadro e a nuvem cresceria sem parar.
+        Plano->SetRelativeScale3D(FVector(EscalaBaseDaAura * Respiro));
     }
 }

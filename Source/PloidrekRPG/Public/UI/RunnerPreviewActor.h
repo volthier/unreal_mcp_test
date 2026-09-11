@@ -66,8 +66,13 @@ protected:
     /** O cristal do chassi (a aba CHASSI mostra ele, nao o corpo). */
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UStaticMeshComponent> Nucleo;
 
-    /** A aura em volta do cristal: a nuvem de gelo que gira junto (casca aditiva com textura de geada). */
-    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UStaticMeshComponent> CascaDaAura;
+    /**
+     * A aura em volta do cristal: TRES PLANOS CRUZADOS de nevoa, nao uma casca esferica.
+     * Uma esfera aditiva sempre le como bola acesa (foi o que a primeira versao mostrou); planos com
+     * sprite de nevoa macia, girando em velocidades diferentes e respirando, leem como uma nuvem fraca
+     * que envolve o cristal e se dissipa - que e o pedido do autor.
+     */
+    UPROPERTY(VisibleAnywhere, Category = "Vitrine") TArray<TObjectPtr<class UStaticMeshComponent>> PlanosDaAura;
 
     /** Efeito Niagara opcional, por cima da casca. */
     UPROPERTY(VisibleAnywhere, Category = "Vitrine") TObjectPtr<class UNiagaraComponent> Aura;
@@ -86,4 +91,10 @@ protected:
 
     /** Instancia dinamica da aura: recebe a COR do chassi para tingir a nevoa de gelo. */
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> AuraDinamica;
+
+    /** Escala-base dos planos da nevoa (guardada para o pulso nao compor a cada quadro). */
+    float EscalaBaseDaAura = 2.6f;
+
+    /** Relogio proprio da nevoa, so para a respiracao. */
+    float TempoDaAura = 0.f;
 };

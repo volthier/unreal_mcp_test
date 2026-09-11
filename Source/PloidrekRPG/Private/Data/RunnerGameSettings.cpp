@@ -20,7 +20,7 @@ URunnerGameSettings::URunnerGameSettings()
     // partir do CoreColor da DataTable - ver Docs/Prompts_Arte_Ploidrek.md secao 9b.
     NucleoMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/AI_Assets/prop/cristal_nucleo.cristal_nucleo")));
     PastaDosMateriaisDoNucleo = TEXT("/Game/AI_Assets/materials");
-    EscalaDoNucleo = 0.35f;
+    EscalaDoNucleo = 1.0f;   // o cristal limpo tem 1,61 m: em 1.0 ele preenche a caixa da vitrine
     // A aura: casca aditiva com a textura de geada, tingida com a cor do nucleo de cada chassi.
     MaterialDaAura = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/AI_Assets/materials/M_AuraGeada.M_AuraGeada")));
     EscalaDaAura = 2.6f;

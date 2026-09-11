@@ -1111,9 +1111,12 @@ void URunnerMenuWidget::PreencherInfo(UVerticalBox* Caixa, FName ChassiId, FName
 
     Adicionar(Caixa, CriarTexto(WidgetTree, Chassi.DisplayName.ToString().ToUpper(), 17.f, RunnerPalette::LataoPolido()), 2.f);
     Adicionar(Caixa, CriarTexto(WidgetTree,
-        FString::Printf(TEXT("corpo %s · tinta %d,%d,%d"), *NomeDoCorpo(Chassi.Body),
-            FMath::RoundToInt(Chassi.AccentColor.R * 255.f), FMath::RoundToInt(Chassi.AccentColor.G * 255.f),
-            FMath::RoundToInt(Chassi.AccentColor.B * 255.f)),
+        // A COR DO NUCLEO em hexadecimal, e nao o RGB cru: e a identidade do chassi (o nucleo e o cristal)
+        // e o hexadecimal e o mesmo codigo que o dado usa no DT_Chassis, entao a tela e a tabela falam igual.
+        FString::Printf(TEXT("corpo %s · núcleo #%02X%02X%02X"), *NomeDoCorpo(Chassi.Body),
+            FMath::RoundToInt(FMath::Clamp(Chassi.CoreColor.R, 0.f, 1.f) * 255.f),
+            FMath::RoundToInt(FMath::Clamp(Chassi.CoreColor.G, 0.f, 1.f) * 255.f),
+            FMath::RoundToInt(FMath::Clamp(Chassi.CoreColor.B, 0.f, 1.f) * 255.f)),
         11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 8.f);
     Adicionar(Caixa, CriarFilete(WidgetTree, RunnerPalette::LataoEscovado(0.6f), 1.f), 8.f);
 
