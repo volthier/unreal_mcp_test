@@ -282,6 +282,25 @@ void URunnerMenuWidget::NativeOnInitialized()
     // Painel: placa de aco escuro com contorno de latao escovado (paleta canonica).
     UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
     Panel->SetBrush(Caixa(RunnerPalette::FundoPainel(), RaioDoPainel, RunnerPalette::BordaPainel(), 1.5f));
+
+    // A MOLDURA do kit visual, quando configurada: a textura entra como pincel BOX (9 fatias), entao os
+    // cantos com rebite ficam do tamanho certo e so as bordas esticam - nada de moldura achatada.
+    if (const URunnerGameSettings* AjustesDaMoldura = GetDefault<URunnerGameSettings>())
+    {
+        if (!AjustesDaMoldura->TexturaDaMoldura.IsNull())
+        {
+            if (UTexture2D* Moldura = AjustesDaMoldura->TexturaDaMoldura.LoadSynchronous())
+            {
+                FSlateBrush PincelDaMoldura;
+                PincelDaMoldura.SetResourceObject(Moldura);
+                PincelDaMoldura.ImageSize = FVector2D(Moldura->GetSizeX(), Moldura->GetSizeY());
+                PincelDaMoldura.DrawAs = ESlateBrushDrawType::Box;
+                PincelDaMoldura.Margin = FMargin(0.14f);
+                PincelDaMoldura.TintColor = FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f));
+                Panel->SetBrush(PincelDaMoldura);
+            }
+        }
+    }
     Panel->SetPadding(FMargin(26.f, 22.f));
     UCanvasPanelSlot* PanelSlot = Canvas->AddChildToCanvas(Panel);
     PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f));
@@ -365,7 +384,34 @@ void URunnerMenuWidget::RebuildLayout()
     AlturaDaVitrine = FMath::Clamp(AlturaDoPainel * 0.40f, 168.f, 290.f);
     AlturaDaLista = FMath::Clamp(AlturaDoPainel * 0.24f, 96.f, 185.f);
 
-    // Cabecalho: marca em latao polido, o passo atual em letra miuda e um filete de metal.
+    // Cabecalho: o EMBLEMA (o cristal no anel de latao) ao lado da marca, em latao polido, o passo atual em
+    // letra miuda e um filete de metal. O emblema e TEXTURA de configuracao: trocar a arte nao exige codigo.
+    const URunnerGameSettings* AjustesDoKit = GetDefault<URunnerGameSettings>();
+    if (AjustesDoKit && !AjustesDoKit->EmblemaDoTitulo.IsNull())
+    {
+        if (UTexture2D* Emblema = AjustesDoKit->EmblemaDoTitulo.LoadSynchronous())
+        {
+            UHorizontalBox* Marca = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+            UImage* Selo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+            Selo->SetBrushFromTexture(Emblema, false);
+            if (USizeBox* TamanhoDoSelo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass()))
+            {
+                TamanhoDoSelo->SetWidthOverride(46.f);
+                TamanhoDoSelo->SetHeightOverride(46.f);
+                TamanhoDoSelo->AddChild(Selo);
+                if (UHorizontalBoxSlot* Espaco = Marca->AddChildToHorizontalBox(TamanhoDoSelo))
+                {
+                    Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+                    Espaco->SetPadding(FMargin(0.f, 0.f, 10.f, 0.f));
+                    Espaco->SetVerticalAlignment(VAlign_Center);
+                }
+            }
+            if (UVerticalBoxSlot* EspacoDaMarca = RootBox->AddChildToVerticalBox(Marca))
+            {
+                EspacoDaMarca->SetPadding(FMargin(0.f, 0.f, 0.f, 2.f));
+            }
+        }
+    }
     Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("PLOIDREKRPG"), 26.f, RunnerPalette::LataoPolido()), 2.f);
 
     FString Passo;

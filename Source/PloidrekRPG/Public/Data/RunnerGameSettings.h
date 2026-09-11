@@ -38,6 +38,12 @@ public:
      */
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> TexturaDoFundo;
 
+    /** Moldura de latao do painel do menu (kit visual). Vazio = painel liso. */
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> TexturaDaMoldura;
+
+    /** Emblema do titulo: o cristal em anel de latao. Vazio = so o texto. */
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> EmblemaDoTitulo;
+
     /** Escurecimento aplicado sobre a arte do fundo, para a UI continuar legivel (0 a 1). */
     UPROPERTY(config, EditAnywhere, Category = "Fundo", meta = (ClampMin = "0.0", ClampMax = "0.95"))
     float EscurecimentoDoFundo = 0.35f;
