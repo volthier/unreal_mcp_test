@@ -23,7 +23,28 @@ echo "iteracao mais nova: $NOVA"
 cp "$NOVA" "$PRINCIPAL"
 install_name_tool -id "@rpath/libUnrealEditor-PloidrekRPG.dylib" "$PRINCIPAL"
 codesign --force --sign - "$PRINCIPAL" >/dev/null 2>&1 || true
-rm -f Binaries/Mac/libUnrealEditor-PloidrekRPG-*.dylib
+
+# A CAUSA RAIZ (descoberta na rodada 9): o engine NAO carrega 'libUnrealEditor-PloidrekRPG.dylib' por
+# convencao - ele carrega o arquivo nomeado em Binaries/Mac/UnrealEditor.modules. Copiar para o nome
+# 'principal' e apagar a iteracao deixa o manifesto apontando para um arquivo que nao existe, e o engine
+# simplesmente nao carrega o modulo: o editor abre, mas commandlets rodam ZERO testes e o pyscript nao
+# executa, sem erro no log. Entao: o manifesto e que manda - mantem o arquivo com o nome que ele pede.
+python3 - <<'PY'
+import json, shutil
+from pathlib import Path
+manifesto = Path('Binaries/Mac/UnrealEditor.modules')
+principal = Path('Binaries/Mac/libUnrealEditor-PloidrekRPG.dylib')
+if manifesto.exists() and principal.exists():
+    dados = json.loads(manifesto.read_text())
+    nome = dados.get('Modules', {}).get('PloidrekRPG')
+    if nome:
+        alvo = Path('Binaries/Mac') / nome
+        if not alvo.exists():
+            shutil.copy2(principal, alvo)
+            print('  arquivo restaurado com o nome do manifesto:', nome)
+        else:
+            print('  manifesto e arquivo ja concordam:', nome)
+PY
 
 echo "identidade do principal: $(otool -D "$PRINCIPAL" | tail -1)"
-echo "pronto. Se ainda rodar zero testes, o conserto limpo e FECHAR o editor e rodar o UBT de novo."
+echo "manifesto: $(python3 -c "import json;print(json.load(open('Binaries/Mac/UnrealEditor.modules'))['Modules']['PloidrekRPG'])")"
