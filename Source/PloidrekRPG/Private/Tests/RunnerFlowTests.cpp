@@ -9,7 +9,12 @@
 #include "Data/RunnerCharacterFactory.h"
 #include "Data/RunnerCharacterProfile.h"
 #include "Data/RunnerRules.h"
+#include "Character/AFGameMode.h"
 #include "Data/RunnerChassisData.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/WorldSettings.h"
 #include "Data/RunnerGameSettings.h"
 #include "Engine/DataTable.h"
 #include "Engine/StaticMesh.h"
@@ -344,4 +349,60 @@ bool FRunnerNucleoTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+/**
+ * O mundo aberto: o botao Jogar leva para um mapa proprio, que se declara em AFGameMode e tem onde o
+ * jogador nascer. E o elo que faltava entre a tela de selecao e o jogo.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRunnerMundoTest, "Runner.Mundo.AreaInicial",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRunnerMundoTest::RunTest(const FString& Parameters)
+{
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    if (!TestNotNull(TEXT("configuracao do Runner"), Ajustes))
+    {
+        return false;
+    }
+
+    const FString Caminho = Ajustes->MapaDoMundo;
+    TestFalse(TEXT("o mapa do mundo esta configurado"), Caminho.IsEmpty());
+
+    const FString CaminhoObjeto = Caminho.Contains(TEXT("."))
+        ? Caminho
+        : Caminho + TEXT(".") + FPaths::GetBaseFilename(Caminho);
+    UWorld* Mundo = LoadObject<UWorld>(nullptr, *CaminhoObjeto);
+    if (!TestNotNull(*FString::Printf(TEXT("o mapa do mundo carrega (%s)"), *CaminhoObjeto), Mundo))
+    {
+        return false;
+    }
+
+    const AWorldSettings* Settings = Mundo->GetWorldSettings();
+    if (!TestNotNull(TEXT("WorldSettings do mundo"), Settings))
+    {
+        return false;
+    }
+    UClass* Classe = Settings->DefaultGameMode;
+    if (!TestNotNull(TEXT("o mundo define um GameMode"), Classe))
+    {
+        return false;
+    }
+    TestTrue(FString::Printf(TEXT("GameMode do mundo (%s) e o de jogo"), *Classe->GetName()),
+        Classe->IsChildOf(AAFGameMode::StaticClass()));
+
+    // Conta sem break: um for com break incondicional e erro de build no UE (-Wunreachable-code-loop-increment).
+    int32 QuantosInicios = 0;
+    for (TActorIterator<APlayerStart> It(Mundo); It; ++It)
+    {
+        ++QuantosInicios;
+    }
+    TestTrue(TEXT("o mundo tem PlayerStart"), QuantosInicios > 0);
+
+    // A cidade e procedimental: o grafo de PCG precisa existir para a area inicial ser gerada.
+    UObject* Grafo = LoadObject<UObject>(nullptr, TEXT("/Game/AI_Assets/pcg/PCG_CidadeKardys.PCG_CidadeKardys"));
+    TestNotNull(TEXT("o grafo de PCG da cidade existe"), Grafo);
+    return true;
+}
+
 #endif
+

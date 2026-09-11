@@ -955,8 +955,17 @@ void URunnerMenuWidget::OpenGameLevel()
     // A vitrine vive no mundo do menu: sai junto com ele.
     DestruirVitrine();
 
-    UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)), true,
-        TEXT("game=/Script/PloidrekRPG.AFGameMode"));
+    // O botao Jogar leva para o mapa do MUNDO ABERTO (configurado em Project Settings > Game > Runner).
+    // Sem mapa configurado, cai no comportamento antigo: reabre o mapa atual em modo jogo.
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    FString Mapa = Ajustes ? Ajustes->MapaDoMundo : FString();
+    if (Mapa.IsEmpty())
+    {
+        Mapa = UGameplayStatics::GetCurrentLevelName(this, true);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("URunnerMenuWidget: entrando no mundo (%s)."), *Mapa);
+    UGameplayStatics::OpenLevel(this, FName(*Mapa), true, TEXT("game=/Script/PloidrekRPG.AFGameMode"));
 }
 
 // ---------------------------------------------------------------------------

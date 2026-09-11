@@ -16,6 +16,12 @@ class PLOIDREKRPG_API URunnerGameSettings : public UDeveloperSettings
 public:
     URunnerGameSettings();
 
+    /**
+     * Mapa do MUNDO ABERTO que o botao Jogar abre, com o personagem escolhido. E aqui que a area inicial
+     * vive (praça industrial + cidade procedimental em PCG).
+     */
+    UPROPERTY(config, EditAnywhere, Category = "Dados") FString MapaDoMundo = TEXT("/Game/Maps/MundoAberto");
+
     /** Tabela dos chassis jogaveis (linhas FRunnerChassisData). */
     UPROPERTY(config, EditAnywhere, Category = "Dados") TSoftObjectPtr<UDataTable> ChassisTable;
 
