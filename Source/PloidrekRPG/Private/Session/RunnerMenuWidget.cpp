@@ -438,11 +438,12 @@ void URunnerMenuWidget::RebuildLayout()
     // eixo de tracking, e inventar um asset de fonte aqui seria excecao sem necessidade (ver EXCECOES.md).
     if (CurrentStep == ERunnerMenuStep::Login || CurrentStep == ERunnerMenuStep::CreateAccount)
     {
-        UTextBlock* TituloDoJogo = CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 34.f, RunnerPalette::Branco());
-        TituloDoJogo->SetRenderScale(FVector2D(1.f, 1.18f));
-        Adicionar(RootBox, TituloDoJogo, 0.f);
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 13.f, RunnerPalette::Violeta()), 4.f);
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("mais que jogo, um novo amanha"), 10.f, RunnerPalette::TextoFraco()), 8.f);
+        // SEM SetRenderScale aqui: o UMG mede o texto pelo tamanho da fonte e ignora a escala de render,
+        // entao um titulo escalado TRANSBORDA em cima do que vem depois. Foi o que aconteceu na primeira
+        // versao - o AETHER FORGE caia por cima das abas. O peso vem da fonte, nao de escala.
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 32.f, RunnerPalette::Branco()), 0.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 13.f, RunnerPalette::Violeta()), 6.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("mais que jogo, um novo amanha"), 10.f, RunnerPalette::TextoFraco()), 10.f);
     }
     else
     {
@@ -452,8 +453,10 @@ void URunnerMenuWidget::RebuildLayout()
     FString Passo;
     switch (CurrentStep)
     {
-        case ERunnerMenuStep::Login:           Passo = TEXT("LOGIN     |     CADASTRO"); break;
-        case ERunnerMenuStep::CreateAccount:   Passo = TEXT("LOGIN     |     CADASTRO"); break;
+        // Abas do guia: a ativa em branco, a outra apagada. Nao sao clicaveis porque os botoes LOGIN e
+        // CADASTRO logo abaixo ja fazem essa troca - duas formas de trocar de aba na mesma tela confundem.
+        case ERunnerMenuStep::Login:           Passo = TEXT("LOGIN          cadastro"); break;
+        case ERunnerMenuStep::CreateAccount:   Passo = TEXT("login          CADASTRO"); break;
         case ERunnerMenuStep::CharacterSelect: Passo = TEXT("SEUS RUNNERS"); break;
         case ERunnerMenuStep::Chassis:         Passo = TEXT("ESCOLHA O CHASSI"); break;
         case ERunnerMenuStep::Class:           Passo = TEXT("ESCOLHA A CLASSE"); break;
@@ -605,7 +608,7 @@ void URunnerMenuWidget::RebuildLayout()
     // Botao principal: ambar cheio, texto escuro — e a acao que o passo pede.
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
-                   RunnerPalette::LuzDeRua(0.9f), 1.f);
+                   RunnerPalette::AzulNeon(0.95f), 1.5f);
     UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 15.f, RunnerPalette::TextoDoBotao());
     PrimaryText->SetAutoWrapText(false);
     switch (CurrentStep)
@@ -628,7 +631,7 @@ void URunnerMenuWidget::RebuildLayout()
     // Botao secundario: ferro forjado com contorno de latao.
     UButton* Secondary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
-                   RunnerPalette::LataoEscovado(0.8f), 1.f);
+                   RunnerPalette::Violeta(0.80f), 1.5f);
     UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 14.f, RunnerPalette::TextoCorpo());
     SecondaryText->SetAutoWrapText(false);
     switch (CurrentStep)
@@ -679,7 +682,7 @@ void URunnerMenuWidget::RebuildLayout()
     // Terceiro botao: so aparece onde ha uma terceira acao util.
     TertiaryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(TertiaryButton, RunnerPalette::BotaoTerciario(), RunnerPalette::BotaoTerciarioHover(),
-                   RunnerPalette::Cobre(0.7f), 1.f);
+                   RunnerPalette::AzulNeon(0.65f), 1.f);
     UTextBlock* TertiaryText = CriarTexto(WidgetTree, FString(), 13.f, RunnerPalette::Cobre(0.95f));
     TertiaryText->SetAutoWrapText(false);
     bool bMostraTerceiro = false;

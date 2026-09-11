@@ -71,12 +71,14 @@ namespace RunnerPalette
     inline FLinearColor TextoCorpo()       { return CinzaTexto(0.95f); }
     inline FLinearColor TextoFraco()       { return CinzaTexto(0.60f); }
     inline FLinearColor TextoDoBotao()     { return Branco(); }
-    inline FLinearColor BotaoPrincipal()   { return RosaNeon(0.92f); }
-    inline FLinearColor BotaoPrincipalHover() { return RosaNeon(1.f); }
-    inline FLinearColor BotaoSecundario()  { return FerroForjado(0.95f); }
-    inline FLinearColor BotaoSecundarioHover() { return Violeta(0.55f); }
-    inline FLinearColor BotaoTerciario()   { return Violeta(0.22f); }
-    inline FLinearColor BotaoTerciarioHover() { return Violeta(0.42f); }
+    // Botoes do guia: o principal e violeta cheio (borda ciano, no EstilizarBotao), o secundario e vidro
+    // (escuro translucido, para ler como painel e nao como bloco) e o terciario e o chip escuro.
+    inline FLinearColor BotaoPrincipal()   { return Violeta(0.90f); }
+    inline FLinearColor BotaoPrincipalHover() { return RosaNeon(0.95f); }
+    inline FLinearColor BotaoSecundario()  { return FundoUI(0.55f); }
+    inline FLinearColor BotaoSecundarioHover() { return Violeta(0.45f); }
+    inline FLinearColor BotaoTerciario()   { return FerroForjado(0.90f); }
+    inline FLinearColor BotaoTerciarioHover() { return Violeta(0.35f); }
     inline FLinearColor LinhaDeOpcao()     { return FerroForjado(0.85f); }
     inline FLinearColor LinhaDeOpcaoHover() { return Violeta(0.35f); }
 }

@@ -22,7 +22,9 @@ ENTRADAS = [
     (RAIZ + '/cenario/login_kardys_v001.png', 'ui_login_kardys'),
     (RAIZ + '/cenario/pods_v002.png', 'ui_pods_selecao'),
     # Kit visual AAA do menu (EXC-005): o TextureTools.import_file do MCP recusa estes PNGs
-    (RAIZ + '/ui/kit_moldura_v001.png', 'ui_moldura_latao'),
+    # MOLDURA DO PAINEL: agora o painel de vidro escuro com borda neon do guia (o interior BRANCO da versao de
+    # latao era o que deixava a tela de login ilegivel). Mesmo nome de asset, entao a config nao muda.
+    (RAIZ + '/ui/kit_moldura_neon_v001.png', 'ui_moldura_latao'),
     (RAIZ + '/ui/kit_vidro_v001.png', 'ui_vidro_fume'),
     (RAIZ + '/ui/kit_emblema_v001.png', 'ui_emblema'),
 ]
