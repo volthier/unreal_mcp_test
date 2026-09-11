@@ -25,6 +25,17 @@ public:
     /** Material usado para tingir o corpo com a cor do chassi (parametro AccentColor). */
     UPROPERTY(config, EditAnywhere, Category = "Corpo") TSoftObjectPtr<UMaterialInterface> AccentOverlayMaterial;
 
+    // --- Fundo do menu ---
+    /**
+     * Arte de cenario desenhada atras do painel do menu (a praia de Kardys no login, a fileira de
+     * casulos na selecao). Vazio deixa o fundo 3D do mapa aparecer sozinho.
+     */
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> TexturaDoFundo;
+
+    /** Escurecimento aplicado sobre a arte do fundo, para a UI continuar legivel (0 a 1). */
+    UPROPERTY(config, EditAnywhere, Category = "Fundo", meta = (ClampMin = "0.0", ClampMax = "0.95"))
+    float EscurecimentoDoFundo = 0.35f;
+
     /**
      * Host:porta do Epic Dev Auth Tool no DEV (Project Settings > Game > Runner > EOS).
      * E o valor que o campo 1 do login preenche e que o texto de ajuda mostra. A porta e escolhida

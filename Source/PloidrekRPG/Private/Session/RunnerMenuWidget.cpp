@@ -274,6 +274,9 @@ void URunnerMenuWidget::NativeOnInitialized()
     UCanvasPanel* Canvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
     WidgetTree->RootWidget = Canvas;
 
+    // Fundo primeiro: quem entra antes desenha atras, entao a arte de cenario fica atras do painel.
+    CriarFundo(Canvas);
+
     // Painel: placa de aco escuro com contorno de latao escovado (paleta canonica).
     UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
     Panel->SetBrush(Caixa(RunnerPalette::FundoPainel(), RaioDoPainel, RunnerPalette::BordaPainel(), 1.5f));
@@ -1544,6 +1547,45 @@ UWidget* URunnerMenuWidget::CriarColunaDeDetalhes()
     Rolagem->AddChild(DetalhesBox);
     Painel->SetContent(Rolagem);
     return Painel;
+}
+
+void URunnerMenuWidget::CriarFundo(UCanvasPanel* Canvas)
+{
+    const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+    if (!Canvas || !Ajustes || Ajustes->TexturaDoFundo.IsNull())
+    {
+        return;
+    }
+
+    UTexture2D* Textura = Ajustes->TexturaDoFundo.LoadSynchronous();
+    if (!Textura)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("URunnerMenuWidget: TexturaDoFundo configurada mas nao carregou."));
+        return;
+    }
+
+    // a arte cobre a tela inteira (ancoras esticadas nos dois eixos)
+    UImage* Fundo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Fundo"));
+    Fundo->SetBrushFromTexture(Textura, false);
+    if (UCanvasPanelSlot* FundoSlot = Canvas->AddChildToCanvas(Fundo))
+    {
+        FundoSlot->SetAnchors(FAnchors(0.f, 0.f, 1.f, 1.f));
+        FundoSlot->SetOffsets(FMargin(0.f));
+    }
+
+    // veu escuro por cima da arte: o painel e o texto precisam ler
+    if (Ajustes->EscurecimentoDoFundo > 0.f)
+    {
+        UBorder* Sombra = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SombraDoFundo"));
+        FSlateBrush Pincel;
+        Pincel.TintColor = FSlateColor(FLinearColor(0.02f, 0.02f, 0.04f, Ajustes->EscurecimentoDoFundo));
+        Sombra->SetBrush(Pincel);
+        if (UCanvasPanelSlot* SombraSlot = Canvas->AddChildToCanvas(Sombra))
+        {
+            SombraSlot->SetAnchors(FAnchors(0.f, 0.f, 1.f, 1.f));
+            SombraSlot->SetOffsets(FMargin(0.f));
+        }
+    }
 }
 
 void URunnerMenuWidget::ConstruirTelaDeCriacao(TArray<UWidget*>& AlvosDoVeu)

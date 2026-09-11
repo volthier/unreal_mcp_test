@@ -175,6 +175,13 @@ protected:
     /** Termina o ator da vitrine (ao sair do menu). */
     void DestruirVitrine();
 
+    /**
+     * Arte de cenario atras do painel (Project Settings > Game > Runner > Fundo). Entra no canvas ANTES
+     * do painel: quem entra primeiro desenha atras - e isso que deixa a praca de Kardys aparecer como
+     * fundo do login sem depender do mapa 3D.
+     */
+    void CriarFundo(UCanvasPanel* Canvas);
+
     // ---------- Telas ----------
     /**
      * Tela de criacao (abas chassi/classe): ficha a esquerda, vitrine no meio, detalhes a direita,
