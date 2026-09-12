@@ -401,15 +401,19 @@ void URunnerMenuWidget::NativeOnInitialized()
             }
         }
     }
-    Panel->SetPadding(FMargin(26.f, 24.f));   // padding interno do item 9 (20-32)
+    Panel->SetPadding(FMargin(22.f, 20.f));   // padding interno do item 9 (20-32)
 
     // A ESCALA DA INTERFACE. O painel nao e dimensionado em pixel de tela: ele e desenhado numa resolucao de
     // REFERENCIA e um ScaleBox ajusta tudo proporcionalmente. Era este o defeito que o autor viu ao rodar em
     // outra janela - o painel recalculava o tamanho pelo viewport e o conteudo ficava para fora. Com a
     // referencia fixa, 800x600 e 4K mostram A MESMA tela, so em tamanhos diferentes, sempre centralizada.
     CaixaDoPainel = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CaixaDoPainel"));
+    // A REFERENCIA TEM DE CABER O CONTEUDO. Com 1000 de altura o login estourava: logo (146) + frase + abas +
+    // dois campos (46 cada, com espaco) + linha lembrar/esqueci + dois botoes (56 cada) + divisor + tres fileiras
+    // de sociais + rodape passam de 1000. Como a barra de rolagem esta escondida de proposito, o que estourava
+    // ficava CORTADO - era isso que o autor via como posicao quebrada. 1120 da folga real.
     CaixaDoPainel->SetWidthOverride(620.f);
-    CaixaDoPainel->SetHeightOverride(1000.f);
+    CaixaDoPainel->SetHeightOverride(1120.f);
 
     // A COLUNA da entrada: o LOGOTIPO em cima e o painel embaixo, os dois na MESMA coluna e dentro do mesmo
     // ScaleBox. E assim que o alvo e montado (Art/Tela_login): o AETHER FORGE fica ACIMA do painel, sobre a
@@ -562,7 +566,7 @@ void URunnerMenuWidget::RebuildLayout()
         // A referencia da entrada e a COLUNA (logotipo + painel): 620x1000. Nas telas de escolha nao ha logotipo,
         // entao a referencia e so o painel largo.
         CaixaDoPainel->SetWidthOverride(bTelaDeEntrada ? 620.f : 1180.f);
-        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 1000.f : 900.f);
+        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 1120.f : 900.f);
     }
 
     // A vitrine e a lista dividem a altura do painel: em tela baixa tudo encolhe, nada some.
@@ -594,7 +598,8 @@ void URunnerMenuWidget::RebuildLayout()
         // na proporcao da textura (com so a largura, a caixa vertical esticava e o PROTOCOL ZERO subia).
         if (Logotipo && ColunaDaEntrada)
         {
-            const float LarguraDoLogo = 520.f;
+            // 440 na coluna de 620: sobra 90 de margem de cada lado, como no alvo (o logo nao encosta na borda).
+            const float LarguraDoLogo = 440.f;
             const float ProporcaoDoLogo = (float)Logotipo->GetSizeY() / FMath::Max(1.f, (float)Logotipo->GetSizeX());
             UImage* ImagemDoTitulo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("LogoDoJogo"));
             ImagemDoTitulo->SetBrushFromTexture(Logotipo, false);
@@ -731,7 +736,7 @@ void URunnerMenuWidget::RebuildLayout()
         }
         EstilizarCampo(AccountBox);
         Adicionar(RootBox, LinhaDeCampoComIcone(AccountBox,
-            Ajustes ? Ajustes->IconeDoUsuario.LoadSynchronous() : nullptr), 10.f);
+            Ajustes ? Ajustes->IconeDoUsuario.LoadSynchronous() : nullptr), 14.f);
         AlvosDoVeu.Add(AccountBox);
 
         // Nome de usuario existe so na criacao da conta local.
@@ -776,7 +781,7 @@ void URunnerMenuWidget::RebuildLayout()
             EspacoDoOlho->SetPadding(FMargin(8.f, 0.f, 0.f, 0.f));
             EspacoDoOlho->SetVerticalAlignment(VAlign_Center);
         }
-        Adicionar(RootBox, LinhaDaSenha, 10.f);
+        Adicionar(RootBox, LinhaDaSenha, 14.f);
         AlvosDoVeu.Add(PasswordBox);
 
         // A linha do guia: "Lembrar de mim" a esquerda e "Esqueci a senha?" a direita.
