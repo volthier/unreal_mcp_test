@@ -627,6 +627,24 @@ void URunnerMenuWidget::NativeTick(const FGeometry& Geometria, const float Delta
         const float BrilhoDoBotao = 1.f + 0.05f * FMath::Sin(TempoDoPulso * (2.f * PI / 2.8f));
         BotaoPrincipal->SetBackgroundColor(FLinearColor(BrilhoDoBotao, BrilhoDoBotao, BrilhoDoBotao, 1.f));
     }
+
+    // SECAO 30, o flash ciano do sucesso: 0,3 s de painel aceso em ciano, que confirma o login sem mensagem e sem
+    // popup. O tempo decai no tick e, quando zera, a cor volta ao normal.
+    if (TempoDoFlash > 0.f)
+    {
+        TempoDoFlash = FMath::Max(0.f, TempoDoFlash - Delta);
+        const float Forca = TempoDoFlash / 0.3f;
+        if (PainelDoLogin)
+        {
+            const FLinearColor Ciano = RunnerPalette::AzulNeon();
+            PainelDoLogin->SetBrushColor(FLinearColor::LerpUsingHSV(FLinearColor::White, Ciano, Forca * 0.85f));
+        }
+        if (TempoDoFlash <= 0.f && PainelDoLogin)
+        {
+            PainelDoLogin->SetBrushColor(FLinearColor::White);
+            EstadoDoLogin = ERunnerLoginState::Idle;
+        }
+    }
 }
 
 void URunnerMenuWidget::HandleMostrarSenha()
@@ -1294,6 +1312,12 @@ void URunnerMenuWidget::OnPrimaryClicked()
             const FString Conta = AccountBox->GetText().ToString();
             const FString Senha = PasswordBox->GetText().ToString();
 
+            // ESTADO AUTENTICANDO (secao 30): o botao passa a carregando ANTES da chamada, porque a autenticacao
+            // e assincrona - esperar a resposta para avisar o jogador seria avisar depois de acabar.
+            EstadoDoLogin = ERunnerLoginState::Autenticando;
+            MarcarCamposComErro(false);
+            AtualizarBotaoPeloEstado();
+
             if (Session->IsEOSAvailable())
             {
                 // Dev Auth do EOS: os dois campos viram o Id e o Token do Dev Auth Tool da Epic.
@@ -1488,14 +1512,61 @@ void URunnerMenuWidget::OnTertiaryClicked()
     }
 }
 
+void URunnerMenuWidget::MarcarCamposComErro(const bool bComErro)
+{
+    // SECAO 30, estado ERROR: as bordas dos campos envolvidos mudam para a cor de erro, e a mensagem sai discreta
+    // embaixo - nada de popup. A cor e a que a secao define.
+    const FLinearColor CorDeErro = RunnerPalette::Hex(0xff6688);
+    for (UEditableTextBox* Campo : { AccountBox, PasswordBox, UserNameBox, ConfirmBox })
+    {
+        if (!Campo)
+        {
+            continue;
+        }
+        FEditableTextBoxStyle Estilo = Campo->GetWidgetStyle();
+        Estilo.SetBackgroundImageNormal(Caixa(bComErro ? FLinearColor(0.16f, 0.05f, 0.08f, 0.92f) : RunnerPalette::FundoCampo(),
+                                               RaioDoCampo, bComErro ? CorDeErro : RunnerPalette::BordaCampo(), 1.5f));
+        Campo->SetWidgetStyle(Estilo);
+    }
+}
+
+void URunnerMenuWidget::AtualizarBotaoPeloEstado()
+{
+    if (!BotaoPrincipal)
+    {
+        return;
+    }
+    // AUTENTICANDO: o botao passa a carregando e nao aceita novo toque. E o estado que a secao 30 chama de
+    // Authenticating - o jogador ve que algo esta acontecendo, sem popup e sem tela bloqueada.
+    const bool bCarregando = (EstadoDoLogin == ERunnerLoginState::Autenticando);
+    BotaoPrincipal->SetIsEnabled(!bCarregando);
+    if (UWidget* Filho = BotaoPrincipal->GetChildAt(0))
+    {
+        if (UTextBlock* Rotulo = Cast<UTextBlock>(Filho))
+        {
+            Rotulo->SetText(FText::FromString(bCarregando ? TEXT("AUTENTICANDO...") : TEXT("ENTRAR")));
+        }
+    }
+}
+
 void URunnerMenuWidget::HandleLoginComplete(const bool bSuccess, const FString& Error)
 {
     if (!bSuccess)
     {
+        // ESTADO ERRO: borda nos campos + mensagem discreta. Sem popup, como a secao pede.
+        EstadoDoLogin = ERunnerLoginState::Erro;
+        MarcarCamposComErro(true);
+        AtualizarBotaoPeloEstado();
         SetStatus(Error.IsEmpty() ? TEXT("O login falhou.") : Error);
         return;
     }
 
+    // ESTADO SUCESSO: um flash ciano curto (0,3 s) antes de trocar de tela - o retorno visual que confirma sem
+    // precisar de mensagem.
+    EstadoDoLogin = ERunnerLoginState::Sucesso;
+    TempoDoFlash = 0.3f;
+    MarcarCamposComErro(false);
+    AtualizarBotaoPeloEstado();
     AfterLogin();
 }
 

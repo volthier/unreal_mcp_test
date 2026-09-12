@@ -302,6 +302,22 @@ protected:
     /** Posicao do TAB na navegacao por teclado (secao 29): e-mail, senha, lembrar de mim. */
     int32 CampoFocado = -1;
 
+    /**
+     * MAQUINA DE ESTADOS DO LOGIN (spec secao 30): Idle, EnteringCredentials, Authenticating, Success e Error.
+     * O estado muda o que a tela MOSTRA: o botao vira carregando, os campos envolvidos ficam com a borda de erro e
+     * o sucesso da um flash ciano curto. Nada de popup invasivo, como a secao pede.
+     */
+    enum class ERunnerLoginState : uint8 { Idle, Digitando, Autenticando, Sucesso, Erro };
+    ERunnerLoginState EstadoDoLogin = ERunnerLoginState::Idle;
+
+    /** Tempo restante do flash ciano de sucesso (0,25 a 0,4 s, secao 30). */
+    float TempoDoFlash = 0.f;
+
+    /** Pinta as bordas dos campos de entrada na cor de erro, quando o login falha. */
+    void MarcarCamposComErro(const bool bComErro);
+    /** Atualiza o rotulo do botao principal conforme o estado (Idle, carregando). */
+    void AtualizarBotaoPeloEstado();
+
     /** O botao principal da etapa, guardado para o pulso emissivo da secao 7. */
     UPROPERTY() TObjectPtr<class UButton> BotaoPrincipal;
     float TempoDoPulso = 0.f;
