@@ -32,6 +32,13 @@ ENTRADAS = [
     (RAIZ + '/ui/icone_pessoa.png', 'ui_icone_pessoa'),
     (RAIZ + '/ui/icone_cadeado.png', 'ui_icone_cadeado'),
     (RAIZ + '/ui/icone_olho.png', 'ui_icone_olho'),
+    (RAIZ + '/ui/icone_olho_fechado.png', 'ui_icone_olho_fechado'),
+    # Simbolos PROPRIOS dos botoes sociais: geometria neutra desenhada por nos, sem marca de terceiros (o autor
+    # foi explicito: nada de relacao com nome ou asset de outro).
+    (RAIZ + '/ui/icone_rede1.png', 'ui_rede1'), (RAIZ + '/ui/icone_rede2.png', 'ui_rede2'),
+    (RAIZ + '/ui/icone_rede3.png', 'ui_rede3'), (RAIZ + '/ui/icone_rede4.png', 'ui_rede4'),
+    (RAIZ + '/ui/icone_rede5.png', 'ui_rede5'), (RAIZ + '/ui/icone_rede6.png', 'ui_rede6'),
+    (RAIZ + '/ui/icone_rede7.png', 'ui_rede7'),
     (RAIZ + '/ui/kit_vidro_v001.png', 'ui_vidro_fume'),
     (RAIZ + '/ui/kit_emblema_v001.png', 'ui_emblema'),
 ]

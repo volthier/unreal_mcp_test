@@ -162,6 +162,16 @@ protected:
      */
     UFUNCTION() void HandleLembrarMe(bool bMarcado);
 
+    /**
+     * O OLHO do campo de senha (spec secao 11): alterna entre esconder e mostrar o que foi digitado, e troca o
+     * icone entre olho aberto e olho cortado. Faltava - era um icone decorativo.
+     */
+    UFUNCTION() void HandleMostrarSenha();
+
+    /** Icone do olho, que troca a cada clique. */
+    UPROPERTY() TObjectPtr<class UImage> ImagemDoOlho;
+    bool bMostraSenha = false;
+
     /** Depois de entrar: lista os personagens da conta, ou vai direto criar o primeiro. */
     void AfterLogin();
 

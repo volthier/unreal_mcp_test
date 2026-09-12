@@ -54,6 +54,8 @@ public:
     /** Icones dos campos de entrada (usuario e senha), do mesmo kit. */
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoUsuario;
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDaSenha;
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoOlho;
+    UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoOlhoFechado;
 
     /** Escurecimento aplicado sobre a arte do fundo, para a UI continuar legivel (0 a 1). */
     UPROPERTY(config, EditAnywhere, Category = "Fundo", meta = (ClampMin = "0.0", ClampMax = "0.95"))

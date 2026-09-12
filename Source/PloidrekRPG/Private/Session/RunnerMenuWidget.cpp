@@ -440,6 +440,30 @@ void URunnerMenuWidget::HandleLembrarMe(bool bMarcado)
         : TEXT("Lembrar de mim: desmarcado - o e-mail nao sera lembrado."));
 }
 
+void URunnerMenuWidget::HandleMostrarSenha()
+{
+    if (!PasswordBox)
+    {
+        return;
+    }
+    bMostraSenha = !bMostraSenha;
+    PasswordBox->SetIsPassword(!bMostraSenha);
+
+    if (ImagemDoOlho)
+    {
+        const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+        if (Ajustes)
+        {
+            UTexture2D* Icone = (bMostraSenha ? Ajustes->IconeDoOlhoFechado : Ajustes->IconeDoOlho).LoadSynchronous();
+            if (Icone)
+            {
+                ImagemDoOlho->SetBrushFromTexture(Icone, false);
+            }
+        }
+    }
+    SetStatus(bMostraSenha ? TEXT("Senha visivel.") : TEXT("Senha oculta."));
+}
+
 void URunnerMenuWidget::SetStatus(const FString& Message)
 {
     if (StatusText)
@@ -683,8 +707,32 @@ void URunnerMenuWidget::RebuildLayout()
                 ? TEXT("Senha (8+, maiuscula, minuscula, especial)") : TEXT("Senha"))));
         PasswordBox->SetIsPassword(!bCamposDoDevAuth);
         EstilizarCampo(PasswordBox);
-        Adicionar(RootBox, LinhaDeCampoComIcone(PasswordBox,
-            Ajustes ? Ajustes->IconeDaSenha.LoadSynchronous() : nullptr), 10.f);
+        // A LINHA DA SENHA: cadeado a esquerda, campo no meio e o OLHO a direita (spec secao 11). O olho e um
+        // UButton de verdade - antes era so um icone decorativo e nao fazia nada.
+        UHorizontalBox* LinhaDaSenha = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+        if (UHorizontalBoxSlot* EspacoDoCadeado = LinhaDaSenha->AddChildToHorizontalBox(
+                LinhaDeCampoComIcone(PasswordBox, Ajustes ? Ajustes->IconeDaSenha.LoadSynchronous() : nullptr)))
+        {
+            EspacoDoCadeado->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        }
+        UButton* BotaoDoOlho = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("BotaoDoOlho"));
+        BotaoDoOlho->SetBackgroundColor(FLinearColor::Transparent);
+        BotaoDoOlho->OnClicked.AddDynamic(this, &URunnerMenuWidget::HandleMostrarSenha);
+        ImagemDoOlho = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("ImagemDoOlho"));
+        if (UTexture2D* IconeDoOlho = Ajustes ? Ajustes->IconeDoOlho.LoadSynchronous() : nullptr)
+        {
+            ImagemDoOlho->SetBrushFromTexture(IconeDoOlho, false);
+        }
+        ImagemDoOlho->SetDesiredSizeOverride(FVector2D(18.f, 18.f));
+        ImagemDoOlho->SetColorAndOpacity(FLinearColor(0.f, 0.9f, 1.f, 0.9f));
+        BotaoDoOlho->AddChild(ImagemDoOlho);
+        if (UHorizontalBoxSlot* EspacoDoOlho = LinhaDaSenha->AddChildToHorizontalBox(BotaoDoOlho))
+        {
+            EspacoDoOlho->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+            EspacoDoOlho->SetPadding(FMargin(8.f, 0.f, 0.f, 0.f));
+            EspacoDoOlho->SetVerticalAlignment(VAlign_Center);
+        }
+        Adicionar(RootBox, LinhaDaSenha, 10.f);
         AlvosDoVeu.Add(PasswordBox);
 
         // A linha do guia: "Lembrar de mim" a esquerda e "Esqueci a senha?" a direita.
@@ -809,7 +857,27 @@ void URunnerMenuWidget::RebuildLayout()
                            RunnerPalette::AzulNeon(0.45f), 1.f);
             Social->SetIsEnabled(false);
             Social->SetToolTipText(FText::FromString(TEXT("Integracao nao conectada neste projeto.")));
-            Social->AddChild(CriarTexto(WidgetTree, Provedores[Indice], 9.f, RunnerPalette::TextoCorpo()));
+
+            // SIMBOLO PROPRIO + rotulo. Os simbolos sao geometria desenhada por nos (ui_rede1..7), porque a regra
+            // do projeto proibe asset de terceiros - e o autor confirmou que o que nao pode e a relacao explicita
+            // com marca alheia. O icone entra por caminho de asset carregado em runtime.
+            UHorizontalBox* Chip = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+            const FString CaminhoDoSimbolo = FString::Printf(TEXT("/Game/AI_Assets/ui/ui_rede%d.ui_rede%d"), Indice + 1, Indice + 1);
+            if (UTexture2D* Simbolo = LoadObject<UTexture2D>(nullptr, *CaminhoDoSimbolo))
+            {
+                UImage* Marca = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+                Marca->SetBrushFromTexture(Simbolo, false);
+                Marca->SetDesiredSizeOverride(FVector2D(15.f, 15.f));
+                Marca->SetColorAndOpacity(FLinearColor(0.f, 0.9f, 1.f, 0.95f));
+                if (UHorizontalBoxSlot* EspacoDaMarca = Chip->AddChildToHorizontalBox(Marca))
+                {
+                    EspacoDaMarca->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+                    EspacoDaMarca->SetPadding(FMargin(0.f, 0.f, 7.f, 0.f));
+                    EspacoDaMarca->SetVerticalAlignment(VAlign_Center);
+                }
+            }
+            Chip->AddChildToHorizontalBox(CriarTexto(WidgetTree, Provedores[Indice], 9.f, RunnerPalette::TextoCorpo()));
+            Social->AddChild(Chip);
             UHorizontalBoxSlot* Espaco = Fileira->AddChildToHorizontalBox(Social);
             Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
             Espaco->SetPadding(FMargin(3.f, 0.f));
