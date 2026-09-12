@@ -408,12 +408,14 @@ void URunnerMenuWidget::NativeOnInitialized()
     // outra janela - o painel recalculava o tamanho pelo viewport e o conteudo ficava para fora. Com a
     // referencia fixa, 800x600 e 4K mostram A MESMA tela, so em tamanhos diferentes, sempre centralizada.
     CaixaDoPainel = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CaixaDoPainel"));
-    // A REFERENCIA TEM DE CABER O CONTEUDO. Com 1000 de altura o login estourava: logo (146) + frase + abas +
-    // dois campos (46 cada, com espaco) + linha lembrar/esqueci + dois botoes (56 cada) + divisor + tres fileiras
-    // de sociais + rodape passam de 1000. Como a barra de rolagem esta escondida de proposito, o que estourava
-    // ficava CORTADO - era isso que o autor via como posicao quebrada. 1120 da folga real.
+    // A REFERENCIA TEM DE ACOMPANHAR O CONTEUDO, e nao ser chutada. O historico deste numero e a licao:
+    //   com 1000 o conteudo estourava e, como a barra de rolagem esta Collapsed de proposito, ficava CORTADO;
+    //   com 1120 eu exagerei e o conteudo passou a flutuar no topo com um vazio embaixo.
+    // A medida certa saiu da propria captura do autor: o conteudo do login ocupa ~75 por cento da altura quando
+    // a referencia e 1120, ou seja ele mede ~840. Com 880 na referencia ele fica justo, com uma folga pequena em
+    // cima e embaixo - que e o respiro do alvo, e nao um vazio.
     CaixaDoPainel->SetWidthOverride(620.f);
-    CaixaDoPainel->SetHeightOverride(1120.f);
+    CaixaDoPainel->SetHeightOverride(880.f);
 
     // A COLUNA da entrada: o LOGOTIPO em cima e o painel embaixo, os dois na MESMA coluna e dentro do mesmo
     // ScaleBox. E assim que o alvo e montado (Art/Tela_login): o AETHER FORGE fica ACIMA do painel, sobre a
@@ -565,8 +567,10 @@ void URunnerMenuWidget::RebuildLayout()
     {
         // A referencia da entrada e a COLUNA (logotipo + painel): 620x1000. Nas telas de escolha nao ha logotipo,
         // entao a referencia e so o painel largo.
+        // 880 e a altura real do conteudo da entrada (medida na captura), com folga pequena. Nas telas de
+        // escolha, 900 porque ali o conteudo e outro (vitrine e colunas).
         CaixaDoPainel->SetWidthOverride(bTelaDeEntrada ? 620.f : 1180.f);
-        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 1120.f : 900.f);
+        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 880.f : 900.f);
     }
 
     // A vitrine e a lista dividem a altura do painel: em tela baixa tudo encolhe, nada some.
