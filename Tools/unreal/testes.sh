@@ -16,7 +16,7 @@ cd "$(dirname "$0")/../.." || exit 1
 ESPERADOS=15
 LOG=/tmp/testes_projeto.log
 
-/Users/Shared/Epic Games/UE_5.8/Engine/Binaries/Mac/UnrealEditor-Cmd \
+"/Users/Shared/Epic Games/UE_5.8/Engine/Binaries/Mac/UnrealEditor-Cmd" \
   "$(pwd)/PloidrekRPG.uproject" \
   -ExecCmds="Automation RunTests Runner;Quit" \
   -unattended -nosplash -nullrhi -stdout -testexit="Automation Test Queue Empty" > "$LOG" 2>&1
