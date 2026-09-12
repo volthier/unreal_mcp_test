@@ -426,40 +426,15 @@ void URunnerMenuWidget::NativeOnInitialized()
     ColunaDaEntrada = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ColunaDaEntrada"));
     CaixaDoPainel->AddChild(ColunaDaEntrada);
 
-    // AS CAMADAS DE EFEITO (secoes 22 e 23) vivem num OVERLAY junto com o painel: scanline por cima de tudo e
-    // ruido eletronico. As duas usam os materiais de UI da secao 20, com material instance dinamico para os
-    // parametros serem animados no tick. HitTestInvisible para nao roubarem o clique dos campos e botoes.
-    UOverlay* Camadas = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CamadasDeEfeito"));
-    Camadas->AddChildToOverlay(Panel);
-
-    auto PorEfeito = [&](const TCHAR* NomeDoMaterial, const float Intensidade, const float Opacidade)
-    {
-        const FString Caminho = FString::Printf(TEXT("/Game/UI/Login/Materials/%s.%s"), NomeDoMaterial, NomeDoMaterial);
-        if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, *Caminho))
-        {
-            if (UMaterialInstanceDynamic* Dinamico = UMaterialInstanceDynamic::Create(Base, this))
-            {
-                Dinamico->SetScalarParameterValue(TEXT("Intensity"), Intensidade);
-                Dinamico->SetScalarParameterValue(TEXT("Opacity"), Opacidade);
-                Dinamico->SetScalarParameterValue(TEXT("ScanSpeed"), 0.35f);
-                Dinamico->SetScalarParameterValue(TEXT("ScanDensity"), 220.f);
-                Dinamico->SetScalarParameterValue(TEXT("NoiseAmount"), 0.02f);
-                UImage* Camada = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-                Camada->SetBrushFromMaterial(Dinamico);
-                Camada->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
-                Camada->SetVisibility(ESlateVisibility::HitTestInvisible);
-                Camadas->AddChildToOverlay(Camada);
-                if (FCString::Strstr(NomeDoMaterial, TEXT("Scanline")))
-                {
-                    MaterialDaScanline = Dinamico;
-                }
-            }
-        }
-    };
-    PorEfeito(TEXT("M_UI_Scanline"), 0.04f, 0.05f);
-    PorEfeito(TEXT("M_UI_Noise"), 1.0f, 0.02f);
-
-    ColunaDaEntrada->AddChildToVerticalBox(Camadas);
+    // O PAINEL ENTRA DIRETO NA COLUNA, num SizeBox de ALTURA FIXA. O Overlay de efeitos que eu tinha posto aqui
+    // destabilizava o layout: a moldura virava uma tira fina e o conteudo caia para fora - foi o que o autor viu
+    // na ultima foto. Altura fixa de 620 unidades de referencia, que e a medida do conteudo do login; o ScrollBox
+    // interno so passa a agir se algo exceder isso. Os efeitos das secoes 22 e 23 voltam depois, desenhados POR
+    // CIMA do painel em vez de envolve-lo - que e o jeito que nao mexe no tamanho dele.
+    USizeBox* CaixaDoPainelLogado = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CaixaDoPainelLogado"));
+    CaixaDoPainelLogado->SetHeightOverride(620.f);
+    CaixaDoPainelLogado->AddChild(Panel);
+    ColunaDaEntrada->AddChildToVerticalBox(CaixaDoPainelLogado);
 
     EscalaDaTela = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("EscalaDaTela"));
     EscalaDaTela->SetStretch(EStretch::ScaleToFit);
