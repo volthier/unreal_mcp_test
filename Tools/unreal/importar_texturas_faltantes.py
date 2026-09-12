@@ -39,6 +39,11 @@ ENTRADAS = [
     (RAIZ + '/ui/icone_rede3.png', 'ui_rede3'), (RAIZ + '/ui/icone_rede4.png', 'ui_rede4'),
     (RAIZ + '/ui/icone_rede5.png', 'ui_rede5'), (RAIZ + '/ui/icone_rede6.png', 'ui_rede6'),
     (RAIZ + '/ui/icone_rede7.png', 'ui_rede7'),
+    # BOTOES angulares (spec secao 14): silhueta com cantos cortados, laterais recortadas e chevrons.
+    (RAIZ + '/ui/btn_entrar_normal.png', 'ui_btn_entrar_normal'),
+    (RAIZ + '/ui/btn_entrar_hover.png', 'ui_btn_entrar_hover'),
+    (RAIZ + '/ui/btn_entrar_pressed.png', 'ui_btn_entrar_pressed'),
+    (RAIZ + '/ui/btn_secundario_normal.png', 'ui_btn_secundario_normal'),
     (RAIZ + '/ui/kit_vidro_v001.png', 'ui_vidro_fume'),
     (RAIZ + '/ui/kit_emblema_v001.png', 'ui_emblema'),
 ]

@@ -155,6 +155,50 @@ namespace
         Botao->SetBackgroundColor(FLinearColor::White);
     }
 
+    /** Carrega uma textura de UI do projeto (arte do kit). Devolve nulo se nao existir, sem quebrar a tela. */
+    UTexture2D* ArteDoKit(const TCHAR* Nome)
+    {
+        return LoadObject<UTexture2D>(nullptr,
+            *FString::Printf(TEXT("/Game/AI_Assets/ui/%s.%s"), Nome, Nome));
+    }
+
+    /**
+     * BOTAO COM ARTE (spec secao 14): o retangulo arredondado sai e entra a silhueta angular - cantos cortados,
+     * laterais recortadas e chevrons -, desenhada em PNG e aplicada como brush BOX (9 fatias), para o corte e o
+     * chevron nao esticarem junto com a largura do botao.
+     *
+     * A altura fica no widget (SizeBox), nao na arte: a arte so define a forma.
+     */
+    void EstilizarBotaoComArte(UButton* Botao, const TCHAR* Normal, const TCHAR* Hover, const TCHAR* Pressed)
+    {
+        if (!Botao)
+        {
+            return;
+        }
+        auto Pincel = [](const TCHAR* Nome) -> FSlateBrush
+        {
+            FSlateBrush P;
+            if (UTexture2D* Textura = ArteDoKit(Nome))
+            {
+                P.SetResourceObject(Textura);
+                P.ImageSize = FVector2D(Textura->GetSizeX(), Textura->GetSizeY());
+                P.DrawAs = ESlateBrushDrawType::Box;
+                // 0.20 horizontal guarda o corte de canto e o chevron; 0.35 vertical guarda o recorte lateral.
+                P.Margin = FMargin(0.20f, 0.35f);
+            }
+            return P;
+        };
+        FButtonStyle Estilo;
+        Estilo.SetNormal(Pincel(Normal));
+        Estilo.SetHovered(Pincel(Hover));
+        Estilo.SetPressed(Pincel(Pressed));
+        Estilo.SetDisabled(Pincel(Normal));
+        Estilo.SetNormalPadding(FMargin(26.f, 10.f));
+        Estilo.SetPressedPadding(FMargin(26.f, 11.f, 26.f, 9.f));
+        Botao->SetStyle(Estilo);
+        Botao->SetBackgroundColor(FLinearColor::White);
+    }
+
     /** Campo de texto: fundo escuro, contorno de latao que acende no foco. */
     void EstilizarCampo(UEditableTextBox* Campo)
     {
@@ -792,8 +836,19 @@ void URunnerMenuWidget::RebuildLayout()
 
     // Botao principal: ambar cheio, texto escuro — e a acao que o passo pede.
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-    EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
-                   RunnerPalette::AzulNeon(1.f), 2.f);   // ENTRAR: contorno ciano (item 7)
+    // ENTRAR (secao 14): silhueta angular com chevrons, e os tres estados em arte propria - hover mais aceso,
+    // pressed mais escuro. Quando a arte nao esta no projeto, cai no botao de caixa (a tela nunca fica sem
+    // botao).
+    if (ArteDoKit(TEXT("ui_btn_entrar_normal")))
+    {
+        EstilizarBotaoComArte(Primary, TEXT("ui_btn_entrar_normal"), TEXT("ui_btn_entrar_hover"),
+                              TEXT("ui_btn_entrar_pressed"));
+    }
+    else
+    {
+        EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
+                       RunnerPalette::AzulNeon(1.f), 2.f);
+    }
     UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 13.f, RunnerPalette::TextoDoBotao());
     PrimaryText->SetAutoWrapText(false);
     switch (CurrentStep)
@@ -815,8 +870,17 @@ void URunnerMenuWidget::RebuildLayout()
 
     // Botao secundario: ferro forjado com contorno de latao.
     UButton* Secondary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-    EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
-                   RunnerPalette::RosaNeon(0.85f), 1.5f);   // CADASTRO: contorno magenta (item 7)
+    // CADASTRO: mesma silhueta angular, com o accent magenta (item 7).
+    if (ArteDoKit(TEXT("ui_btn_secundario_normal")))
+    {
+        EstilizarBotaoComArte(Secondary, TEXT("ui_btn_secundario_normal"), TEXT("ui_btn_entrar_hover"),
+                              TEXT("ui_btn_entrar_pressed"));
+    }
+    else
+    {
+        EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
+                       RunnerPalette::RosaNeon(0.85f), 1.5f);
+    }
     UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 11.f, RunnerPalette::TextoCorpo());
     SecondaryText->SetAutoWrapText(false);
     switch (CurrentStep)
