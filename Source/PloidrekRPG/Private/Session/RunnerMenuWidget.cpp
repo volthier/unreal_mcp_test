@@ -18,6 +18,7 @@ namespace
 #include "Components/CanvasPanelSlot.h"
 #include "Components/CheckBox.h"
 #include "Components/EditableTextBox.h"
+#include "Components/ScaleBox.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -353,11 +354,25 @@ void URunnerMenuWidget::NativeOnInitialized()
         }
     }
     Panel->SetPadding(FMargin(26.f, 22.f));
-    UCanvasPanelSlot* PanelSlot = Canvas->AddChildToCanvas(Panel);
-    PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f));
-    PanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-    PanelSlot->SetSize(FVector2D(820.f, 760.f));
-    PanelSlotDoPainel = PanelSlot;
+
+    // A ESCALA DA INTERFACE. O painel nao e dimensionado em pixel de tela: ele e desenhado numa resolucao de
+    // REFERENCIA e um ScaleBox ajusta tudo proporcionalmente. Era este o defeito que o autor viu ao rodar em
+    // outra janela - o painel recalculava o tamanho pelo viewport e o conteudo ficava para fora. Com a
+    // referencia fixa, 800x600 e 4K mostram A MESMA tela, so em tamanhos diferentes, sempre centralizada.
+    CaixaDoPainel = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CaixaDoPainel"));
+    CaixaDoPainel->SetWidthOverride(560.f);
+    CaixaDoPainel->SetHeightOverride(860.f);
+    CaixaDoPainel->AddChild(Panel);
+
+    EscalaDaTela = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("EscalaDaTela"));
+    EscalaDaTela->SetStretch(EStretch::ScaleToFit);
+    EscalaDaTela->SetStretchDirection(EStretchDirection::Both);
+    EscalaDaTela->AddChild(CaixaDoPainel);
+    if (UCanvasPanelSlot* EscalaSlot = Canvas->AddChildToCanvas(EscalaDaTela))
+    {
+        EscalaSlot->SetAnchors(FAnchors(0.f, 0.f, 1.f, 1.f));
+        EscalaSlot->SetOffsets(FMargin(0.f));
+    }
 
     RootBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
 
@@ -458,12 +473,13 @@ void URunnerMenuWidget::RebuildLayout()
     const float AlturaDoPainel = bTelaDeEntrada
         ? FMath::Clamp(Tela.Y * 0.74f, 520.f, 820.f)
         : FMath::Clamp(Tela.Y * 0.92f, 560.f, 1040.f);
-    if (PanelSlotDoPainel)
+    // UNIDADES DE REFERENCIA, nao de tela: quem converte para a resolucao real e o ScaleBox. A entrada tem
+    // referencia estreita e vertical (560x860); as telas de escolha sao largas (1180x900), porque tem tres
+    // colunas. Como o ScaleBox escala proporcionalmente, as duas cabem inteiras em 800x600.
+    if (CaixaDoPainel)
     {
-        PanelSlotDoPainel->SetSize(FVector2D(
-            bTelaDeEntrada ? FMath::Clamp(Tela.X * 0.32f, 480.f, 640.f)
-                           : FMath::Clamp(Tela.X * 0.68f, 740.f, 1180.f),
-            AlturaDoPainel));
+        CaixaDoPainel->SetWidthOverride(bTelaDeEntrada ? 560.f : 1180.f);
+        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 860.f : 900.f);
     }
 
     // A vitrine e a lista dividem a altura do painel: em tela baixa tudo encolhe, nada some.

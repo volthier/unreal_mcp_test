@@ -268,7 +268,17 @@ protected:
     float AlturaDaLista = 170.f;
 
     /** Slot do painel: o tamanho e recalculado conforme a tela a cada passo. */
-    UPROPERTY() TObjectPtr<class UCanvasPanelSlot> PanelSlotDoPainel;
+    /**
+     * O TAMANHO DO PAINEL, em unidades de REFERENCIA (nao em pixel de tela).
+     *
+     * A tela inteira vive dentro de um ScaleBox: o layout e desenhado numa resolucao de referencia (560x860
+     * no login) e o ScaleBox encolhe ou estica tudo junto, proporcionalmente. E o que faz a caixa ficar
+     * centralizada e INTEIRA em 800x600 e em 4K, sem recalcular pixel em lugar nenhum.
+     */
+    UPROPERTY() TObjectPtr<class USizeBox> CaixaDoPainel;
+
+    /** O ScaleBox que escala a interface inteira a partir da referencia. */
+    UPROPERTY() TObjectPtr<class UScaleBox> EscalaDaTela;
 
     /** O "monitor" que mostra o corpo escolhido. */
     UPROPERTY() TObjectPtr<class UImage> PreviewImage;
