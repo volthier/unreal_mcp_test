@@ -1,0 +1,122 @@
+{
+	"tests": [
+		{
+			"name": "Runner.Config.RegraDeGameFeatureData",
+			"state": "Success",
+			"duration": 0.01318320631980896,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Corpo.MalhaEAnimacao",
+			"state": "Success",
+			"duration": 0.23751983046531677,
+			"errors": [],
+			"warnings": [
+				"LogAbilitySystem: No GameplayCueNotifyPaths were specified in DefaultGame.ini under [/Script/GameplayAbilities.AbilitySystemGlobals]. Falling back to using all of /Game/. This may be slow on large projects. Consider specifying which paths are to be searched."
+			]
+		},
+		{
+			"name": "Runner.Entrada.MapaApontaParaOMenu",
+			"state": "Success",
+			"duration": 0.011026877909898758,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Fluxo.ChassiEClasse",
+			"state": "Success",
+			"duration": 0.012716416269540787,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Mundo.AreaInicial",
+			"state": "Success",
+			"duration": 0.27608472108840942,
+			"errors": [],
+			"warnings": [
+				"MapCheck: M_PedraRestaurada Material /Game/AI_Assets/materials/M_PedraRestaurada.M_PedraRestaurada was missing the usage flag Nanite. If the material asset is not re-saved, it may not render correctly when run outside the editor. Fix",
+				"MapCheck: M_AcoEscuro Material /Game/AI_Assets/materials/M_AcoEscuro.M_AcoEscuro was missing the usage flag Nanite. If the material asset is not re-saved, it may not render correctly when run outside the editor. Fix",
+				"MapCheck: M_LataoPolido Material /Game/AI_Assets/materials/M_LataoPolido.M_LataoPolido was missing the usage flag Nanite. If the material asset is not re-saved, it may not render correctly when run outside the editor. Fix"
+			]
+		},
+		{
+			"name": "Runner.Nucleo.CoresEInstancias",
+			"state": "Success",
+			"duration": 0.025377083569765091,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Regras.Locomocao",
+			"state": "Success",
+			"duration": 0.014663584530353546,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Regras.Matematica",
+			"state": "Success",
+			"duration": 0.0080896243453025818,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Sessao.ContaECriacao",
+			"state": "Success",
+			"duration": 0.017086707055568695,
+			"errors": [],
+			"warnings": [
+				"LogEOSSDK: LogEOSRTC: TickTracker Ticks have been delayed. TimePeriod=[10.078908s] TickIntervalThreshold=[40ms] MaxTickInterval=[528ms] MaxExecutionTime=[1ms] TicksCount=[38] ExpectedTicksCount=[303]"
+			]
+		},
+		{
+			"name": "Runner.Sessao.EOSConfigurado",
+			"state": "Success",
+			"duration": 0.0078153349459171295,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Sessao.RegrasDeConta",
+			"state": "Success",
+			"duration": 0.024475336074829102,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.Sessao.VariosPersonagens",
+			"state": "Success",
+			"duration": 0.014309417456388474,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.UI.Icones",
+			"state": "Success",
+			"duration": 0.020965497940778732,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.UI.KitVisual",
+			"state": "Success",
+			"duration": 0.011327251791954041,
+			"errors": [],
+			"warnings": []
+		},
+		{
+			"name": "Runner.UI.NavegacaoDosBotoes",
+			"state": "Success",
+			"duration": 0.013090208172798157,
+			"errors": [],
+			"warnings": []
+		}
+	],
+	"passed": 15,
+	"failed": 0,
+	"skipped": 0,
+	"total": 15,
+	"duration": 0.70773106813430786
+}

@@ -1,5 +1,14 @@
 # Exceções registradas — o que ainda é script, e por quê
 
+> **Revisão de 2026-09-12:** os IDs abaixo preservam evidências históricas, não falhas reproduzidas hoje.
+> Blender MCP voltou a responder e `execute_blender_code` funcionou; EXC-002 exige reavaliar migração.
+> Comfy não está conectado ao Codex, portanto EXC-001 não foi revalidada em runtime.
+> Há uso de EXC-002 em `gerar_terreno.py`, `gerar_rio_e_arvore.py`, `frame_login.py`, além dos arquivos
+> listados; EXC-004 em `ajustar_pcg_cidade.py`; EXC-005 em `importar_fontes.py`,
+> `importar_texturas_do_mundo.py`, `importar_fumaca_seca.py`. O registro precisa reconciliar esses escopos:
+> falha de PNG não demonstra falha de import de fonte, e um ID no cabeçalho não amplia sozinho a exceção.
+> Não foram autorizadas novas exceções nem removidos scripts nesta auditoria.
+
 > **Regra:** o caminho padrão é o MCP. Um script só existe onde o MCP **não cobre** — e então ele fica aqui,
 > com motivo, risco e gatilho de revisão. Esta lista foi **refeita** depois de levantar o servidor: a versão
 > anterior estava errada e listava como exceção coisas que o MCP sempre teve (import, material, cena, salvar).

@@ -11,5 +11,38 @@ UV_PYTHON_PREFERENCE = "only-managed"
 BLENDER_HOST = "localhost"
 BLENDER_PORT = "9876"
 
+[mcp_servers.blender.tools.get_addon_status]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.get_scene_info]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.execute_blender_code]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.get_polyhaven_status]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.get_sketchfab_status]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.get_polypizza_status]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.get_hyper3d_status]
+approval_mode = "approve"
+
+[mcp_servers.blender.tools.get_hunyuan3d_status]
+approval_mode = "approve"
+
 [mcp_servers.unreal-mcp]
 url = "http://127.0.0.1:8000/mcp"
+
+[mcp_servers.unreal-mcp.tools.list_toolsets]
+approval_mode = "approve"
+
+[mcp_servers.unreal-mcp.tools.describe_toolset]
+approval_mode = "approve"
+
+[mcp_servers.unreal-mcp.tools.call_tool]
+approval_mode = "approve"

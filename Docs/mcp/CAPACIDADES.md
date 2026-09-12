@@ -1,8 +1,14 @@
 # Capacidades do MCP — o que é possível hoje e quando usar
 
-> **Como este documento foi feito:** levantado do **próprio servidor**, com `list_toolsets` e
-> `describe_toolset` contra o editor aberto (`127.0.0.1:8000/mcp`). **59 toolsets**. Não é de memória, e não é
-> uma lista de desejos — cada ferramenta citada aqui existe no servidor agora.
+> **Auditoria de 2026-09-12:** Unreal: **56 toolsets / 867 ferramentas**, todos os schemas recuperados
+> por `list_toolsets` + `describe_toolset`. Blender: **28 ferramentas expostas nesta sessão**, addon 1.6,
+> protocolo 5 compatível, Blender 5.2.0 LTS. Comfy: **39 ferramentas declaradas no pacote instalado
+> comfy-mcp 0.10.0**, CLI 1.19.0; catálogo estático, pois o Comfy não está conectado ao Codex nesta sessão.
+> Anunciado, conectado, habilitado e testado são estados distintos; não afirmar que todas as operações passaram.
+>
+> **Catálogo integral:** [CATALOGO_COMPLETO.md](CATALOGO_COMPLETO.md) lista cada ferramenta sem seleção por
+> relevância. Os JSONs em [catalogos/](catalogos/) preservam schemas Unreal, contratos Blender e assinaturas/docstrings
+> Comfy. As seções abaixo são guia de uso, não inventário exaustivo. Ver [AUDITORIA_2026-09-12.md](AUDITORIA_2026-09-12.md).
 >
 > Isto existe porque a estimativa anterior (feita de cabeça, e depois por um cliente caseiro que só enxergava
 > parte) concluiu que o MCP **não** tinha import, material, cena nem salvar. **Tem.** A conclusão errada custou
@@ -92,7 +98,10 @@
 
 ---
 
-## 2. Índice completo dos 59 toolsets
+## 2. Resumo de famílias de toolsets
+
+A enumeração integral vigente de **56 toolsets** está no catálogo vinculado acima; a contagem anterior de
+59 não corresponde à resposta atual do servidor. Contagens não são garantia fixa entre versões/plugins.
 
 **Editor e núcleo:** `EditorToolset.EditorAppToolset` · `EditorToolset.LogsToolset` · `ToolsetRegistry.AgentSkillToolset` ·
 `editor_toolset.toolsets.actor.ActorTools` · `.asset.AssetTools` · `.blueprint.BlueprintTools` · `.curve_table.CurveTableTools` ·
@@ -132,7 +141,47 @@ os nomes exatos e os argumentos). 3. `call_tool` com `toolset_name`, `tool_name`
 
 ## 4. O que **não** está coberto (e por isso é exceção registrada)
 
-Ver `EXCECOES.md`. Em resumo, hoje: **geração de imagem/3D com o ComfyUI** quando o caminho do MCP falha, e
-nada mais de relevante — todo o resto do acervo tem ferramenta no MCP.
+Ver `EXCECOES.md`: há registros de Comfy, Blender CLI, consolidação de módulo, import de PNG e propriedades
+de PCG. São limitações históricas com escopo específico; não foram todas reproduzidas nesta auditoria.
+Não generalizar uma falha de arquivo/operação para ausência de capacidade do servidor.
 
-`Docs/mcp/CAPACIDADES.yml` é este mesmo conteúdo em formato legível por máquina, para bot.
+## 5. Blender — superfície integral e estado
+
+As 28 ferramentas incluem cena, objeto, captura, execução Python, estado do addon e telemetria,
+PolyHaven, Sketchfab, Poly Pizza, Hyper3D Rodin e Hunyuan3D (busca, aquisição/geração, polling e import).
+Os nomes e contratos estão no catálogo completo e no JSON Blender.
+
+Leitura de cena e `execute_blender_code` com `bpy` funcionaram. Cena atual: três objetos, sem arquivo
+Blender carregado. Todas as cinco integrações opcionais de assets/geração retornaram **desabilitadas**.
+Isso não desabilita a modelagem procedural por `bpy`. Não ativar provedores nem importar conteúdo só para
+provar o inventário. Capacidade de import não dispensa a regra de proveniência do projeto.
+
+O addon anuncia ainda capacidades internas (atividade humana, snapshot de estado e consentimento),
+preservadas no JSON; elas não são nomes de ferramentas MCP diretamente chamáveis. Telemetria foi reportada
+ativa; estado apenas observado, não alterado.
+
+## 6. Comfy — superfície instalada e limite da verificação
+
+O pacote instalado declara 39 ferramentas: introspecção/estado/autenticação; workflows e templates;
+modelos locais e parceiros; jobs e outputs; upload/download; nodes e dependências; validação, slots,
+notas e variações; memória; iniciar/parar/reiniciar/atualizar/trocar versão e instalar nodes.
+`job`, `download`, `nodes` e `project` agrupam ações em parâmetros; consultar suas docstrings integrais.
+
+Comfy está declarado no DSH e no `.mcp.json`, mas ausente dos blocos MCP de configuração Codex inspecionados.
+Nenhuma ferramenta Comfy é chamável nesta sessão. O catálogo estático não prova conexão nem geração atual.
+Não renovar EXC-001 como falha atual sem reconectar e testar. Não executar geração paga, instalações,
+cancelamentos, limpeza de memória ou reinícios como se fossem consultas inofensivas.
+
+## 7. Código dentro do MCP e testes
+
+- Unreal: `get_execution_environment` antes de `execute_tool_script`. O ambiente permite `json`, `math`,
+  `datetime`, `copy`, `re`, `time` e `execute_tool`; **não** oferece `import unreal`, filesystem ou Python
+  arbitrário. É orquestração das ferramentas registradas, com chamadas sequenciais.
+- Blender: `execute_blender_code` executa Python dentro do Blender, incluindo `bpy`; verificado em leitura.
+- Comfy: não há ferramenta genérica de Python arbitrário entre as 39 declaradas. Workflows, slots e
+  templates são o caminho de execução exposto; geração 3D depende dos nodes/modelos do workflow.
+- Automação Unreal exige `DiscoverTests` antes de listar/rodar. Conferir total executado, falhas e avisos;
+  zero testes não comprova sucesso. O filtro de substring `Runner.` também encontra nomes de testes da engine;
+  usar `StartsWith:Runner.` para rodar a suíte do projeto.
+
+`CAPACIDADES.yml` é o índice de máquina e aponta para os catálogos integrais; os exemplos são apenas atalhos.

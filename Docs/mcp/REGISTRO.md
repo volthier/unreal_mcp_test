@@ -7,7 +7,7 @@
 
 | Label | O que é | Transporte | Endereço | Requisito |
 |---|---|---|---|---|
-| `unreal` / `unreal-mcp` | MCP **oficial da Epic**, roda **dentro do editor** (plugin `ModelContextProtocol`) | streamable-http | `http://127.0.0.1:8000/mcp` | editor aberto; **59 toolsets** (ver `CAPACIDADES.md`) |
+| `unreal` / `unreal-mcp` | MCP **oficial da Epic**, roda **dentro do editor** (plugin `ModelContextProtocol`) | streamable-http | `http://127.0.0.1:8000/mcp` | editor aberto; **56 toolsets / 867 ferramentas** em 2026-09-12 |
 | `blender` | ponte até o addon `BLENDERMCP`, que escuta no Blender gráfico | stdio | `BLENDER_HOST=127.0.0.1`, `BLENDER_PORT=9876` | addon ligado (painel do Blender) |
 | `comfy` / `comfy-mcp` | servidor `comfy-mcp`, que embrulha o CLI `comfy` | stdio | comando + `COMFY_BIN` | ComfyUI em `127.0.0.1:8188` para executar |
 
@@ -16,7 +16,7 @@ A porta do MCP do Unreal é configurável: `Config/DefaultEditorPerProjectUserSe
 
 ## 2. Onde se declara, por agente
 
-### 2.1 DSH (este harness)
+### 2.1 DSH
 
 Arquivo: `~/.dsh/profiles/web/cordis.patch.yml` (recarregado a quente). Três entradas `insert`, uma por
 servidor, com `id`, `name: '@deepseek-ai/dsh-mcp-client'` e o `config` do transporte:
@@ -60,6 +60,29 @@ As permissões ficam em `.claude/settings.local.json` (`mcp__unreal-mcp__call_to
 Mesmo conteúdo, no arquivo do agente (`.cursor/mcp.json` e equivalentes): **label + url** para o Unreal,
 **label + command/env** para Blender e Comfy. Se um agente novo entrar, ele lê este documento e registra —
 não se cria nada em Python.
+
+### 2.4 Codex — lacuna medida em 2026-09-12
+
+Inspecionados `.codex/config.toml` do projeto e `~/.codex/config.toml`: ambos declaram Blender e Unreal;
+nenhum declara Comfy. `.mcp.json` tem os três, mas sua presença não comprova carregamento no Codex.
+O catálogo da sessão expõe 28 ferramentas Blender e três meta-tools Unreal; zero ferramentas Comfy.
+
+Entrada que falta no registro Codex (proposta, não aplicada nesta auditoria):
+
+```toml
+[mcp_servers.comfy-mcp]
+command = "/Users/volthier/.venvs/comfy-mcp/bin/comfy-mcp"
+
+[mcp_servers.comfy-mcp.env]
+COMFY_BIN = "/Users/volthier/.venvs/comfy-mcp/bin/comfy"
+```
+
+Depois de carregar a configuração, confirmar `server_info` e a lista real de ferramentas; então validar
+um workflow local controlado antes de retirar EXC-001. Não escrever cliente MCP para contornar a falta.
+Timeouts efetivos e reconexão devem ser registrados por cliente, não copiados como promessa universal.
+
+O arquivo DSH inspecionado contém os três: Unreal timeout 180012 ms, Comfy 900000 ms e Blender 300000 ms;
+`failOnStartupError: false` nos três. Isso prova configuração, não saúde da sessão DSH em execução.
 
 ## 3. Como o agente usa (e o que ele NÃO faz)
 

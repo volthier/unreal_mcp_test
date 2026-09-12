@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-12",
+  "files": {
+    "blender-2026-09-12.json": {
+      "sha256": "d189808d822a4dce0febdde0d0d90b6e50cd94af0d791df69a031619fd2f0f7e",
+      "bytes": 27483
+    },
+    "comfy-2026-09-12.json": {
+      "sha256": "2d8fd0eb735f78d4a9caab25fb95b8d6859a6abf9d9e58e190146a9b1f4bf157",
+      "bytes": 51215
+    },
+    "unreal-2026-09-12.json": {
+      "sha256": "d4fe262127411f4dc98c7dd7e669d7a836ee714f8b5761f35d86265994e0f775",
+      "bytes": 2428112
+    }
+  }
+}

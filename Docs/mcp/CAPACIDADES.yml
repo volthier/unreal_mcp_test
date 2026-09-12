@@ -1,21 +1,36 @@
 # Capacidades do MCP — formato para bot (mesma verdade de CAPACIDADES.md)
 #
-# Fonte: list_toolsets + describe_toolset contra 127.0.0.1:8000/mcp (editor aberto). 59 toolsets.
+# Fonte Unreal: list_toolsets + describe_toolset, 2026-09-12: 56 toolsets / 867 tools.
+# Os atalhos em capacidades NAO sao inventario integral; usar catalogos abaixo.
 # REGRA: use `mcp` primeiro; `mcp_script` (código dentro do MCP) em segundo; `excecao` só com ID em EXCECOES.md.
 
-versao: 1
+versao: 2
+auditoria: '2026-09-12'
+catalogos:
+  humano: Docs/mcp/CATALOGO_COMPLETO.md
+  unreal: Docs/mcp/catalogos/unreal-2026-09-12.json
+  blender: Docs/mcp/catalogos/blender-2026-09-12.json
+  comfy: Docs/mcp/catalogos/comfy-2026-09-12.json
+estados:
+  unreal: schemas_live_completos_e_smoke_leitura_ok
+  blender: ferramentas_expostas_e_smoke_bpy_ok_integracoes_opcionais_desabilitadas
+  comfy: catalogo_estatico_instalado_sem_conexao_codex
 servidores:
   unreal:
     transporte: streamable-http
     url: http://127.0.0.1:8000/mcp
     requisito: editor aberto
-    toolsets: 59
+    toolsets: 56
+    ferramentas: 867
   blender:
+    ferramentas_expostas: 28
     transporte: stdio
     comando: blender-mcp
     env: { BLENDER_HOST: 127.0.0.1, BLENDER_PORT: '9876' }
     requisito: addon BLENDERMCP ligado no Blender
   comfy:
+    ferramentas_declaradas_instaladas: 39
+    runtime_codex_validado: false
     transporte: stdio
     comando: comfy-mcp
     env: { COMFY_BIN: ~/.venvs/comfy-mcp/bin/comfy }
@@ -70,7 +85,7 @@ capacidades:
     nota: Data/*.csv e a fonte; a DataTable e o destino importado
   - id: teste.automacao
     toolset: AutomationTestToolset.AutomationTestToolset
-    ferramenta: [RunTests, RunTestsByFilter, GetTestResults, ListTests]
+    ferramenta: [DiscoverTests, RunTests, RunTestsByFilter, GetTestStatus, GetTestResults, ListTests, StopTests]
     usar_quando: a DoD exige teste verde
   - id: cpp.compilar_no_editor
     toolset: LiveCodingToolset.LiveCodingToolset
@@ -86,7 +101,7 @@ capacidades:
     toolset: editor_toolset.toolsets.programmatic.ProgrammaticToolset
     ferramenta: [get_execution_environment, execute_tool_script]
     usar_quando: muitas chamadas em sequencia (montar 20 atores, 11 instancias)
-    nota: chamar get_execution_environment ANTES, para ler as instrucoes do ambiente
+    nota: chamar get_execution_environment ANTES; somente execute_tool e modulos seguros, sem import unreal ou acesso arbitrario ao filesystem
   - id: ui.umg
     toolset: UMGToolSet.UMGToolSet
     ferramenta: [CreateWidgetBlueprint, AddWidget, CompileWidgetBlueprint, BindToEventProperty, ListWidgetBlueprints]
