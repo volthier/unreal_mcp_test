@@ -293,6 +293,16 @@ protected:
     /** A coluna da tela de entrada: o logotipo em cima, o painel embaixo (como no art final do autor). */
     UPROPERTY() TObjectPtr<class UVerticalBox> ColunaDaEntrada;
 
+    /**
+     * PULSO DE IDLE do frame (spec secao 21): o emissivo ciano respira num periodo de 2 a 4 segundos, de forma
+     * EXTREMAMENTE sutil. Nada piscando rapido. O tempo vive aqui porque o widget ja tem tick.
+     */
+    UPROPERTY() TObjectPtr<class UBorder> PainelDoLogin;
+    UPROPERTY() TObjectPtr<class UMaterialInstanceDynamic> MaterialDaScanline;
+    float TempoDoPulso = 0.f;
+
+    virtual void NativeTick(const FGeometry& Geometria, const float Delta) override;
+
     /** O "monitor" que mostra o corpo escolhido. */
     UPROPERTY() TObjectPtr<class UImage> PreviewImage;
 

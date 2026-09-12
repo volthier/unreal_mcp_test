@@ -18,6 +18,8 @@ namespace
 #include "Components/CanvasPanelSlot.h"
 #include "Components/CheckBox.h"
 #include "Components/EditableTextBox.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/ScaleBox.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
@@ -402,6 +404,7 @@ void URunnerMenuWidget::NativeOnInitialized()
         }
     }
     Panel->SetPadding(FMargin(22.f, 20.f));   // padding interno do item 9 (20-32)
+    PainelDoLogin = Panel;                     // guardado para o pulso de idle (secao 21)
 
     // A ESCALA DA INTERFACE. O painel nao e dimensionado em pixel de tela: ele e desenhado numa resolucao de
     // REFERENCIA e um ScaleBox ajusta tudo proporcionalmente. Era este o defeito que o autor viu ao rodar em
@@ -422,7 +425,41 @@ void URunnerMenuWidget::NativeOnInitialized()
     // tempestade, e nao dentro dele - era esse o desvio que o autor apontou na ultima foto.
     ColunaDaEntrada = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ColunaDaEntrada"));
     CaixaDoPainel->AddChild(ColunaDaEntrada);
-    ColunaDaEntrada->AddChildToVerticalBox(Panel);
+
+    // AS CAMADAS DE EFEITO (secoes 22 e 23) vivem num OVERLAY junto com o painel: scanline por cima de tudo e
+    // ruido eletronico. As duas usam os materiais de UI da secao 20, com material instance dinamico para os
+    // parametros serem animados no tick. HitTestInvisible para nao roubarem o clique dos campos e botoes.
+    UOverlay* Camadas = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CamadasDeEfeito"));
+    Camadas->AddChildToOverlay(Panel);
+
+    auto PorEfeito = [&](const TCHAR* NomeDoMaterial, const float Intensidade, const float Opacidade)
+    {
+        const FString Caminho = FString::Printf(TEXT("/Game/UI/Login/Materials/%s.%s"), NomeDoMaterial, NomeDoMaterial);
+        if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, *Caminho))
+        {
+            if (UMaterialInstanceDynamic* Dinamico = UMaterialInstanceDynamic::Create(Base, this))
+            {
+                Dinamico->SetScalarParameterValue(TEXT("Intensity"), Intensidade);
+                Dinamico->SetScalarParameterValue(TEXT("Opacity"), Opacidade);
+                Dinamico->SetScalarParameterValue(TEXT("ScanSpeed"), 0.35f);
+                Dinamico->SetScalarParameterValue(TEXT("ScanDensity"), 220.f);
+                Dinamico->SetScalarParameterValue(TEXT("NoiseAmount"), 0.02f);
+                UImage* Camada = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+                Camada->SetBrushFromMaterial(Dinamico);
+                Camada->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
+                Camada->SetVisibility(ESlateVisibility::HitTestInvisible);
+                Camadas->AddChildToOverlay(Camada);
+                if (FCString::Strstr(NomeDoMaterial, TEXT("Scanline")))
+                {
+                    MaterialDaScanline = Dinamico;
+                }
+            }
+        }
+    };
+    PorEfeito(TEXT("M_UI_Scanline"), 0.04f, 0.05f);
+    PorEfeito(TEXT("M_UI_Noise"), 1.0f, 0.02f);
+
+    ColunaDaEntrada->AddChildToVerticalBox(Camadas);
 
     EscalaDaTela = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("EscalaDaTela"));
     EscalaDaTela->SetStretch(EStretch::ScaleToFit);
@@ -488,6 +525,32 @@ void URunnerMenuWidget::HandleLembrarMe(bool bMarcado)
     SetStatus(bMarcado
         ? TEXT("Lembrar de mim: marcado - o e-mail volta preenchido na proxima vez.")
         : TEXT("Lembrar de mim: desmarcado - o e-mail nao sera lembrado."));
+}
+
+void URunnerMenuWidget::NativeTick(const FGeometry& Geometria, const float Delta)
+{
+    Super::NativeTick(Geometria, Delta);
+
+    // PULSO DE IDLE (secao 21): periodo de 3,4 segundos, amplitude de 6 por cento - o emissivo ciano respira,
+    // mas de um jeito que o jogador NAO percebe como piscada. A secao pede exatamente isso: extremamente sutil,
+    // nada piscando rapidamente.
+    TempoDoPulso += Delta;
+    const float Fase = FMath::Sin(TempoDoPulso * (2.f * PI / 3.4f));
+    const float Respiro = 1.f + 0.06f * Fase;
+
+    if (PainelDoLogin)
+    {
+        // O painel e um brush de textura: o pulso entra pelo TINT, que acende e apaga o conjunto todo junto.
+        const FLinearColor Tinta = FLinearColor(Respiro * 0.98f, Respiro, Respiro * 1.02f, 1.f);
+        PainelDoLogin->SetBrushColor(Tinta);
+    }
+    if (MaterialDaScanline)
+    {
+        // A scanline tem o proprio respiro, com fase diferente: duas coisas pulsando em sincronia parecem uma
+        // coisa so piscando; fora de fase, parecem um sistema vivo.
+        const float FaseDaScanline = FMath::Sin(TempoDoPulso * (2.f * PI / 4.6f));
+        MaterialDaScanline->SetScalarParameterValue(TEXT("Intensity"), 0.04f * (1.f + 0.25f * FaseDaScanline));
+    }
 }
 
 void URunnerMenuWidget::HandleMostrarSenha()
