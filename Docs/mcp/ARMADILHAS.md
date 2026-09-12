@@ -49,6 +49,38 @@
 - **Conserto:** medir com `ActorTools.get_actor_bounds` (MCP) ou `StaticMeshTools.get_bounds`; foi o que separou
   problema de import de problema de posicionamento.
 
+## 7d. Entrada sintética NÃO alcança a janela de PIE — medido com o log
+
+**Sintoma:** `Click` e `PressKey` devolvem sucesso, o botão do jogo fica no estado pressionado e **nada acontece**.
+O log do jogo não registra **nenhuma** reação — nem a tentativa de login, nem o status do menu.
+
+**O que já foi testado, e o resultado de cada um:**
+
+| Tentativa | Resultado |
+|---|---|
+| `Click` simples, dois e três cliques | nada |
+| `Hover` antes do clique | nada |
+| Clique em widget inerte antes (soltar captura de mouse) | nada |
+| Sessão de PIE nova | nada |
+| `playMode: InEditorFloating` (a janela do jogo vira janela própria, com refs novos) | nada |
+| `PressKey` com Enter, Tab e setas (depois de o widget TOMAR FOCO de teclado) | nada |
+
+**A prova que fecha o caso:** o log. O menu registra quando abre (`AMenuGameMode: menu de entrada aberto`) e não
+registra **absolutamente nada** depois do ENTER. Se a tecla chegasse ao widget, o estado do login mudaria e o
+log teria a linha — o handler está ligado e testado, o foco foi implementado, e mesmo assim a tecla não chega.
+
+**Conclusão:** a síntese de entrada do inspetor vai para a aplicação Slate do **editor**, e o viewport de PIE (uma
+janela filha) não a recebe nesta configuração. **É limitação de ferramenta, não do jogo** — e é por isso que
+`Click`/`PressKey` não servem para validar fluxo de UI aqui.
+
+**O que usar no lugar:** (1) os testes de automação, que exercitam a regra sem depender de entrada; (2)
+`StartPIE` com `startTransform`, que põe o pawn onde se quer e permite capturar da câmera dele — foi assim que a
+entrada no mundo aberto ficou verificada; (3) captura de tela pelo engine (`CaptureEditorImage`), que pega a janela
+do editor inteira.
+
+**E uma regra de conduta que isto me ensinou:** não capturar a tela do sistema para contornar isso. Eu tentei uma
+vez, a captura pegou o navegador do usuário, e isso é invasão de privacidade — não importa o ganho de verificação.
+
 ## 7b. O clique sintético do Slate nem sempre chega ao jogo
 
 - **Sintoma:** `SlateInspectorToolset.Click` devolve `true`, o botão do jogo fica no estado **pressionado** e a tela
