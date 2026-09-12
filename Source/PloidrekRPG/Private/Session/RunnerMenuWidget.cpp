@@ -508,8 +508,11 @@ void URunnerMenuWidget::NativeOnInitialized()
     }
 
     RebuildLayout();
-}
 
+    // A navegacao por teclado (secao 29) so funciona com foco: sem esta chamada, os handlers de ENTER, ESCAPE e
+    // TAB existiriam e nunca seriam acionados.
+    TomarFocoDeTeclado();
+}
 void URunnerMenuWidget::HandleLembrarMe(bool bMarcado)
 {
     bLembrarMe = bMarcado;
@@ -525,6 +528,63 @@ void URunnerMenuWidget::HandleLembrarMe(bool bMarcado)
     SetStatus(bMarcado
         ? TEXT("Lembrar de mim: marcado - o e-mail volta preenchido na proxima vez.")
         : TEXT("Lembrar de mim: desmarcado - o e-mail nao sera lembrado."));
+}
+
+void URunnerMenuWidget::TomarFocoDeTeclado()
+{
+    // Sem foco, o Slate entrega a tecla para outro widget e o menu fica surdo. Este e o outro lado do "os cliques
+    // nao funcionam": entrada sintetica so chega onde existe foco.
+    if (APlayerController* Controlador = GetOwningPlayer())
+    {
+        Controlador->SetInputMode(FInputModeUIOnly());
+    }
+    if (UWidget* Raiz = GetRootWidget())
+    {
+        Raiz->SetKeyboardFocus();
+    }
+    else
+    {
+        SetKeyboardFocus();
+    }
+}
+
+FReply URunnerMenuWidget::NativeOnKeyDown(const FGeometry& Geometria, const FKeyEvent& Evento)
+{
+    const FKey Tecla = Evento.GetKey();
+
+    // ENTER confirma a acao principal. O botao A do gamepad chega como Virtual_Accept, entao o controle funciona
+    // pela mesma condicao, sem codigo separado - que e o que a secao 29 pede.
+    if (Tecla == EKeys::Enter || Tecla == EKeys::Virtual_Accept || Tecla == EKeys::Gamepad_FaceButton_Bottom)
+    {
+        OnPrimaryClicked();
+        return FReply::Handled();
+    }
+
+    // ESCAPE volta. O B do gamepad e Virtual_Back.
+    if (Tecla == EKeys::Escape || Tecla == EKeys::Virtual_Back || Tecla == EKeys::Gamepad_FaceButton_Right)
+    {
+        OnSecondaryClicked();
+        return FReply::Handled();
+    }
+
+    // TAB alterna entre os campos, na ordem da secao 29: e-mail, senha, lembrar de mim.
+    if (Tecla == EKeys::Tab)
+    {
+        // O indice fica guardado no widget: nao existe consulta de "quem tem foco" no UWidget, e criar uma
+        // dependencia do Slate so para descobrir isso seria mais fragil do que manter o proprio contador.
+        TArray<UWidget*> Ordem;
+        if (AccountBox)   { Ordem.Add(AccountBox); }
+        if (PasswordBox)  { Ordem.Add(PasswordBox); }
+        if (LembrarMeBox) { Ordem.Add(LembrarMeBox); }
+        if (Ordem.Num() > 0)
+        {
+            CampoFocado = (CampoFocado + 1) % Ordem.Num();
+            Ordem[CampoFocado]->SetKeyboardFocus();
+        }
+        return FReply::Handled();
+    }
+
+    return Super::NativeOnKeyDown(Geometria, Evento);
 }
 
 void URunnerMenuWidget::NativeTick(const FGeometry& Geometria, const float Delta)
@@ -550,6 +610,16 @@ void URunnerMenuWidget::NativeTick(const FGeometry& Geometria, const float Delta
         // coisa so piscando; fora de fase, parecem um sistema vivo.
         const float FaseDaScanline = FMath::Sin(TempoDoPulso * (2.f * PI / 4.6f));
         MaterialDaScanline->SetScalarParameterValue(TEXT("Intensity"), 0.04f * (1.f + 0.25f * FaseDaScanline));
+    }
+
+    // SECAO 7, o emissivo do botao principal: em repouso ele respira de leve, com periodo proprio (2,8 s) para nao
+    // sincronizar com o painel nem com a scanline - tres coisas pulsando junto viram uma piscada so. O HOVER nao
+    // entra aqui de proposito: o hover troca a ARTE (btn_entrar_hover, ja acesa), que e como a secao desenha os
+    // estados; somar pulso em cima do hover faria o botao tremer debaixo do mouse.
+    if (BotaoPrincipal)
+    {
+        const float BrilhoDoBotao = 1.f + 0.05f * FMath::Sin(TempoDoPulso * (2.f * PI / 2.8f));
+        BotaoPrincipal->SetBackgroundColor(FLinearColor(BrilhoDoBotao, BrilhoDoBotao, BrilhoDoBotao, 1.f));
     }
 }
 
@@ -937,6 +1007,7 @@ void URunnerMenuWidget::RebuildLayout()
     }
     Primary->AddChild(PrimaryText);
     Primary->OnClicked.AddDynamic(this, &URunnerMenuWidget::OnPrimaryClicked);
+    BotaoPrincipal = Primary;   // guardado para o pulso emissivo (secao 7)
     Adicionar(RootBox, Primary, 8.f);
     AlvosDoVeu.Add(Primary);
 

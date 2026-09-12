@@ -299,9 +299,24 @@ protected:
      */
     UPROPERTY() TObjectPtr<class UBorder> PainelDoLogin;
     UPROPERTY() TObjectPtr<class UMaterialInstanceDynamic> MaterialDaScanline;
+    /** Posicao do TAB na navegacao por teclado (secao 29): e-mail, senha, lembrar de mim. */
+    int32 CampoFocado = -1;
+
+    /** O botao principal da etapa, guardado para o pulso emissivo da secao 7. */
+    UPROPERTY() TObjectPtr<class UButton> BotaoPrincipal;
     float TempoDoPulso = 0.f;
 
     virtual void NativeTick(const FGeometry& Geometria, const float Delta) override;
+
+    /**
+     * NAVEGACAO POR TECLADO (spec secao 29): ENTER confirma a acao principal, ESCAPE volta, TAB alterna entre os
+     * campos. O gamepad chega aqui pelos mesmos eventos, porque o Slate traduz o botao A para ENTER e o B para
+     * ESCAPE - entao implementar aqui cobre os dois, como a secao pede.
+     */
+    virtual FReply NativeOnKeyDown(const FGeometry& Geometria, const FKeyEvent& Evento) override;
+
+    /** Garante foco de teclado no menu, sem o qual nenhuma tecla chega ate aqui. */
+    void TomarFocoDeTeclado();
 
     /** O "monitor" que mostra o corpo escolhido. */
     UPROPERTY() TObjectPtr<class UImage> PreviewImage;
