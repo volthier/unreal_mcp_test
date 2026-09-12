@@ -465,16 +465,16 @@ void URunnerMenuWidget::NativeOnInitialized()
     EscalaDaTela->SetStretch(EStretch::ScaleToFit);
     EscalaDaTela->SetStretchDirection(EStretchDirection::Both);
 
-    // CENTRALIZAR NAO E PADRAO, e era o defeito que o autor viu: sem alinhamento declarado, o conteudo escala a
-    // partir do canto e o conjunto (logotipo + painel) "se perde flutuando" a esquerda, com sobra a direita.
-    // Com HAlign e VAlign no centro, o painel fica no meio em QUALQUER tamanho de janela.
-    EscalaDaTela->SetHAlign(HAlign_Center);
-    EscalaDaTela->SetVAlign(VAlign_Center);
+    // CENTRALIZAR: o ScaleBox do UMG NAO tem SetHAlign/SetVAlign (eu tentei e o build quebrou). Quem centra e o
+    // SLOT do canvas que o contem, entao o alinhamento vai ali - e o ScaleBox ocupa a tela toda.
     EscalaDaTela->AddChild(CaixaDoPainel);
     if (UCanvasPanelSlot* EscalaSlot = Canvas->AddChildToCanvas(EscalaDaTela))
     {
+        // Ocupa a tela inteira (ancoras esticadas) e o CONTEUDO dela fica centrado: alinhamento de slot e o que
+        // o UMG oferece, e e o que faz o painel ficar no meio em qualquer tamanho de janela.
         EscalaSlot->SetAnchors(FAnchors(0.f, 0.f, 1.f, 1.f));
         EscalaSlot->SetOffsets(FMargin(0.f));
+        EscalaSlot->SetAlignment(FVector2D(0.5f, 0.5f));
     }
 
     RootBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
