@@ -60,9 +60,14 @@ namespace
     // solto aqui — se a cor nao esta na paleta, a discussao e de arte.
     // MEDIDAS DO ITEM 9 DO DOCUMENTO (dimensoes e espacamento), em unidades de referencia:
     //   cantos 8-10 px · margem interna 20 · padding 20-32 · espaco entre campos 14-20 · largura 420-580 (min 420)
-    constexpr float RaioDoPainel = 10.f;
-    constexpr float RaioDoBotao = 9.f;
-    constexpr float RaioDoCampo = 8.f;
+    // AS MEDIDAS VEM DO STYLE SYSTEM (secao 28), nao de constante solta no widget. Trocar o tema e trocar o valor
+    // em Project Settings > Game > Runner > Login, sem tocar em codigo.
+    // O nome tem de ser diferente de 'Estilo' porque varias funcoes do arquivo tem a propria variavel Estilo, e o
+    // projeto compila com -Wshadow como ERRO: sombrear aqui quebra o build.
+    const URunnerGameSettings* EstiloDoTema = GetDefault<URunnerGameSettings>();
+    const float RaioDoPainel = EstiloDoTema ? EstiloDoTema->LoginCornerSize + 1.f : 10.f;
+    const float RaioDoBotao = EstiloDoTema ? EstiloDoTema->LoginCornerSize : 9.f;
+    const float RaioDoCampo = EstiloDoTema ? FMath::Max(4.f, EstiloDoTema->LoginCornerSize - 1.f) : 8.f;
 
     /** Caixa arredondada (com contorno opcional): o acabamento de latao sobre aco escuro. */
     FSlateBrush Caixa(const FLinearColor& Preenchimento, const float Raio,
@@ -403,7 +408,8 @@ void URunnerMenuWidget::NativeOnInitialized()
             }
         }
     }
-    Panel->SetPadding(FMargin(22.f, 20.f));   // padding interno do item 9 (20-32)
+    // Padding do STYLE SYSTEM (secao 28): a secao 9 pede de 20 a 32, e aqui o valor vem do dado editavel.
+    Panel->SetPadding(FMargin(RunnerPalette::PaddingDoLogin() * 0.92f, RunnerPalette::PaddingDoLogin() * 0.83f));
     PainelDoLogin = Panel;                     // guardado para o pulso de idle (secao 21)
 
     // A ESCALA DA INTERFACE. O painel nao e dimensionado em pixel de tela: ele e desenhado numa resolucao de
@@ -600,7 +606,9 @@ void URunnerMenuWidget::NativeTick(const FGeometry& Geometria, const float Delta
     // PULSO DE IDLE (secao 21): periodo de 3,4 segundos, amplitude de 6 por cento - o emissivo ciano respira,
     // mas de um jeito que o jogador NAO percebe como piscada. A secao pede exatamente isso: extremamente sutil,
     // nada piscando rapidamente.
-    TempoDoPulso += Delta;
+    // A VELOCIDADE VEM DO STYLE (secao 28): multiplicar o tempo por LoginAnimationSpeed acelera ou desacelera
+    // TODOS os pulsos de uma vez, sem mexer em periodo nenhum no codigo.
+    TempoDoPulso += Delta * RunnerPalette::VelocidadeDaAnimacao();
     const float Fase = FMath::Sin(TempoDoPulso * (2.f * PI / 3.4f));
     const float Respiro = 1.f + 0.06f * Fase;
 
@@ -1516,7 +1524,8 @@ void URunnerMenuWidget::MarcarCamposComErro(const bool bComErro)
 {
     // SECAO 30, estado ERROR: as bordas dos campos envolvidos mudam para a cor de erro, e a mensagem sai discreta
     // embaixo - nada de popup. A cor e a que a secao define.
-    const FLinearColor CorDeErro = RunnerPalette::Hex(0xff6688);
+    const URunnerGameSettings* EstiloDoErro = GetDefault<URunnerGameSettings>();
+    const FLinearColor CorDeErro = EstiloDoErro ? EstiloDoErro->LoginCorDeErro : FLinearColor(1.f, 0.4f, 0.53f);
     for (UEditableTextBox* Campo : { AccountBox, PasswordBox, UserNameBox, ConfirmBox })
     {
         if (!Campo)

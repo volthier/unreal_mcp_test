@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/RunnerGameSettings.h"
 
 /**
  * Cores da interface — paleta CYBERPUNK NEON, definida nos guias de conceito do autor:
@@ -67,6 +68,26 @@ namespace RunnerPalette
     // --- Energia (Aether) e gelo ---
     inline FLinearColor Ciano(const float A = 1.f)          { return Hex(0x00e5ff, A); }
     inline FLinearColor Aether(const float A = 1.f)         { return Hex(0x40ffc0, A); }
+
+    // --- STYLE SYSTEM (spec secao 28) ---
+    //
+    // Estes tres leem do Project Settings > Game > Runner > Login. E por aqui que tema, medidas e velocidade das
+    // animacoes mudam sem tocar em widget nenhum - que e exatamente o que a secao 28 pede.
+    inline float PaddingDoLogin()
+    {
+        const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+        return Ajustes ? Ajustes->LoginPadding : 24.f;
+    }
+    inline float EspacoEntreCampos()
+    {
+        const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+        return Ajustes ? Ajustes->LoginEspacoEntreCampos : 14.f;
+    }
+    inline float VelocidadeDaAnimacao()
+    {
+        const URunnerGameSettings* Ajustes = GetDefault<URunnerGameSettings>();
+        return (Ajustes && Ajustes->LoginAnimationSpeed > 0.f) ? Ajustes->LoginAnimationSpeed : 1.f;
+    }
 
     // --- Papeis na interface (quem usa o que) ---
     inline FLinearColor FundoPainel()      { return FundoUI(0.88f); }
