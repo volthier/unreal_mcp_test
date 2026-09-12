@@ -56,9 +56,11 @@ namespace
 {
     // Cores: todas vindas de RunnerPalette, que segue Docs/SteampunkPalette.md. Nenhum hexadecimal
     // solto aqui — se a cor nao esta na paleta, a discussao e de arte.
-    constexpr float RaioDoPainel = 12.f;
-    constexpr float RaioDoBotao = 6.f;
-    constexpr float RaioDoCampo = 5.f;
+    // MEDIDAS DO ITEM 9 DO DOCUMENTO (dimensoes e espacamento), em unidades de referencia:
+    //   cantos 8-10 px · margem interna 20 · padding 20-32 · espaco entre campos 14-20 · largura 420-580 (min 420)
+    constexpr float RaioDoPainel = 10.f;
+    constexpr float RaioDoBotao = 9.f;
+    constexpr float RaioDoCampo = 8.f;
 
     /** Caixa arredondada (com contorno opcional): o acabamento de latao sobre aco escuro. */
     FSlateBrush Caixa(const FLinearColor& Preenchimento, const float Raio,
@@ -353,7 +355,7 @@ void URunnerMenuWidget::NativeOnInitialized()
             }
         }
     }
-    Panel->SetPadding(FMargin(26.f, 22.f));
+    Panel->SetPadding(FMargin(26.f, 24.f));   // padding interno do item 9 (20-32)
 
     // A ESCALA DA INTERFACE. O painel nao e dimensionado em pixel de tela: ele e desenhado numa resolucao de
     // REFERENCIA e um ScaleBox ajusta tudo proporcionalmente. Era este o defeito que o autor viu ao rodar em
@@ -561,7 +563,35 @@ void URunnerMenuWidget::RebuildLayout()
         case ERunnerMenuStep::Class:           Passo = TEXT("ESCOLHA A CLASSE"); break;
         case ERunnerMenuStep::Confirm:         Passo = TEXT("CONFIRMAR"); break;
     }
-    Adicionar(RootBox, CriarTexto(WidgetTree, Passo, 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 10.f);
+    // ABAS do item 3/7 do documento: a ATIVA e um chip ciano aceso, a outra e texto apagado. Nao sao clicaveis
+    // aqui de proposito - os botoes ENTRAR e CADASTRO logo abaixo fazem a troca, e duas formas de trocar a
+    // mesma aba na mesma tela confundem mais do que ajudam.
+    if (bTelaDeEntrada)
+    {
+        const bool bNaEntrada = (CurrentStep == ERunnerMenuStep::Login);
+        UHorizontalBox* Abas = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("AbasDaEntrada"));
+        auto PorAba = [&](const TCHAR* Rotulo, const bool bAtiva)
+        {
+            UBorder* Chip = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+            Chip->SetBrush(bAtiva ? Caixa(RunnerPalette::AzulNeon(0.22f), RaioDoCampo, RunnerPalette::AzulNeon(0.95f), 1.5f)
+                                  : Caixa(FLinearColor::Transparent, RaioDoCampo));
+            Chip->SetPadding(FMargin(14.f, 7.f));
+            Chip->SetContent(CriarTexto(WidgetTree, Rotulo, 10.f,
+                                        bAtiva ? RunnerPalette::AzulNeon() : RunnerPalette::CinzaTexto(0.8f)));
+            if (UHorizontalBoxSlot* Espaco = Abas->AddChildToHorizontalBox(Chip))
+            {
+                Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+                Espaco->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
+            }
+        };
+        PorAba(TEXT("LOGIN"), bNaEntrada);
+        PorAba(TEXT("CADASTRO"), !bNaEntrada);
+        Adicionar(RootBox, Abas, 10.f);
+    }
+    else
+    {
+        Adicionar(RootBox, CriarTexto(WidgetTree, Passo, 11.f, RunnerPalette::TextoFraco(), TEXT("Regular")), 10.f);
+    }
     Adicionar(RootBox, CriarFilete(WidgetTree, RunnerPalette::LataoEscovado(0.75f), 1.5f), 14.f);
 
     // Tela de escolha: criacao (abas chassi/classe) ou os Runners que ja existem.
@@ -602,7 +632,7 @@ void URunnerMenuWidget::RebuildLayout()
             AjudaEOS->SetFont(FSlateFontInfo(FPaths::ProjectContentDir() / TEXT("Slate/Fonts/Exo2.ttf"), 8.f));
             AjudaEOS->SetAutoWrapText(true);
             AjudaEOS->SetText(FText::FromString(FString::Printf(
-                TEXT("Dev Auth Tool: campo 1 = onde o tool esta ouvindo (%s); campo 2 = o nome que voce deu a credencial. O tool precisa estar rodando."),
+                TEXT("Dev Auth Tool ativo: campo 1 = onde ele ouve (%s); campo 2 = o nome da credencial."),
                 *HostDevAuth)));
             Adicionar(RootBox, AjudaEOS, 12.f);
         }
@@ -618,7 +648,11 @@ void URunnerMenuWidget::RebuildLayout()
 
         // Campo 1: o host do Dev Auth (pre-preenchido) ou o e-mail da conta.
         AccountBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:8081") : TEXT("E-mail ou Usuario")));
+        // ROTULOS DO DOCUMENTO (item 7): o campo e "E-mail ou Usuario" e a senha e "Senha". Com o EOS ativo o
+        // campo 1 continua sendo o host do Dev Auth por dentro, mas o ROTULO segue o documento - e a explicacao
+        // vai para a nota de rodape, que e onde ela cabe sem empurrar o desenho.
+        AccountBox->SetHintText(FText::FromString(bCamposDoDevAuth ? TEXT("localhost:8081 (host do tool)") : TEXT("E-mail ou Usuario")));
+        // A nota miuda do Dev Auth entra ANTES dos campos, em uma linha, no lugar do bloco de duas linhas.
         // "Lembrar de mim": o e-mail guardado volta preenchido (so quando nao e o host do Dev Auth, que ja
         // vem da configuracao e nao e do usuario).
         if (!bCamposDoDevAuth && bLembrarMe && !EmailLembrado.IsEmpty())
@@ -709,7 +743,7 @@ void URunnerMenuWidget::RebuildLayout()
     // Botao principal: ambar cheio, texto escuro — e a acao que o passo pede.
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
-                   RunnerPalette::AzulNeon(1.f), 2.f);
+                   RunnerPalette::AzulNeon(1.f), 2.f);   // ENTRAR: contorno ciano (item 7)
     UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 13.f, RunnerPalette::TextoDoBotao());
     PrimaryText->SetAutoWrapText(false);
     switch (CurrentStep)
@@ -732,7 +766,7 @@ void URunnerMenuWidget::RebuildLayout()
     // Botao secundario: ferro forjado com contorno de latao.
     UButton* Secondary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
-                   RunnerPalette::Violeta(0.80f), 1.5f);
+                   RunnerPalette::RosaNeon(0.85f), 1.5f);   // CADASTRO: contorno magenta (item 7)
     UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 11.f, RunnerPalette::TextoCorpo());
     SecondaryText->SetAutoWrapText(false);
     switch (CurrentStep)
