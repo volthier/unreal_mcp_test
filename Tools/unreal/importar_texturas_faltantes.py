@@ -24,7 +24,9 @@ ENTRADAS = [
     # Kit visual AAA do menu (EXC-005): o TextureTools.import_file do MCP recusa estes PNGs
     # PAINEL DE HUD do login (alvo do autor): canto arredondado, borda ciano fina e COLCHETES de canto, no
     # lugar da moldura de latao com interior branco. Mesmo nome de asset, entao a config nao muda.
-    (RAIZ + '/ui/painel_hud_v001.png', 'ui_moldura_latao'),
+    # FRAME hard surface do painel (spec secao 3): cantos cortados em 45 graus, chanfros, trim ciano emissivo,
+    # accents magenta, linhas de painel e parafusos. Mesmo nome de asset, entao a config nao muda.
+    (RAIZ + '/ui/frame_login_v001.png', 'ui_moldura_latao'),
     # Kit do login: o logotipo com o X em degrade e os icones dos campos.
     (RAIZ + '/ui/logo_aether.png', 'ui_logo_aether'),   # refeito na Orbitron do guia
     (RAIZ + '/ui/icone_pessoa.png', 'ui_icone_pessoa'),

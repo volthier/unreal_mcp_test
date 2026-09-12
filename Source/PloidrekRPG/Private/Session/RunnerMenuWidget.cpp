@@ -349,7 +349,9 @@ void URunnerMenuWidget::NativeOnInitialized()
                 PincelDaMoldura.SetResourceObject(Moldura);
                 PincelDaMoldura.ImageSize = FVector2D(Moldura->GetSizeX(), Moldura->GetSizeY());
                 PincelDaMoldura.DrawAs = ESlateBrushDrawType::Box;
-                PincelDaMoldura.Margin = FMargin(0.14f);
+                // 0.18 e a margem da arte do frame (o corte de canto e o trim ciano vivem nessa faixa): menor que
+                // isso o brush 9-slice corta o chanfro, maior estica o canto.
+                PincelDaMoldura.Margin = FMargin(0.18f);
                 PincelDaMoldura.TintColor = FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f));
                 Panel->SetBrush(PincelDaMoldura);
             }
