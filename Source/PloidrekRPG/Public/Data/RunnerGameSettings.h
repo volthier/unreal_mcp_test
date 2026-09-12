@@ -55,36 +55,6 @@ public:
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoUsuario;
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDaSenha;
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoOlho;
-
-    // ================================================================================================
-    // STYLE SYSTEM DA TELA DE LOGIN (spec secao 28).
-    //
-    // A secao pede que as cores e medidas NAO fiquem espalhadas nos widgets: aqui elas ficam num lugar so,
-    // editavel em Project Settings > Game > Runner, sem tocar em codigo. Mudar o tema e mudar estes valores.
-    // ================================================================================================
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginCorPrimaria = FLinearColor(0.f, 0.898f, 1.f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginCorSecundaria = FLinearColor(0.f, 0.549f, 1.f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginCorDeAcento = FLinearColor(1.f, 0.180f, 0.945f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginCorDeFundo = FLinearColor(0.020f, 0.031f, 0.078f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginCorDeBorda = FLinearColor(0.f, 0.898f, 1.f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginTextoPrincipal = FLinearColor(0.918f, 0.949f, 1.f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginTextoSecundario = FLinearColor(0.478f, 0.737f, 0.675f);
-    UPROPERTY(config, EditAnywhere, Category = "Login|Cores") FLinearColor LoginCorDeErro = FLinearColor(1.f, 0.400f, 0.533f);
-
-    /** Brilho do emissivo (secao 7): repouso 3 a 7, hover 8 a 12, pressed 4 a 6. */
-    UPROPERTY(config, EditAnywhere, Category = "Login|Medidas") float LoginGlowIntensity = 4.f;
-    UPROPERTY(config, EditAnywhere, Category = "Login|Medidas") float LoginGlowHover = 9.f;
-    UPROPERTY(config, EditAnywhere, Category = "Login|Medidas") float LoginGlowPressed = 5.f;
-    /** Tamanho do corte de canto, em unidades de referencia (secao 9: cantos de 8 a 10). */
-    UPROPERTY(config, EditAnywhere, Category = "Login|Medidas") float LoginCornerSize = 9.f;
-    /** Padding interno do painel (secao 9: de 20 a 32). */
-    UPROPERTY(config, EditAnywhere, Category = "Login|Medidas") float LoginPadding = 24.f;
-    /** Espaco entre campos (secao 9: de 14 a 20). */
-    UPROPERTY(config, EditAnywhere, Category = "Login|Medidas") float LoginEspacoEntreCampos = 14.f;
-    /** Velocidade das animacoes de idle: multiplica os periodos do pulso (secao 21). */
-    UPROPERTY(config, EditAnywhere, Category = "Login|Animacao") float LoginAnimationSpeed = 1.f;
-    /** Transicao entre Login e Cadastro, em segundos (secao 10: de 0,15 a 0,25). */
-    UPROPERTY(config, EditAnywhere, Category = "Login|Animacao") float LoginTransitionTime = 0.2f;
     UPROPERTY(config, EditAnywhere, Category = "Fundo") TSoftObjectPtr<UTexture2D> IconeDoOlhoFechado;
 
     /** Escurecimento aplicado sobre a arte do fundo, para a UI continuar legivel (0 a 1). */
