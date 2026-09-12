@@ -464,6 +464,12 @@ void URunnerMenuWidget::NativeOnInitialized()
     EscalaDaTela = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("EscalaDaTela"));
     EscalaDaTela->SetStretch(EStretch::ScaleToFit);
     EscalaDaTela->SetStretchDirection(EStretchDirection::Both);
+
+    // CENTRALIZAR NAO E PADRAO, e era o defeito que o autor viu: sem alinhamento declarado, o conteudo escala a
+    // partir do canto e o conjunto (logotipo + painel) "se perde flutuando" a esquerda, com sobra a direita.
+    // Com HAlign e VAlign no centro, o painel fica no meio em QUALQUER tamanho de janela.
+    EscalaDaTela->SetHAlign(HAlign_Center);
+    EscalaDaTela->SetVAlign(VAlign_Center);
     EscalaDaTela->AddChild(CaixaDoPainel);
     if (UCanvasPanelSlot* EscalaSlot = Canvas->AddChildToCanvas(EscalaDaTela))
     {
