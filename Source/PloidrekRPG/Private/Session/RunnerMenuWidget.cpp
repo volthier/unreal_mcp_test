@@ -360,9 +360,15 @@ void URunnerMenuWidget::NativeOnInitialized()
     // outra janela - o painel recalculava o tamanho pelo viewport e o conteudo ficava para fora. Com a
     // referencia fixa, 800x600 e 4K mostram A MESMA tela, so em tamanhos diferentes, sempre centralizada.
     CaixaDoPainel = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CaixaDoPainel"));
-    CaixaDoPainel->SetWidthOverride(560.f);
-    CaixaDoPainel->SetHeightOverride(860.f);
-    CaixaDoPainel->AddChild(Panel);
+    CaixaDoPainel->SetWidthOverride(620.f);
+    CaixaDoPainel->SetHeightOverride(1000.f);
+
+    // A COLUNA da entrada: o LOGOTIPO em cima e o painel embaixo, os dois na MESMA coluna e dentro do mesmo
+    // ScaleBox. E assim que o alvo e montado (Art/Tela_login): o AETHER FORGE fica ACIMA do painel, sobre a
+    // tempestade, e nao dentro dele - era esse o desvio que o autor apontou na ultima foto.
+    ColunaDaEntrada = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ColunaDaEntrada"));
+    CaixaDoPainel->AddChild(ColunaDaEntrada);
+    ColunaDaEntrada->AddChildToVerticalBox(Panel);
 
     EscalaDaTela = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("EscalaDaTela"));
     EscalaDaTela->SetStretch(EStretch::ScaleToFit);
@@ -380,6 +386,9 @@ void URunnerMenuWidget::NativeOnInitialized()
     // janela - o painel encolhia e o conteudo continuava do mesmo tamanho, caindo para fora dele. Com a
     // rolagem, o conteudo ou cabe (caso normal) ou rola dentro do painel - nunca vaza.
     UScrollBox* RolagemDoPainel = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("RolagemDoPainel"));
+    // A barra de rolagem fica ESCONDIDA: ela e uma rede de seguranca para tela menor que a referencia, nao um
+    // elemento do desenho. Visivel, ela riscava o painel do autor.
+    RolagemDoPainel->SetScrollBarVisibility(ESlateVisibility::Collapsed);
     RolagemDoPainel->AddChild(RootBox);
     Panel->SetContent(RolagemDoPainel);
 
@@ -478,8 +487,10 @@ void URunnerMenuWidget::RebuildLayout()
     // colunas. Como o ScaleBox escala proporcionalmente, as duas cabem inteiras em 800x600.
     if (CaixaDoPainel)
     {
-        CaixaDoPainel->SetWidthOverride(bTelaDeEntrada ? 560.f : 1180.f);
-        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 860.f : 900.f);
+        // A referencia da entrada e a COLUNA (logotipo + painel): 620x1000. Nas telas de escolha nao ha logotipo,
+        // entao a referencia e so o painel largo.
+        CaixaDoPainel->SetWidthOverride(bTelaDeEntrada ? 620.f : 1180.f);
+        CaixaDoPainel->SetHeightOverride(bTelaDeEntrada ? 1000.f : 900.f);
     }
 
     // A vitrine e a lista dividem a altura do painel: em tela baixa tudo encolhe, nada some.
@@ -506,29 +517,32 @@ void URunnerMenuWidget::RebuildLayout()
         // Ajustes locais: o Ajustes do resto da funcao e declarado mais abaixo, e aqui em cima ainda nao existe.
         const URunnerGameSettings* AjustesDoTitulo = GetDefault<URunnerGameSettings>();
         UTexture2D* Logotipo = AjustesDoTitulo ? AjustesDoTitulo->LogoDoTitulo.LoadSynchronous() : nullptr;
-        if (Logotipo)
+        // O LOGOTIPO VAI PARA A COLUNA, ACIMA DO PAINEL - nao dentro dele. E a composicao do art final: o
+        // AETHER FORGE grande sobre a tempestade, e o painel de login abaixo. Largura e altura num SizeBox,
+        // na proporcao da textura (com so a largura, a caixa vertical esticava e o PROTOCOL ZERO subia).
+        if (Logotipo && ColunaDaEntrada)
         {
-            // Largura E altura fixadas num SizeBox, com a PROPORCAO da textura: com so a largura, a caixa
-            // vertical esticava a imagem e o PROTOCOL ZERO subia por cima do titulo (foi o que o autor viu).
-            // 300 px de largura: o painel da entrada mede 32 por cento da tela, e numa tela de 1200 px ele fica
-            // com ~383 px de largura util (~330 livres depois do padding). Com 400 o logotipo ESTOURAVA o painel
-            // - foi o que o autor viu na foto, com o conteudo caindo para fora.
-            const float LarguraDoLogo = 300.f;
+            const float LarguraDoLogo = 520.f;
             const float ProporcaoDoLogo = (float)Logotipo->GetSizeY() / FMath::Max(1.f, (float)Logotipo->GetSizeX());
             UImage* ImagemDoTitulo = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("LogoDoJogo"));
             ImagemDoTitulo->SetBrushFromTexture(Logotipo, false);
-            USizeBox* CaixaDoLogo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+            USizeBox* CaixaDoLogo = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CaixaDoLogo"));
             CaixaDoLogo->SetWidthOverride(LarguraDoLogo);
             CaixaDoLogo->SetHeightOverride(LarguraDoLogo * ProporcaoDoLogo);
             CaixaDoLogo->AddChild(ImagemDoTitulo);
-            Adicionar(RootBox, CaixaDoLogo, 0.f);
+            // Entra ANTES do painel na coluna, e centralizado.
+            if (UVerticalBoxSlot* EspacoDoLogo = Cast<UVerticalBoxSlot>(ColunaDaEntrada->InsertChildAt(0, CaixaDoLogo)))
+            {
+                EspacoDoLogo->SetHorizontalAlignment(HAlign_Center);
+                EspacoDoLogo->SetPadding(FMargin(0.f, 0.f, 0.f, 18.f));
+            }
         }
         else
         {
-            Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 32.f, RunnerPalette::Branco()), 0.f);
-            Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 13.f, RunnerPalette::Violeta()), 6.f);
+            Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("AETHER FORGE"), 18.f, RunnerPalette::Branco()), 0.f);
+            Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("P R O T O C O L   Z E R O"), 11.f, RunnerPalette::Violeta()), 6.f);
         }
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("mais que jogo, um novo amanha"), 10.f, RunnerPalette::TextoFraco()), 8.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("MAIS QUE JOGO, UM NOVO AMANHA"), 9.f, RunnerPalette::Violeta(0.9f)), 6.f);
     }
     else
     {
@@ -585,7 +599,7 @@ void URunnerMenuWidget::RebuildLayout()
         {
             UTextBlock* AjudaEOS = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
             AjudaEOS->SetColorAndOpacity(FSlateColor(RunnerPalette::TextoFraco()));
-            AjudaEOS->SetFont(FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 11.f));
+            AjudaEOS->SetFont(FSlateFontInfo(FPaths::ProjectContentDir() / TEXT("Slate/Fonts/Exo2.ttf"), 8.f));
             AjudaEOS->SetAutoWrapText(true);
             AjudaEOS->SetText(FText::FromString(FString::Printf(
                 TEXT("Dev Auth Tool: campo 1 = onde o tool esta ouvindo (%s); campo 2 = o nome que voce deu a credencial. O tool precisa estar rodando."),
@@ -696,7 +710,7 @@ void URunnerMenuWidget::RebuildLayout()
     UButton* Primary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Primary, RunnerPalette::BotaoPrincipal(), RunnerPalette::BotaoPrincipalHover(),
                    RunnerPalette::AzulNeon(1.f), 2.f);
-    UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 18.f, RunnerPalette::TextoDoBotao());
+    UTextBlock* PrimaryText = CriarTexto(WidgetTree, FString(), 13.f, RunnerPalette::TextoDoBotao());
     PrimaryText->SetAutoWrapText(false);
     switch (CurrentStep)
     {
@@ -719,7 +733,7 @@ void URunnerMenuWidget::RebuildLayout()
     UButton* Secondary = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
     EstilizarBotao(Secondary, RunnerPalette::BotaoSecundario(), RunnerPalette::BotaoSecundarioHover(),
                    RunnerPalette::Violeta(0.80f), 1.5f);
-    UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 16.f, RunnerPalette::TextoCorpo());
+    UTextBlock* SecondaryText = CriarTexto(WidgetTree, FString(), 11.f, RunnerPalette::TextoCorpo());
     SecondaryText->SetAutoWrapText(false);
     switch (CurrentStep)
     {
@@ -742,7 +756,7 @@ void URunnerMenuWidget::RebuildLayout()
     // promete login e nao faz e pior que botao apagado. O desenho do guia fica, a mentira nao.
     if (CurrentStep == ERunnerMenuStep::Login)
     {
-        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("—  ou continue com  —"), 10.f, RunnerPalette::TextoFraco()), 14.f);
+        Adicionar(RootBox, CriarTexto(WidgetTree, TEXT("—  ou continue com  —"), 8.f, RunnerPalette::TextoFraco()), 10.f);
 
         const TCHAR* Provedores[] = { TEXT("Facebook"), TEXT("Instagram"), TEXT("Apple"),
                                       TEXT("Xbox"), TEXT("Google"), TEXT("Epic Games"), TEXT("Steam") };
@@ -759,7 +773,7 @@ void URunnerMenuWidget::RebuildLayout()
                            RunnerPalette::AzulNeon(0.45f), 1.f);
             Social->SetIsEnabled(false);
             Social->SetToolTipText(FText::FromString(TEXT("Integracao nao conectada neste projeto.")));
-            Social->AddChild(CriarTexto(WidgetTree, Provedores[Indice], 13.f, RunnerPalette::TextoCorpo()));
+            Social->AddChild(CriarTexto(WidgetTree, Provedores[Indice], 9.f, RunnerPalette::TextoCorpo()));
             UHorizontalBoxSlot* Espaco = Fileira->AddChildToHorizontalBox(Social);
             Espaco->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
             Espaco->SetPadding(FMargin(3.f, 0.f));

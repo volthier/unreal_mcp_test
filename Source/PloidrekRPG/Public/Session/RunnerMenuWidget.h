@@ -280,6 +280,9 @@ protected:
     /** O ScaleBox que escala a interface inteira a partir da referencia. */
     UPROPERTY() TObjectPtr<class UScaleBox> EscalaDaTela;
 
+    /** A coluna da tela de entrada: o logotipo em cima, o painel embaixo (como no art final do autor). */
+    UPROPERTY() TObjectPtr<class UVerticalBox> ColunaDaEntrada;
+
     /** O "monitor" que mostra o corpo escolhido. */
     UPROPERTY() TObjectPtr<class UImage> PreviewImage;
 
